@@ -6,11 +6,11 @@ This repository contains all open source code developed for the studies, experim
 * Dave Osthus (co-PI) <dosthus@lanl.gov>;
 * Will Fischer (co-PI) <wfischer@lanl.gov>.
 
-For questions, issues, or clarifications on individual projects, contact information is available in the appropriate project directory..
+For questions, issues, or clarifications on individual projects, contact information is available in the appropriate project directory.
 
-This repository is organized according to the different directories needed to perform the experiment in the paper.  Additional directories will be added as projects complete:
+This repository is organized according to several directories.  Each directory contains the code for an individual study within this wider project.  Additional directories will be added as projects complete.  The current completed code bases are:
 
-* incidence_for_sir: code to perform the studies and data application for the Murph et al. 2024 publication (see below);
+* incidence_for_sir: code to perform the studies and data application for publication 1 (see below);
 
 ## Citations (ongoing)
 1. A.C. Murph, G.C. Gibson, L.B. VanDervort, N. Panda, L.A. Castro, S. Del Valle, D. Osthus. (202x). Incorporating Incidence Peak and Time Data for SIR Forecasting Applications.  _In Review._ 
