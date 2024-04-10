@@ -13,11 +13,11 @@ This repository is organized according to several directories.  Each directory c
 * incidence_for_sir: code to perform the studies and data application for publication 1 (see below);
 
 ## Citations (ongoing)
-1. A.C. Murph, G.C. Gibson, L.B. VanDervort, N. Panda, L.A. Castro, S. Del Valle, D. Osthus. (202x). Incorporating Incidence Peak and Time Data for SIR Forecasting Applications.  _In Review._ 
+1. A.C. Murph, G.C. Gibson, L.B. VanDervort, N. Panda, L.A. Castro, S. Del Valle, D. Osthus. (202x). Incorporating Incidence Peak and Time Data for SIR Forecasting Applications.  _Undergoing Revisions._ 
 
 ## Release
 
-These software have been approved for open source release and has been assigned **O4726** 
+These software have been approved for open source release and has been assigned **O4726**.
 
 ## Copyright
 
