@@ -1,7 +1,7 @@
 Program Repository for Tools for Analyzing Infectious Disease Sequence Data and Forecasting Public Health Outcomes
 ========
 
-This repository contains all open source code developed for the studies, experiments, and publications for the Directed Research project entitled, "Merging Sequence Data with Epidemiological Forecasting to Predict Future Pandemics." This project began in Fiscal Year 2024.  The project leads are:
+This repository contains all open source code developed for the studies, experiments, and publications for the Directed Research project entitled, "Merging Sequence Data with Epidemiological Forecasting to Predict Future Pandemics." This project began in Fiscal Year 2024 at Los Alamos National Lab under the Laboratory Directed Research and Development (LDRD) program.  The project leads are:
 * Sara Del Valle (PI) <sdelvall@lanl.gov>;
 * Dave Osthus (co-PI) <dosthus@lanl.gov>;
 * Will Fischer (co-PI) <wfischer@lanl.gov>.
