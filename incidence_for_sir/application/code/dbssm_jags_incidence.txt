@@ -1,0 +1,138 @@
+model{
+  # Data model: Eq. (4.1a)
+  for(i in 1:tt){
+    y[i] ~ dbeta(lambda*max(1e-10,theta[i+1,4]), lambda*(1-max(1e-10,theta[i+1,4])))
+  }
+  
+  # Posterior predictive model: Eq. (5.2)
+  for(i in 1:TT){
+    ypred[i] ~ dbeta(lambda*max(1e-10,theta[i+1,4]),lambda*(1-max(1e-10,theta[i+1,4])))
+  }
+  
+  # State evolution model: Eq. (4.1b)
+  theta[1,1:4] <- c(theta_s0, theta_i0, theta_r0, theta_i0)
+  ftheta[1,1:3] <- c(0,0,0)
+  for(i in 2:(TT+1)){
+    # Eq. (4.1b)
+    theta[i,1:3] ~ ddirch(kappa*ftheta[i,1:3])
+    # I think that the above is wrong.  It should be:
+    # theta[i,1:3] ~ ddirch(kappa*ftheta[i-1,1:3])
+    # but talk to dave about this.
+    
+    theta[i,4] <- theta[i,2] - theta[i-1,2]  + gamma*theta[i-1,2]
+    
+    # Section 1 of Supplement: Eq (1.1)
+    ftheta[i,1] <- max(0, theta[i-1,1] + (1/6)*(ks1[i-1] + 2*ks2[i-1] + 2*ks3[i-1] + ks4[i-1]) )
+    ftheta[i,2] <- max(0, theta[i-1,2] + (1/6)*(ki1[i-1] + 2*ki2[i-1] + 2*ki3[i-1] + ki4[i-1]) )
+    ftheta[i,3] <- max(0, theta[i-1,3] + (1/6)*(kr1[i-1] + 2*kr2[i-1] + 2*kr3[i-1] + kr4[i-1]) )
+    
+    # Section 1 of Supplement: Eq (1.2a, 1.2b, and 1.2c)
+    ks1[i-1] <- -beta*theta[i-1,1]*theta[i-1,2]
+    ki1[i-1] <- beta*theta[i-1,1]*theta[i-1,2] - gamma*theta[i-1,2]
+    kr1[i-1] <- gamma*theta[i-1,2]
+    
+    ks2[i-1] <- -beta*(theta[i-1,1] + .5*ks1[i-1])*(theta[i-1,2] + .5*ki1[i-1])
+    ki2[i-1] <- beta*(theta[i-1,1] + .5*ks1[i-1])*(theta[i-1,2] + .5*ki1[i-1]) - gamma*(theta[i-1,2] + .5*ki1[i-1])
+    kr2[i-1] <- gamma*(theta[i-1,2] + .5*ki1[i-1])
+    
+    ks3[i-1] <- -beta*(theta[i-1,1] + .5*ks2[i-1])*(theta[i-1,2] + .5*ki2[i-1])
+    ki3[i-1] <- beta*(theta[i-1,1] + .5*ks2[i-1])*(theta[i-1,2] + .5*ki2[i-1]) - gamma*(theta[i-1,2] + .5*ki2[i-1])
+    kr3[i-1] <- gamma*(theta[i-1,2] + .5*ki2[i-1])
+    
+    ks4[i-1] <- -beta*(theta[i-1,1] + ks3[i-1])*(theta[i-1,2] + ki3[i-1])
+    ki4[i-1] <- beta*(theta[i-1,1] + ks3[i-1])*(theta[i-1,2] + ki3[i-1]) - gamma*(theta[i-1,2] + ki3[i-1])
+    kr4[i-1] <- gamma*(theta[i-1,2] + ki3[i-1])
+  }
+  
+  ## priors
+  kappa ~ dgamma(2,.0001) # Eq (6.4)
+  lambda ~ dgamma(2, .0001) # Eq. (6.5)
+
+  theta_s0 <- .9 # Eq (6.6)
+  theta_i0 ~ dbeta(params_eq6.7[1], params_eq6.7[2])T(0,.1) # Eq (6.7)
+  theta_r0 <- 1 - theta_s0 - theta_i0 # Eq. (6.8)
+  
+  # Eq (6.10)
+  z <- c(z1, z2)
+  z1 ~ dnorm(mean_eq6.10[1], pow(Sigma_eq6.10[1,1],-1))T(theta_i0, 1)
+  z2 ~ dnorm(z2givenz1_mean, pow(z2givenz1_var,-1))T(1,35)
+  z2givenz1_mean <- mean_eq6.10[2] + (Sigma_eq6.10[1,2]/Sigma_eq6.10[1,1])*(z1 - mean_eq6.10[1])
+  z2givenz1_var <- Sigma_eq6.10[2,2] - (Sigma_eq6.10[1,2])*(1/Sigma_eq6.10[1,1])*(Sigma_eq6.10[1,2])
+  
+  #############################################################
+  ##  Murph update for incidence data w new analytic grid:
+  # This stuff needs to all go into JAGS:
+  i0_scaling_factor  <- (99/(0.05001-0.00001))
+  piv_scaling_factor <- (99/(0.1001-0.00001))
+  pit_scaling_factor <- (99/35)
+  
+  i0_integer_lower  <- trunc( theta_i0 * i0_scaling_factor )
+  x0                <- i0_integer_lower / i0_scaling_factor
+  i0_integer_upper  <- i0_integer_lower + 1
+  x1                <- i0_integer_upper / i0_scaling_factor
+  
+  piv_integer_lower <- trunc( z1 * piv_scaling_factor )
+  y0                <- piv_integer_lower / piv_scaling_factor
+  piv_integer_upper <- piv_integer_lower + 1
+  y1                <- piv_integer_upper / piv_scaling_factor
+  
+  pit_integer_lower <- trunc( (z2-1.0) * pit_scaling_factor + 1.0 )
+  z0                <- (pit_integer_lower-1) / pit_scaling_factor + 1
+  pit_integer_upper <- pit_integer_lower + 1
+  ze1               <- (pit_integer_upper-1) / pit_scaling_factor + 1
+  
+  # The order of indices is (i0)(PIV)(PIT)
+  c000_val_idx <- (i0_integer_lower + 1) + (piv_integer_lower)*100 + 10000 * (pit_integer_lower-1)
+  c100_val_idx <- (i0_integer_lower + 1 + 1) + (piv_integer_lower)*100 + 10000 * (pit_integer_lower-1)
+  c010_val_idx <- (i0_integer_lower + 1) + (piv_integer_lower + 1)*100 + 10000 * (pit_integer_lower-1)
+  c001_val_idx <- (i0_integer_lower + 1) + (piv_integer_lower)*100 + 10000 * (pit_integer_lower+1-1)
+  c110_val_idx <- (i0_integer_lower + 1 + 1) + (piv_integer_lower + 1)*100 + 10000 * (pit_integer_lower-1)
+  c011_val_idx <- (i0_integer_lower + 1) + (piv_integer_lower + 1)*100 + 10000 * (pit_integer_lower+1-1)
+  c101_val_idx <- (i0_integer_lower  + 1 + 1) + (piv_integer_lower)*100 + 10000 * (pit_integer_lower + 1-1)
+  c111_val_idx <- (i0_integer_lower + 1+ 1) + (piv_integer_lower + 1)*100 + 10000 * (pit_integer_lower + 1-1)
+  
+  # Get the trilinear interpolation for dave's beta:
+  c000_val_beta <- dave_betas[c000_val_idx]
+  c100_val_beta <- dave_betas[c100_val_idx]
+  c010_val_beta <- dave_betas[c010_val_idx]
+  c001_val_beta <- dave_betas[c001_val_idx]
+  c110_val_beta <- dave_betas[c110_val_idx]
+  c011_val_beta <- dave_betas[c011_val_idx]
+  c101_val_beta <- dave_betas[c101_val_idx]
+  c111_val_beta <- dave_betas[c111_val_idx]
+  
+  a0_beta <- (-c000_val_beta*x1*y1*ze1+c001_val_beta*x1*y1*z0+c010_val_beta*x1*y0*ze1-c011_val_beta*x1*y0*z0)/((x0-x1)*(y0-y1)*(z0-ze1))+(c100_val_beta*x0*y1*ze1-c101_val_beta*x0*y1*z0-c110_val_beta*x0*y0*ze1+c111_val_beta*x0*y0*z0)/((x0-x1)*(y0-y1)*(z0-ze1))
+  a1_beta <- (c000_val_beta*y1*ze1-c001_val_beta*y1*z0-c010_val_beta*y0*ze1+c011_val_beta*y0*z0)/((x0-x1)*(y0-y1)*(z0-ze1))+(-c100_val_beta*y1*ze1+c101_val_beta*y1*z0+c110_val_beta*y0*ze1-c111_val_beta*y0*z0)/((x0-x1)*(y0-y1)*(z0-ze1))
+  a2_beta <- (c000_val_beta*x1*ze1-c001_val_beta*x1*z0-c010_val_beta*x1*ze1+c011_val_beta*x1*z0)/((x0-x1)*(y0-y1)*(z0-ze1))+(-c100_val_beta*x0*ze1+c101_val_beta*x0*z0+c110_val_beta*x0*ze1-c111_val_beta*x0*z0)/((x0-x1)*(y0-y1)*(z0-ze1))
+  a3_beta <- (c000_val_beta*x1*y1-c001_val_beta*x1*y1-c010_val_beta*x1*y0+c011_val_beta*x1*y0)/((x0-x1)*(y0-y1)*(z0-ze1))+(-c100_val_beta*x0*y1+c101_val_beta*x0*y1+c110_val_beta*x0*y0-c111_val_beta*x0*y0)/((x0-x1)*(y0-y1)*(z0-ze1))
+  a4_beta <- (-c000_val_beta*ze1+c001_val_beta*z0+c010_val_beta*ze1-c011_val_beta*z0+c100_val_beta*ze1-c101_val_beta*z0-c110_val_beta*ze1+c111_val_beta*z0)/((x0-x1)*(y0-y1)*(z0-ze1))
+  a5_beta <- (-c000_val_beta*y1+c001_val_beta*y1+c010_val_beta*y0-c011_val_beta*y0+c100_val_beta*y1-c101_val_beta*y1-c110_val_beta*y0+c111_val_beta*y0)/((x0-x1)*(y0-y1)*(z0-ze1))
+  a6_beta <- (-c000_val_beta*x1+c001_val_beta*x1+c010_val_beta*x1-c011_val_beta*x1+c100_val_beta*x0-c101_val_beta*x0-c110_val_beta*x0+c111_val_beta*x0)/((x0-x1)*(y0-y1)*(z0-ze1))
+  a7_beta <- (c000_val_beta-c001_val_beta-c010_val_beta+c011_val_beta-c100_val_beta+c101_val_beta+c110_val_beta-c111_val_beta)/((x0-x1)*(y0-y1)*(z0-ze1))
+  
+  # beta = max(c100_val_beta, c010_val_beta, c001_val_beta, c110_val_beta, c011_val_beta, c101_val_beta, c111_val_beta, c000_val_beta)
+  beta <- a0_beta + a1_beta*theta_i0 + a2_beta*z1 + a3_beta*z2 + a4_beta*theta_i0*z1 + a5_beta*theta_i0*z2 + a6_beta*z1*z2 + a7_beta*theta_i0*z1*z2
+  
+  # Get the trilinear interpolation for dave's gamma:
+  c000_val_gamma<- dave_gammas[c000_val_idx]
+  c100_val_gamma<- dave_gammas[c100_val_idx]
+  c010_val_gamma<- dave_gammas[c010_val_idx]
+  c001_val_gamma<- dave_gammas[c001_val_idx]
+  c110_val_gamma<- dave_gammas[c110_val_idx]
+  c011_val_gamma<- dave_gammas[c011_val_idx]
+  c101_val_gamma<- dave_gammas[c101_val_idx]
+  c111_val_gamma<- dave_gammas[c111_val_idx]
+  
+  a0 <- (-c000_val_gamma*x1*y1*ze1+c001_val_gamma*x1*y1*z0+c010_val_gamma*x1*y0*ze1-c011_val_gamma*x1*y0*z0)/((x0-x1)*(y0-y1)*(z0-ze1))+(c100_val_gamma*x0*y1*ze1-c101_val_gamma*x0*y1*z0-c110_val_gamma*x0*y0*ze1+c111_val_gamma*x0*y0*z0)/((x0-x1)*(y0-y1)*(z0-ze1))
+  a1 <- (c000_val_gamma*y1*ze1-c001_val_gamma*y1*z0-c010_val_gamma*y0*ze1+c011_val_gamma*y0*z0)/((x0-x1)*(y0-y1)*(z0-ze1))+(-c100_val_gamma*y1*ze1+c101_val_gamma*y1*z0+c110_val_gamma*y0*ze1-c111_val_gamma*y0*z0)/((x0-x1)*(y0-y1)*(z0-ze1))
+  a2 <- (c000_val_gamma*x1*ze1-c001_val_gamma*x1*z0-c010_val_gamma*x1*ze1+c011_val_gamma*x1*z0)/((x0-x1)*(y0-y1)*(z0-ze1))+(-c100_val_gamma*x0*ze1+c101_val_gamma*x0*z0+c110_val_gamma*x0*ze1-c111_val_gamma*x0*z0)/((x0-x1)*(y0-y1)*(z0-ze1))
+  a3 <- (c000_val_gamma*x1*y1-c001_val_gamma*x1*y1-c010_val_gamma*x1*y0+c011_val_gamma*x1*y0)/((x0-x1)*(y0-y1)*(z0-ze1))+(-c100_val_gamma*x0*y1+c101_val_gamma*x0*y1+c110_val_gamma*x0*y0-c111_val_gamma*x0*y0)/((x0-x1)*(y0-y1)*(z0-ze1))
+  a4 <- (-c000_val_gamma*ze1+c001_val_gamma*z0+c010_val_gamma*ze1-c011_val_gamma*z0+c100_val_gamma*ze1-c101_val_gamma*z0-c110_val_gamma*ze1+c111_val_gamma*z0)/((x0-x1)*(y0-y1)*(z0-ze1))
+  a5 <- (-c000_val_gamma*y1+c001_val_gamma*y1+c010_val_gamma*y0-c011_val_gamma*y0+c100_val_gamma*y1-c101_val_gamma*y1-c110_val_gamma*y0+c111_val_gamma*y0)/((x0-x1)*(y0-y1)*(z0-ze1))
+  a6 <- (-c000_val_gamma*x1+c001_val_gamma*x1+c010_val_gamma*x1-c011_val_gamma*x1+c100_val_gamma*x0-c101_val_gamma*x0-c110_val_gamma*x0+c111_val_gamma*x0)/((x0-x1)*(y0-y1)*(z0-ze1))
+  a7 <- (c000_val_gamma-c001_val_gamma-c010_val_gamma+c011_val_gamma-c100_val_gamma+c101_val_gamma+c110_val_gamma-c111_val_gamma)/((x0-x1)*(y0-y1)*(z0-ze1))
+  
+  # gamma = max(c100_val_gamma, c010_val_gamma, c001_val_gamma, c110_val_gamma, c011_val_gamma, c101_val_gamma, c111_val_gamma, c000_val_gamma)
+  gamma <- a0 + a1*theta_i0 + a2*z1 + a3*z2 + a4*theta_i0*z1 + a5*theta_i0*z2 + a6*z1*z2 + a7*theta_i0*z1*z2
+}
+
