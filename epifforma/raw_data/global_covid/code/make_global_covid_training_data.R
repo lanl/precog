@@ -1,11 +1,3 @@
-## Dave Osthus
-## 2-15-24
-## Make global COVID data for training in epiFFORMA
-
-###############################################################
-## NOTE: I downloaded the raw data read in within this script from here: https://gis.cdc.gov/grasp/fluview/fluportaldashboard.html
-## I would have used the cdcfluview R package, but it does not appear to be operational
-## Also note that MMWR weeks run from Sunday to the following Saturday, as defined here: https://ndc.services.cdc.gov/wp-content/uploads/MMWR_Week_overview.pdf
 
 ###############################################################
 ## load libraries
@@ -18,19 +10,16 @@ theme_set(theme_bw())
 
 ###############################################################
 ## set path
-setwd("~/GitLab/epifforma")
-datapath <- "./raw-data-pipeline/" # Murph issue!
-savepath <- "./raw_data/global_covid/output/"
-plotpath <- "./raw_data/global_covid/figs/"
 
-###############################################################
-## set proxies
-Sys.setenv('https_proxy'='http://proxyout.lanl.gov:8080')## not sure why needed, but see here: https://github.com/curl/curl/issues/1015
+library(this.path)
+setwd(this.path::here()) 
+#data path not provided, raw data is big
+savepath <- "./output/"
+plotpath <- "./figs/"
 
 ###############################################################
 #### Read in Raw COVID Data
 df <- data.table::fread(paste0(datapath,"Merged_Regional.csv"))
-#df = data.table::fread('/Users/lbeesley/Desktop/COVID_DR_Data/Merged_Regional.csv')
 
 ## get all the unique geographies
 unqgeo <- sort(unique(df$Admin01))
