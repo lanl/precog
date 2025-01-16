@@ -21,7 +21,7 @@ Installation should take less than 15 minutes on a normal desktop computer.
 
 ## Instructions for use
 
-After R is installed, run **epifforma_run.R** to reproduce the epiFFORMA training and forecasting pipeline. No other scripts need to be run by the user; everything else is called by **epifforma_run.R**. Some intermediate results used in our manuscript are also provided, namely the fitted GBM model in **~/fit_model/features2weights/**  and real data evaluations in **~/evaluate_model/evaluation/** and **~/evaluate_probabilistic/evaluation/**. The script **epifforma_run.R** can also be used to generate many of the figures in our paper. 
+After R is installed, run **epifforma_run.R** to reproduce the epiFFORMA training and forecasting pipeline. No other scripts need to be run by the user; everything else is called by **epifforma_run.R**. Due to data storage limitations imposed by GitHub, we were unable to provide intermediate results (e.g., the evaluations of the real data) here. However, all of these results are reproducible with the provided data pipeline. 
   
 ## Release
 
