@@ -7,13 +7,6 @@
 #made available as part of this paper
 #https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10281060/
 
-### Another data sources if needed:
-# https://bmcmedicine.biomedcentral.com/articles/10.1186/s12916-018-1127-2
-# https://github.com/mooresea/chikv-colombia-emod/tree/master/inputs 
-# https://www.sciencedirect.com/science/article/pii/S1755436517300014
-# https://ars.els-cdn.com/content/image/1-s2.0-S1755436517300014-mmc2.csv (includes zika!!!!)
-# 
-
 ###############################################################
 
 ###########################################s###################
@@ -27,14 +20,12 @@ theme_set(theme_bw())
 
 ###############################################################
 ## set path
-setwd("~/GitLab/epifforma/")
-datapath <- "./raw_data/chikungunya/raw_data/"
-savepath <- "./raw_data/chikungunya/output/"
-plotpath <- "./raw_data/chikungunya/figs/"
 
-###############################################################
-## set proxies
-Sys.setenv('https_proxy'='http://proxyout.lanl.gov:8080')## not sure why needed, but see here: https://github.com/curl/curl/issues/1015
+library(this.path)
+setwd(this.path::here()) 
+datapath <- "./raw_data/"
+savepath <- "./output/"
+plotpath <- "./figs/"
 
 ###############################################################
 #### Get Dengue Data
