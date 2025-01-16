@@ -17,13 +17,11 @@ theme_set(theme_bw())
 
 ###############################################################
 ## set path
-setwd("~/GitLab/epifforma/")
-datapath <- "./raw_data/us_ili/raw_data/"
-savepath <- "./raw_data/us_ili/output/"
 
-###############################################################
-## set proxies
-Sys.setenv('https_proxy'='http://proxyout.lanl.gov:8080')## not sure why needed, but see here: https://github.com/curl/curl/issues/1015
+library(this.path)
+setwd(this.path::here()) 
+datapath <- "./raw_data/"
+savepath <- "./output/"
 
 ###############################################################
 #### ILINet DATA
