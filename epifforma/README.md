@@ -21,7 +21,7 @@ Installation should take less than 15 minutes on a normal desktop computer.
 
 ## Instructions for use
 
-After R is installed, run **epifforma_run.R** to reproduce the epiFFORMA training and forecasting pipeline. No other scripts need to be run by the user; everything else is called by **epifforma_run.R**. Due to data storage limitations imposed by GitHub, we were unable to provide intermediate results (e.g., the evaluations of the real data) here. However, all of these results are reproducible with the provided data pipeline. 
+After R is installed, run **epifforma_run.R** to reproduce the epiFFORMA training and forecasting pipeline. No other scripts need to be run by the user; everything else is called by **epifforma_run.R**. Due to data storage limitations imposed by GitHub, we were unable to provide intermediate results (e.g., the evaluations of the real data) here. However, all of these results are reproducible with the provided data pipeline. We provide a minimal working example of how to forecast for a new time series given a trained epiFFORMA model in **forecast_mwe.R**.
   
 ## Release
 
