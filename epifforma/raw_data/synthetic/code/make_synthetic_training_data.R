@@ -13,7 +13,9 @@ library(doParallel)
 
 theme_set(theme_bw())
 
-my_path = "~/GitLab/epifforma/raw_data/synthetic"
+
+library(this.path)
+my_path = this.path::here()
 setwd(my_path)
 
 ## set path
