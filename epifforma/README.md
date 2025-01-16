@@ -1,5 +1,5 @@
 # epiFFORMA: Data-Driven Ensemble Reweighting for Forecast Modeling
-Code associated with epiFFORMA, a method for estimating time series forecast ensemble weights as a function of time series features. This repository provides code for implementing the method and for reproducing many of the figures in a corresponding manuscript. This documentation will be updated when that manuscript is publicly available. 
+Code associated with epiFFORMA, a method for estimating time series forecast ensemble weights as a function of time series features. This repository provides code for implementing the method and for reproducing many of the figures in a corresponding manuscript. This documentation will be updated when that manuscript is publicly available. epiFFORMA builds on the FFORMA (Feature FORcasting Model Averaging; https://robjhyndman.com/papers/fforma.pdf) framework by catering decisions towards infectious disease forecasting applications.
 
 ---
 ## Summary
