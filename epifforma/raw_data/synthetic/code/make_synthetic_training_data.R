@@ -21,9 +21,6 @@ setwd(my_path)
 ## set path
 savepath <- "./output/"
 
-## set proxies
-Sys.setenv('https_proxy'='http://proxyout.lanl.gov:8080')## not sure why needed, but see here: https://github.com/curl/curl/issues/1015
-
 ## define number of cores
 ncores <- floor(.5*detectCores())
 
