@@ -13,9 +13,10 @@ This repository is organized according to several directories.  Each directory c
 * incidence_for_sir: code to perform the studies and data application for publication 1 (see below);
 
 ## Citations (ongoing)
-1. A.C. Murph, G.C. Gibson, L.J. Beesley, N. Panda, L.A. Castro, S. Del Valle, D. Osthus. (202x). Incorporating Incidence Peak and Time Data for SIR Forecasting Applications.  _Submitted for publication._ 
-1. A.C. Murph, G.C. Gibson, E.A. Amona, L.J. Beesley, L.A. Castro, S. Del Valle, D. Osthus. (202x). Synthetic method of analogues for emerging infectious disease forecasting.  _Undergoing Revisions._ 
-1. A.C. Murph, G.C. Gibson, L.J. Beesley, L.A. Castro, S. Del Valle, D. Osthus. (202x). EpiFFORMA: Disease-Agnostic Ensemble Weighting for Forecasting Emerging Epidemic Time Series without Historical Data.  _Undergoing Revisions._ 
+1. A.C. Murph, G.C. Gibson, L.J. Beesley, N. Panda, L.A. Castro, S. Del Valle, D. Osthus. (202x). Incorporating Incidence Peak and Time Data for SIR Forecasting Applications.  _In Review._ 
+2. A.C. Murph, G.C. Gibson, E.A. Amona, L.J. Beesley, L.A. Castro, S. Del Valle, D. Osthus. (202x). Synthetic method of analogues for emerging infectious disease forecasting.  _Undergoing Revisions._ 
+3. A.C. Murph, G.C. Gibson, L.J. Beesley, L.A. Castro, S. Del Valle, D. Osthus. (202x). EpiFFORMA: Disease-Agnostic Ensemble Weighting for Forecasting Emerging Epidemic Time Series without Historical Data.  _Undergoing Revisions._
+4. J.A. Spencer, E.E. Goldberg, P.C. Alexander, S.Y. Del Valle (202x) Phylogeny-based estimates of epidemic population substructure outperform time series approaches. _In Review._
 
 ## Release
 
