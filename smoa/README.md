@@ -3,10 +3,6 @@ Code for Experiment in Publication “Synthetic Method of Analogues for Emerging
 
 All code used to perform the experiment in the cited publication.  For questions, issues, or clarifications please reach out to Murph: <murph@lanl.gov>.
 
-This repository is organized according to the different directories needed to perform the experiment in the paper.  These directories are:
-
-(information coming soon)
-
 ## Citation
 A.C. Murph, G.C. Gibson, E.B. Amona, L.B. VanDervort, L.A. Castro, S. Del Valle, D. Osthus. (202x). Synthetic Method of Analogues for Emerging Infectious Disease Forecasting.  _In Review._ 
 
