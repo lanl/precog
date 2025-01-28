@@ -2,7 +2,7 @@ Program Repository for "Tools for Analyzing Infectious Disease Sequence Data and
 ========
 
 This repository contains all open source code developed for the studies, experiments, and publications for the Directed Research project entitled, "Merging Sequence Data with Epidemiological Forecasting to Predict Future Pandemics." This project began in Fiscal Year 2024 at Los Alamos National Lab under the Laboratory Directed Research and Development (LDRD) program.  The project leads are:
-* Sara Del Valle (PI) <sdelvall@lanl.gov>;
+* Lauren Castro (PI) <lcastro@lanl.gov>;
 * Dave Osthus (co-PI) <dosthus@lanl.gov>;
 * Will Fischer (co-PI) <wfischer@lanl.gov>.
 
@@ -13,7 +13,9 @@ This repository is organized according to several directories.  Each directory c
 * incidence_for_sir: code to perform the studies and data application for publication 1 (see below);
 
 ## Citations (ongoing)
-1. A.C. Murph, G.C. Gibson, L.B. VanDervort, N. Panda, L.A. Castro, S. Del Valle, D. Osthus. (202x). Incorporating Incidence Peak and Time Data for SIR Forecasting Applications.  _Undergoing Revisions._ 
+1. A.C. Murph, G.C. Gibson, L.J. Beesley, N. Panda, L.A. Castro, S. Del Valle, D. Osthus. (202x). Incorporating Incidence Peak and Time Data for SIR Forecasting Applications.  _Submitted for publication._ 
+1. A.C. Murph, G.C. Gibson, E.A. Amona, L.J. Beesley, L.A. Castro, S. Del Valle, D. Osthus. (202x). Synthetic method of analogues for emerging infectious disease forecasting.  _Undergoing Revisions._ 
+1. A.C. Murph, G.C. Gibson, L.J. Beesley, L.A. Castro, S. Del Valle, D. Osthus. (202x). EpiFFORMA: Disease-Agnostic Ensemble Weighting for Forecasting Emerging Epidemic Time Series without Historical Data.  _Undergoing Revisions._ 
 
 ## Release
 
