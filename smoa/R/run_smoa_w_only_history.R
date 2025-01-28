@@ -55,12 +55,12 @@ mle_lower_bound <- dispersion_forecast_scaling[floor((sim_idx-1)/8)+1]
 h                               <- 4
 
 # These are all from the bayesian optimization.
-num_curves <- 22142
+num_curves <- 18387
 k <- 5
-closest <- 3836
-lower_CI_scale <- 1.038942204
-upper_CI_scale <- 0.81145339130
-dispersion_scale <- 0.67925096
+closest <- 4422
+lower_CI_scale <- 1
+upper_CI_scale <- 1
+dispersion_scale <- 1
 dispersion_forecast <- 1
 mle_lower_bound <- 1
 
@@ -424,10 +424,10 @@ parfctn = function(x){
                              value = c(data_till_now_smoothed[length(data_till_now_smoothed)], point),
                              type = rep('error_region', times = (h+1)))
       
-      p1 <- ggplot(graph_data, aes(x = x, y = value, color = type)) + geom_line() + geom_vline(xintercept = forecast_horizon) +
-        geom_ribbon(data = temp_data, aes(x = x, y = value, ymax = upper95, ymin = lower95), alpha = 0.2)
-      print(p1)
-      Sys.sleep(0.1)
+      #p1 <- ggplot(graph_data, aes(x = x, y = value, color = type)) + geom_line() + geom_vline(xintercept = forecast_horizon) +
+      #  geom_ribbon(data = temp_data, aes(x = x, y = value, ymax = upper95, ymin = lower95), alpha = 0.2)
+      #print(p1)
+      #Sys.sleep(0.1)
       
       wis_tot <- c(wis_tmp_1,wis_tmp_2,wis_tmp_3,wis_tmp_4)
       

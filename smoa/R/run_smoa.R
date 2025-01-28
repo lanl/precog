@@ -58,8 +58,8 @@ h                               <- 4
 num_curves <- 18387
 k <- 5
 closest <- 4422
-lower_CI_scale <- 1.038942204
-upper_CI_scale <- 0.81145339130
+lower_CI_scale <- 1
+upper_CI_scale <- 1
 dispersion_forecast <- 1
 mle_lower_bound <- 1
 
@@ -110,6 +110,9 @@ embed_mat                       <- create_embed_matrix(sim_ts,h=(h+1),k=(k+1))
 X                               <- embed_mat[[1]]
 y                               <- embed_mat[[2]]
 
+save(X, file = 'synthetic_X.RData')
+save(y, file = 'synthetic_y.RData')
+
 ### convert to differences
 X_diff                          <- t(apply(X,1,diff))
 y_diff                          <- t(apply(y,1,diff))
@@ -121,6 +124,9 @@ parfctn = function(x){
   library(dplyr)
   quantiles <- c(0.01, 0.025, seq(0.05, 0.95, by = 0.05), 0.975, 0.99)
   ### read in stored truth data with as_of
+  
+  # Coverage Data:
+  coverage_data <- NULL
   
   # We pre-built this data file to cut on api calls to github.
   truth_as_of_tot                 <- read.csv("data/tdat_list_tot_weekly.csv")
@@ -162,6 +168,9 @@ parfctn = function(x){
     ### hold mse 
     mse_df                        <- NULL 
     
+    state_X = NULL
+    state_y = NULL
+
     ### iterate through forecast dates
     for (fcast_date_idx in 1:(length(fcast_dates_to_match))){
       #truth_weekly                  <- load_truth(truth_source = "JHU",hub = "US", target_variable = "inc case", 
@@ -186,6 +195,10 @@ parfctn = function(x){
       #### could use gam smoother 
       to_match_in_moa             <- tail((data_till_now_smoothed),k+1)
      
+      state_X = rbind(state_X, to_match_in_moa)
+      state_y = rbind(state_y, tail(truth_weekly[truth_weekly$target_end_date <= (fcast_date + h*7),]$value,h))
+
+
       #### This is where the sMOA calculation actually happens! 
       #### take our matrix to match (X_diff) and efficiently compute distances from to_match_in_moa to X_diff
       gc()
@@ -284,10 +297,10 @@ parfctn = function(x){
         for(horizon_idx in 2:h){
           if(temp_point[horizon_idx]<200) temp_point[horizon_idx] <- temp_point[horizon_idx-1]
         }
-        sim_nb1 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = 1*dispersion_estimates[1]*dispersion_forecast),ncol=length(point),byrow = T)
-        sim_nb2 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = 0.5*dispersion_estimates[2]*dispersion_forecast),ncol=length(point),byrow = T)
-        sim_nb3 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = 0.25*dispersion_estimates[3]*dispersion_forecast),ncol=length(point),byrow = T)
-        sim_nb4 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = 0.125*dispersion_estimates[4]*dispersion_forecast),ncol=length(point),byrow = T)
+        sim_nb1 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = dispersion_estimates[1]*dispersion_forecast),ncol=length(point),byrow = T)
+        sim_nb2 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = dispersion_estimates[2]*dispersion_forecast),ncol=length(point),byrow = T)
+        sim_nb3 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = dispersion_estimates[3]*dispersion_forecast),ncol=length(point),byrow = T)
+        sim_nb4 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = dispersion_estimates[4]*dispersion_forecast),ncol=length(point),byrow = T)
 
       }
      
@@ -304,6 +317,8 @@ parfctn = function(x){
       lower_CI_scale <- 1
       upper_CI_scale <- 1
       
+      
+      ## Horizon == 1
       est_intervals <- quantile(sim_nb1[,1],probs = quantiles)
       est_intervals[quantiles<0.5] <- est_intervals[quantiles<0.5] * lower_CI_scale
       est_intervals[quantiles>0.5] <- est_intervals[quantiles>0.5] * upper_CI_scale
@@ -311,6 +326,24 @@ parfctn = function(x){
       upper_95s <- c(upper_95s, est_intervals[22])
       wis_tmp_1 <- weighted_interval_score(quantiles,value = est_intervals, actual_value = data_future[1])
       
+      # Gather coverage data for this horizon:
+      curr_horizon <- 1
+      for(quantile_idx in 0:10){
+        lower_quan <- est_intervals[1+quantile_idx]
+        upper_quan <- est_intervals[length(quantiles)-quantile_idx]
+        coverage <- as.numeric((data_future[curr_horizon]>lower_quan)&
+                                 (data_future[curr_horizon]<=upper_quan))
+        
+        temp_row <- data.frame(State = location, Date = fcast_date, 
+                               horizon = curr_horizon, 
+                               Lower_Quantile = lower_quan, 
+                               Upper_Quantile = upper_quan, 
+                               Coverage = coverage)
+        coverage_data <- rbind(coverage_data, temp_row)
+      }
+      
+      
+      ## Horizon == 2
       temp_est_intervals <- est_intervals
       est_intervals <- quantile(sim_nb2[,2],probs = quantiles)
       if(any(est_intervals<=10)){
@@ -322,6 +355,24 @@ parfctn = function(x){
       lower_95s <- c(lower_95s, est_intervals[2])
       upper_95s <- c(upper_95s, est_intervals[22])
       
+      # Gather coverage data for this horizon:
+      curr_horizon <- 2
+      for(quantile_idx in 0:10){
+        lower_quan <- est_intervals[1+quantile_idx]
+        upper_quan <- est_intervals[length(quantiles)-quantile_idx]
+        coverage <- as.numeric((data_future[curr_horizon]>lower_quan)&
+                                 (data_future[curr_horizon]<=upper_quan))
+        
+        temp_row <- data.frame(State = location, Date = fcast_date, 
+                               horizon = curr_horizon, 
+                               Lower_Quantile = lower_quan, 
+                               Upper_Quantile = upper_quan, 
+                               Coverage = coverage)
+        coverage_data <- rbind(coverage_data, temp_row)
+      }
+      
+      
+      ## Horizon == 3
       temp_est_intervals <- est_intervals
       est_intervals <- quantile(sim_nb3[,3],probs = quantiles)
       if(any(est_intervals<=10)){
@@ -333,6 +384,24 @@ parfctn = function(x){
       lower_95s <- c(lower_95s, est_intervals[2])
       upper_95s <- c(upper_95s, est_intervals[22])
       
+      # Gather coverage data for this horizon:
+      curr_horizon <- 3
+      for(quantile_idx in 0:10){
+        lower_quan <- est_intervals[1+quantile_idx]
+        upper_quan <- est_intervals[length(quantiles)-quantile_idx]
+        coverage <- as.numeric((data_future[curr_horizon]>lower_quan)&
+                                 (data_future[curr_horizon]<=upper_quan))
+        
+        temp_row <- data.frame(State = location, Date = fcast_date, 
+                               horizon = curr_horizon, 
+                               Lower_Quantile = lower_quan, 
+                               Upper_Quantile = upper_quan, 
+                               Coverage = coverage)
+        coverage_data <- rbind(coverage_data, temp_row)
+      }
+      
+      
+      ## Horizon == 4
       temp_est_intervals <- est_intervals
       est_intervals <- quantile(sim_nb4[,4],probs = quantiles)
       if(any(est_intervals<=10)){
@@ -343,6 +412,23 @@ parfctn = function(x){
       wis_tmp_4 <- weighted_interval_score(quantiles,value = est_intervals, actual_value = data_future[4])
       lower_95s <- c(lower_95s, est_intervals[2])
       upper_95s <- c(upper_95s, est_intervals[22])
+      
+      # Gather coverage data for this horizon:
+      curr_horizon <- 4
+      for(quantile_idx in 0:10){
+        lower_quan <- est_intervals[1+quantile_idx]
+        upper_quan <- est_intervals[length(quantiles)-quantile_idx]
+        coverage <- as.numeric((data_future[curr_horizon]>lower_quan)&
+                                 (data_future[curr_horizon]<=upper_quan))
+        
+        temp_row <- data.frame(State = location, Date = fcast_date, 
+                               horizon = curr_horizon, 
+                               Lower_Quantile = lower_quan, 
+                               Upper_Quantile = upper_quan, 
+                               Coverage = coverage)
+        coverage_data <- rbind(coverage_data, temp_row)
+      }
+      
       
       # # Now plot all of this for Casey:
       all_data <- c(data_till_now_smoothed, data_future)
@@ -359,6 +445,8 @@ parfctn = function(x){
       two_step_ahead_forecasts <- two_step_ahead_forecasts[two_step_ahead_forecasts>100]
       three_step_ahead_forecasts <- three_step_ahead_forecasts[three_step_ahead_forecasts>100]
       four_step_ahead_forecasts <- four_step_ahead_forecasts[four_step_ahead_forecasts>100]
+      
+      
     }
     
     #### create the data frame and return
@@ -370,6 +458,8 @@ parfctn = function(x){
   # source("R/get_model_scores.R")
   scores                          <- read.csv("data/scores_tot.csv")
   
+  save(state_X, file = paste0('data/embeddings_by_location/', location, '_X.RData'))
+  save(state_y, file = paste0('data/embeddings_by_location/', location, '_y.RData'))
   
   #### formatting output of moa
   mse_df_tot                      <- do.call(rbind,mse_df_list)
@@ -457,7 +547,10 @@ parfctn = function(x){
   
   print(paste("finished", location))
   directory_name = paste("data/", state_log_directory, sep = "")
-  save(results_list, file = paste(directory_name, "/", gsub(" ", "", curr_state), ".RData", sep = ""))    
+  save(results_list, file = paste(directory_name, "/", gsub(" ", "", curr_state), ".RData", sep = ""))
+  
+  state_coverage_location = paste("data/coverage_data/", location, '.csv', sep = '')
+  write.csv(coverage_data, file = state_coverage_location)
 }
 
 
@@ -469,7 +562,7 @@ dir.create(directory_name)
 sockettype <- "PSOCK"
 
 ## Uncomment this to work with a simple example (one run).
-#parfctn(3)
+parfctn(3)
 
 cl <- parallel::makeCluster(spec = ncores,type = sockettype) #, outfile=""
 setDefaultCluster(cl)

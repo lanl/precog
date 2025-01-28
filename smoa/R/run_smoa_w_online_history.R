@@ -52,10 +52,10 @@ h                               <- 4
 
 # These are all from the bayesian optimization.
 num_curves <- 18387
-k <- 7
+k <- 5
 closest <- 4422
-lower_CI_scale <- 1.038942204
-upper_CI_scale <- 0.81145339130
+lower_CI_scale <- 1
+upper_CI_scale <- 1
 dispersion_forecast <- 1
 mle_lower_bound <- 1
 
@@ -250,7 +250,6 @@ parfctn = function(x){
         sim_nb3 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 0.25*dispersion_forecast),ncol=length(point),byrow = T)
         sim_nb4 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 0.175*dispersion_forecast),ncol=length(point),byrow = T)
 
-        print("no optimal ks yet")
         
       # Otherwise, we learn the dispersion parameters for each forecast horizon using an MLE on the observations so far.
       # This is an online update for the MLE of the dispersion parameters.
@@ -328,16 +327,6 @@ parfctn = function(x){
         sim_nb3 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = dispersion_estimates[3]*dispersion_forecast),ncol=length(point),byrow = T)
         sim_nb4 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = dispersion_estimates[4]*dispersion_forecast),ncol=length(point),byrow = T)
 
-
-        print("optimal ks are")
-        print(optimal_k_1$par)
-        print(optimal_k_2$par)
-        print(optimal_k_3$par)
-        print(optimal_k_4$par)
-        print("and the forecasts are")
-        print(point)
-        print(fcast)
-        print("-----------")
       }
      
       # These must be collected for MLE calculations on future dates. 
@@ -417,10 +406,10 @@ parfctn = function(x){
                              value = c(data_till_now_smoothed[length(data_till_now_smoothed)], point),
                              type = rep('error_region', times = (h+1)))
       
-      p1 <- ggplot(graph_data, aes(x = x, y = value, color = type)) + geom_line() + geom_vline(xintercept = forecast_horizon) +
-        geom_ribbon(data = temp_data, aes(x = x, y = value, ymax = upper95, ymin = lower95), alpha = 0.2)
-      print(p1)
-      Sys.sleep(0.1)
+      #p1 <- ggplot(graph_data, aes(x = x, y = value, color = type)) + geom_line() + geom_vline(xintercept = forecast_horizon) +
+      #  geom_ribbon(data = temp_data, aes(x = x, y = value, ymax = upper95, ymin = lower95), alpha = 0.2)
+      #print(p1)
+      #Sys.sleep(0.1)
       
       wis_tot <- c(wis_tmp_1,wis_tmp_2,wis_tmp_3,wis_tmp_4)
       
@@ -487,9 +476,6 @@ parfctn = function(x){
       if(nrow(temp_df) > 0){
       	moa_median_wis <- mean(temp_df$wis_error_moa)
       	covid_median_wis <- mean(temp_df$wis)
-      	print('testing:')
-      	print(moa_median_wis)
-      	print(covid_median_wis)
       	if((length(covid_median_wis) >0)&(length(moa_median_wis) >0)){
       	  if ((moa_median_wis) < (covid_median_wis)){
       	    wins_wis                    <- c(wins_wis,1)
@@ -525,8 +511,6 @@ parfctn = function(x){
     }
   }
   
-  print(mean(wins))
-  print(mean(wins_wis))
   results_list[['proportion_wins_abs']] <- mean(wins)
   results_list[['wins_vector_abs']] <- wins
   results_list[['proportion_wins_wis']] <- mean(wins_wis)
@@ -546,15 +530,15 @@ if(file.exists(directory_name)) unlink(directory_name, recursive = TRUE)
 dir.create(directory_name)
 sockettype <- "PSOCK"
 
-parfctn(3)
-stop("just testing.")
+#parfctn(3)
+#stop("just testing.")
 
 ## Uncomment this to work with a simple example (one run).
-cl <- parallel::makeCluster(spec = ncores,type = sockettype, outfile="")
+cl <- parallel::makeCluster(spec = ncores,type = sockettype)
 setDefaultCluster(cl)
 registerDoParallel(cl)
 sim_ts <- foreach(i=1:50,
-                  .verbose = T)%do%{
+                  .verbose = T)%dopar%{
                     
                     parfctn(i)
                   }

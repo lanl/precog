@@ -20,7 +20,7 @@ models_to_label <- c("COVIDhub-baseline", "COVIDhub-4_week_ensemble","COVIDhub-t
 
 file_with_results                                                                                  <- "data/k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records"
 file_with_results_wOnlineHistories                                                                 <- "data/wHistories_k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records"
-file_with_results_wOnlyHistory                                                                     <- "data/wOnlyHistories_k_5_num_curves_22142_closest_3836_dispersion_10000_mlebound_10000_state_records"
+file_with_results_wOnlyHistory                                                                     <- "data/wOnlyHistories_k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records"
 
 h <- 4
 max_y_lim <- 13000
@@ -97,51 +97,6 @@ mae_comparison_data$abs_error_model                                             
 mae_comparison_data$abs_error_smoa                                                                 <- mae_comparison_data$abs_error_moa
 wis_comparison_data$wis_error_model                                                                <- wis_comparison_data$wis
 wis_comparison_data$wis_error_smoa                                                                 <- wis_comparison_data$wis_error_moa
-
-point_plot_1 <- ggplot(mae_comparison_data %>% dplyr::group_by(model.y) %>% dplyr::summarize(abs_error_model= mean(abs_error_model), 
-                                                                                             abs_error_smoa = mean(abs_error_smoa)),
-                       aes(x=abs_error_model,y=abs_error_smoa, color=model.y)) + geom_point()  + 
-  ggtitle(paste("Individual MAE Comparisons between\nsMOA and ForecastHub Models"))+
-  geom_abline() + 
-  geom_label_repel(aes(label = ifelse(model.y%in%models_to_label,as.character(model.y),'')),
-                   box.padding   = 0.35, 
-                   point.padding = 0.5,
-                   segment.color = 'grey50',
-                   max.overlaps = 20,
-                   min.segment.length = 0.01,
-                   force_pull = -0.1,
-                   size = 5)+
-  theme(legend.position = 'none') + xlab("Mean MAE for Model") + ylab("Mean MAE for sMOA") + 
-  theme(axis.text=element_text(size=15), axis.title = element_text(size = 18),
-        title = element_text(size=15)) +
-  theme(panel.spacing = unit(0, "cm"),
-        plot.margin = margin(0, 0, 0, 0, "cm"), 
-        plot.caption = element_blank()) +
-  xlim(0,16500) + ylim(0, max_y_lim)
-
-
-point_plot_2 <- ggplot(wis_comparison_data %>% dplyr::group_by(model.y) %>% dplyr::summarize(wis_error_model=mean(wis_error_model), 
-                                                                                             wis_error_smoa = mean(wis_error_smoa)),
-                       aes(x=wis_error_model,y=wis_error_smoa,color=model.y)) + geom_point()  + 
-  ggtitle(paste("Individual WIS Comparisons between\nsMOA and ForecastHub Models"))+
-  geom_abline() + 
-  geom_label_repel(aes(label = ifelse(model.y%in%models_to_label,as.character(model.y),'')),
-                   box.padding   = 0.35, 
-                   point.padding = 0.5,
-                   segment.color = 'grey50',
-                   max.overlaps = 20,
-                   min.segment.length = 0.001,
-                   # nudge_y = -100,
-                   # force_pull = -0.04,
-                   size = 5)+
-  theme(legend.position = 'none') + xlab("Mean WIS for Model") + ylab("Mean WIS for sMOA") + 
-  theme(axis.text=element_text(size=15), axis.title = element_text(size = 18),
-        title = element_text(size=15)) +
-  theme(panel.spacing = unit(0, "cm"),
-        plot.margin = margin(0, 0, 0, 0, "cm"), 
-        plot.caption = element_blank()) +
-  xlim(0,16500) + ylim(0, max_y_lim)
-
 
 
 
@@ -296,12 +251,14 @@ wis_comparison_data_wOnlyHistory$wis_error_model                                
 wis_comparison_data_wOnlyHistory$wis_error_smoa                                                                 <- wis_comparison_data_wOnlyHistory$wis_error_moa
 
 
-max_y_lim <- 12000
-label_size <- 3.5
+max_y_lim <- 11000
+max_x_lim <- 16000
+label_size <- 3
+force_pull_val <- 2
 point_plot_1 <- ggplot(mae_comparison_data %>% dplyr::group_by(model.y) %>% dplyr::summarize(abs_error_model= mean(abs_error_model), 
                                                                                              abs_error_smoa = mean(abs_error_smoa)),
                        aes(x=abs_error_model,y=abs_error_smoa, color=model.y)) + geom_point()  + 
-  ggtitle(paste("Individual MAE Comparisons between\nsMOA and ForecastHub Models"))+
+  ggtitle(paste(""))+
   geom_abline() + 
   geom_label_repel(aes(label = ifelse(model.y%in%models_to_label,as.character(model.y),'')),
                    box.padding   = 0.35, 
@@ -309,21 +266,21 @@ point_plot_1 <- ggplot(mae_comparison_data %>% dplyr::group_by(model.y) %>% dply
                    segment.color = 'grey50',
                    max.overlaps = 20,
                    min.segment.length = 0.01,
-                   # force_pull = -0.05,
+                   # force_pull = -0.01,
                    size = label_size)+
   theme(legend.position = 'none') + xlab("Mean MAE for Model") + ylab("Mean MAE for sMOA") + 
   theme(axis.text=element_text(size=15), axis.title = element_text(size = 18),
         title = element_text(size=15)) +
   theme(panel.spacing = unit(0, "cm"),
-        plot.margin = margin(0, 0, 0, 0, "cm"), 
+        # plot.margin = margin(0, 0, 0, 0, "cm"), 
         plot.caption = element_blank()) +
-  xlim(0,16500) + ylim(0, max_y_lim)
+  xlim(0,max_x_lim) + ylim(0, max_y_lim)
 
 
 point_plot_2 <- ggplot(wis_comparison_data %>% dplyr::group_by(model.y) %>% dplyr::summarize(wis_error_model=mean(wis_error_model), 
                                                                                              wis_error_smoa = mean(wis_error_smoa)),
                        aes(x=wis_error_model,y=wis_error_smoa,color=model.y)) + geom_point()  + 
-  ggtitle(paste("Individual WIS Comparisons between\nsMOA and ForecastHub Models"))+
+  ggtitle(paste(""))+
   geom_abline() + 
   geom_label_repel(aes(label = ifelse(model.y%in%models_to_label,as.character(model.y),'')),
                    box.padding   = 0.35, 
@@ -332,21 +289,21 @@ point_plot_2 <- ggplot(wis_comparison_data %>% dplyr::group_by(model.y) %>% dply
                    max.overlaps = 20,
                    min.segment.length = 0.001,
                    # nudge_y = -100,
-                   force_pull = -0.01,
+                   force_pull = force_pull_val,
                    size = label_size)+
-  theme(legend.position = 'none') + xlab("Mean WIS for Model") + ylab("Mean WIS for sMOA") + 
+  theme(legend.position = 'none') + xlab("Mean WIS for Model") + ylab("Mean WIS") + 
   theme(axis.text=element_text(size=15), axis.title = element_text(size = 18),
         title = element_text(size=15)) +
   theme(panel.spacing = unit(0, "cm"),
-        plot.margin = margin(0, 0, 0, 0, "cm"), 
+        # plot.margin = margin(0, 0, 0, 0, "cm"), 
         plot.caption = element_blank()) +
-  xlim(0,16500) + ylim(0, max_y_lim)
+  xlim(0,max_x_lim) + ylim(0, max_y_lim)
 
 
 point_plot_3 <- ggplot(mae_comparison_data_wOnline %>% dplyr::group_by(model.y) %>% dplyr::summarize(abs_error_model= mean(abs_error_model), 
                                                                                                      abs_error_smoa = mean(abs_error_smoa)),
                        aes(x=abs_error_model,y=abs_error_smoa, color=model.y)) + geom_point()  + 
-  ggtitle(paste("Individual MAE Comparisons between\nsMOA and ForecastHub Models"))+
+  ggtitle(paste(""))+
   geom_abline() + 
   geom_label_repel(aes(label = ifelse(model.y%in%models_to_label,as.character(model.y),'')),
                    box.padding   = 0.35, 
@@ -356,19 +313,19 @@ point_plot_3 <- ggplot(mae_comparison_data_wOnline %>% dplyr::group_by(model.y) 
                    min.segment.length = 0.01,
                    # force_pull = -0.1,
                    size = label_size)+
-  theme(legend.position = 'none') + xlab("Mean MAE for Model") + ylab("Mean MAE for sMOA") + 
+  theme(legend.position = 'none') + xlab("Mean MAE for Model") + ylab("Mean MAE") + 
   theme(axis.text=element_text(size=15), axis.title = element_text(size = 18),
         title = element_text(size=15)) +
   theme(panel.spacing = unit(0, "cm"),
-        plot.margin = margin(0, 0, 0, 0, "cm"), 
+        # plot.margin = margin(0, 0, 0, 0, "cm"), 
         plot.caption = element_blank()) +
-  xlim(0,16500) + ylim(0, max_y_lim)
+  xlim(0,max_x_lim) + ylim(0, max_y_lim)
 
 
 point_plot_4 <- ggplot(wis_comparison_data_wOnline %>% dplyr::group_by(model.y) %>% dplyr::summarize(wis_error_model=mean(wis_error_model), 
                                                                                                      wis_error_smoa = mean(wis_error_smoa)),
                        aes(x=wis_error_model,y=wis_error_smoa,color=model.y)) + geom_point()  + 
-  ggtitle(paste("Individual WIS Comparisons between\nsMOA and ForecastHub Models"))+
+  ggtitle(paste(""))+
   geom_abline() + 
   geom_label_repel(aes(label = ifelse(model.y%in%models_to_label,as.character(model.y),'')),
                    box.padding   = 0.35, 
@@ -377,21 +334,21 @@ point_plot_4 <- ggplot(wis_comparison_data_wOnline %>% dplyr::group_by(model.y) 
                    max.overlaps = 20,
                    min.segment.length = 0.01,
                    # nudge_y = -100,
-                   force_pull = -0.01,
+                   force_pull = force_pull_val,
                    size = label_size)+
-  theme(legend.position = 'none') + xlab("Mean WIS for Model") + ylab("Mean WIS for sMOA") + 
+  theme(legend.position = 'none') + xlab("Mean WIS for Model") + ylab("Mean WIS") + 
   theme(axis.text=element_text(size=15), axis.title = element_text(size = 18),
         title = element_text(size=15)) +
   theme(panel.spacing = unit(0, "cm"),
-        plot.margin = margin(0, 0, 0, 0, "cm"), 
+        # plot.margin = margin(0, 0, 0, 0, "cm"), 
         plot.caption = element_blank()) +
-  xlim(0,16500) + ylim(0, max_y_lim)
+  xlim(0,max_x_lim) + ylim(0, max_y_lim)
 
 
 point_plot_5 <- ggplot(mae_comparison_data_wOnlyHistory %>% dplyr::group_by(model.y) %>% dplyr::summarize(abs_error_model= mean(abs_error_model), 
                                                                                                      abs_error_smoa = mean(abs_error_smoa)),
                        aes(x=abs_error_model,y=abs_error_smoa, color=model.y)) + geom_point()  + 
-  ggtitle(paste("Individual MAE Comparisons between\nsMOA and ForecastHub Models"))+
+  ggtitle(paste(""))+
   geom_abline()  + 
   geom_label_repel(aes(label = ifelse(model.y%in%models_to_label,as.character(model.y),'')),
                    box.padding   = 0.35, 
@@ -402,18 +359,18 @@ point_plot_5 <- ggplot(mae_comparison_data_wOnlyHistory %>% dplyr::group_by(mode
                    nudge_y = -200,
                    # force_pull = -0.1,
                    size = label_size)+
-  theme(legend.position = 'none') + xlab("Mean MAE for Model") + ylab("Mean MAE for sMOA") + 
+  theme(legend.position = 'none') + xlab("Mean MAE for Model") + ylab("Mean MAE") + 
   theme(axis.text=element_text(size=15), axis.title = element_text(size = 18),
         title = element_text(size=15)) +
   theme(panel.spacing = unit(0, "cm"),
-        plot.margin = margin(0, 0, 0, 0, "cm"), 
+        # plot.margin = margin(0, 0, 0, 0, "cm"), 
         plot.caption = element_blank()) +
-  xlim(0,16500) + ylim(0, max_y_lim)
+  xlim(0,max_x_lim) + ylim(0, max_y_lim)
 
 point_plot_6 <- ggplot(wis_comparison_data_wOnlyHistory %>% dplyr::group_by(model.y) %>% dplyr::summarize(wis_error_model=mean(wis_error_model), 
                                                                                                      wis_error_smoa = mean(wis_error_smoa)),
                        aes(x=wis_error_model,y=wis_error_smoa,color=model.y)) + geom_point()  + 
-  ggtitle(paste("Individual WIS Comparisons between\nsMOA and ForecastHub Models"))+
+  ggtitle(paste(""))+
   geom_abline()  + 
   geom_label_repel(aes(label = ifelse(model.y%in%models_to_label,as.character(model.y),'')),
                    box.padding   = 0.35, 
@@ -422,15 +379,15 @@ point_plot_6 <- ggplot(wis_comparison_data_wOnlyHistory %>% dplyr::group_by(mode
                    max.overlaps = 20,
                    min.segment.length = 0.01,
                    # nudge_y = -200,
-                   force_pull = 1,
+                   force_pull = force_pull_val,
                    size = label_size)+
-  theme(legend.position = 'none') + xlab("Mean MAE for Model") + ylab("Mean MAE for sMOA") + 
+  theme(legend.position = 'none') + xlab("Mean MAE for Model") + ylab("Mean MAE") + 
   theme(axis.text=element_text(size=15), axis.title = element_text(size = 18),
         title = element_text(size=15)) +
   theme(panel.spacing = unit(0, "cm"),
-        plot.margin = margin(0, 0, 0, 0, "cm"), 
+        # plot.margin = margin(0, 0, 0, 0, "cm"), 
         plot.caption = element_blank()) +
-  xlim(0,16500) + ylim(0, max_y_lim)
+  xlim(0,max_x_lim) + ylim(0, max_y_lim)
 
 # w/o online history
 wis_comparisons <- wis_comparison_data %>% dplyr::group_by(model.y) %>% dplyr::summarize(wis_error_model=mean(wis_error_model), 

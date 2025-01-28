@@ -1,5 +1,5 @@
 # Helper Functions for the run_smoa.R main file.
-## Author: AC Murph
+## Author: AC Murph and LJ Beesley
 
 create_embed_matrix               <- function(synthetic, h, k = 4){
   s_idx                           <- 1
@@ -1103,3 +1103,47 @@ find_quantile_match               <- function(quantiles, val_to_match, tol=1e-8)
   return(abs(quantiles - val_to_match) < tol  & !is.na(quantiles))
 }
 
+#' Get FIPS or CBSA codes from county or metropolitan area locations
+#'
+#' @param data a vector of strings for fips code, CBSA codes, location names
+#' such as "Hampshire County, MA", "Alabama", "United Kingdom".
+#' A US county location names must include state abbreviation.
+#' @param hub character vector, where the first element indicates the hub
+#' from which to load forecasts. Possible options are `"US"`, `"ECDC"` and `"FluSight"`
+#' @return A vector of FIPS or CBSA codes
+#' @export
+name_to_fips <- function(data, hub = c("US", "ECDC")){
+  if (is.null(data)){
+    return (NULL)
+  }
+  
+  if (hub[1] == "US") {
+    load(file="data/hub_locations.rda")
+    fips_tmp <- hub_locations %>%
+      dplyr::mutate(full_location_name = fips)
+    locations <- dplyr::bind_rows(hub_locations, fips_tmp)
+    if(!all(data %in% locations$full_location_name)){
+      stop("Error in name_to_fips: Please provide valid location name.eg: Bullock County,AL")
+    }
+    return (locations[locations$full_location_name %in% data, ]$fips)
+  } else if (hub[1] == "ECDC") {
+    load(file="data/hub_locations_ecdc.rda")
+    location_tmp <- hub_locations_ecdc %>%
+      dplyr::mutate(location_name = location)
+    locations <- dplyr::bind_rows(hub_locations_ecdc, location_tmp)
+    if(!all(data %in% locations$location_name)){
+      stop("Error in name_to_fips: Please provide valid location name.")
+    }
+    return(locations[locations$location_name %in% data, ]$location)
+  } else if (hub[1] == "FluSight") {
+    load(file="data/hub_locations_flusight.rda")
+    fips_tmp <- hub_locations_flusight %>%
+      dplyr::mutate(location_name = fips)
+    fips_tmp[fips_tmp$location_name == "US",]$location_name <- "United States"
+    locations <- dplyr::bind_rows(hub_locations_flusight, fips_tmp)
+    if(!all(data %in% locations$location_name)){
+      stop("Error in name_to_fips: Please provide valid location name.eg: Bullock County,AL")
+    }
+    return (locations[locations$location_name %in% data, ]$fips)
+  }
+}
