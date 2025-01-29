@@ -11,6 +11,9 @@ For questions, issues, or clarifications on individual projects, contact informa
 This repository is organized according to several directories.  Each directory contains the code for an individual study within this wider project.  Additional directories will be added as projects complete.  The current completed code bases are:
 
 * incidence_for_sir: code to perform the studies and data application for publication 1 (see below);
+* smoa: code to perform the studies and data application for publication 2 (see below);
+* epifforma: code to perform the studies and data application for publication 3 (see below);
+* aim: code to perform the studies and data application for publication 4 (see below);
 
 ## Citations (ongoing)
 1. A.C. Murph, G.C. Gibson, L.J. Beesley, N. Panda, L.A. Castro, S. Del Valle, D. Osthus. (202x). Incorporating Incidence Peak and Time Data for SIR Forecasting Applications.  _In Review._ 
