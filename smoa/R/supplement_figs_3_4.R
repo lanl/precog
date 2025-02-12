@@ -53,7 +53,7 @@ for(i in 1:length(FILES)){
   RESULTS$mae_smoa[i] = mean(abs(output$truth - output$fcst), na.rm=T)
   RESULTS$rmse_smoa[i] = sqrt(mean((output$truth - output$fcst)^2, na.rm=T))
   RESULTS$mae_rw[i] = mean(abs(output$truth - output$obs), na.rm=T)
-  RESULTS$rmae_rw[i] = sqrt(mean((output$truth - output$obs)^2, na.rm=T))
+  RESULTS$rmse_rw[i] = sqrt(mean((output$truth - output$obs)^2, na.rm=T))
   RESULTS$truth_avg[i] = mean(output$truth, na.rm=T)
   RESULTS$min_dist[i] = output$min_dist[1]
   RESULTS$max_dist[i] = output$max_dist[1]
@@ -61,11 +61,11 @@ for(i in 1:length(FILES)){
   print(paste0('Finished: ', i, ' of ', length(FILES)))
 }
 
-RESULTS_AGG = RESULTS %>% dplyr::group_by(disease_source) %>% dplyr::mutate(mae_smoa_agg = N*mae_smoa,
-                                                                          rmse_smoa_agg = N*(rmse_smoa^2),
-                                                                          mae_rw_agg = N*mae_rw,
-                                                                          rmse_rw_agg = N*(rmse_rw^2),
-                                                                          N_agg = sum(N))
+RESULTS_AGG = RESULTS %>% dplyr::group_by(disease_source) %>% dplyr::mutate(mae_smoa_agg = sum(N*mae_smoa),
+                                                                            rmse_smoa_agg = sum(N*(rmse_smoa^2)),
+                                                                            mae_rw_agg = sum(N*mae_rw),
+                                                                            rmse_rw_agg = sum(N*(rmse_rw^2)),
+                                                                            N_agg = sum(N))
 RESULTS_AGG$mae_smoa_agg = RESULTS_AGG$mae_smoa_agg/RESULTS_AGG$N_agg
 RESULTS_AGG$rmse_smoa_agg = sqrt(RESULTS_AGG$rmse_smoa_agg/RESULTS_AGG$N_agg)
 RESULTS_AGG$mae_rw_agg = RESULTS_AGG$mae_rw_agg/RESULTS_AGG$N_agg
@@ -75,11 +75,10 @@ RESULTS_AGG = RESULTS_AGG[!duplicated(RESULTS_AGG$disease_source),]
 
 A = RESULTS[grepl('Chik',RESULTS$disease_source),]
 
-RESULTS_AGG = RESULTS_AGG[order(RESULTS_AGG$mae_smoa_agg/(RESULTS_AGG$mae_rw_agg+1e-6)),]
-DISEASE_ORDER = rev(RESULTS_AGG$disease_source)
-
 #####################
 # Create Supplement Figure 3 (first part)
+RESULTS_AGG = RESULTS_AGG[order(RESULTS_AGG$mae_smoa_agg/(RESULTS_AGG$mae_rw_agg+1e-6)),]
+DISEASE_ORDER = rev(RESULTS_AGG$disease_source)
 ggplot(RESULTS)+
   geom_point(aes(x=factor(disease_source, levels = DISEASE_ORDER), y=mae_smoa/(mae_rw+1e-6)))+
   geom_point(aes(x=factor(disease_source, levels = DISEASE_ORDER), y=mae_smoa_agg/(mae_rw_agg+1e-6)), color = 'red', data = RESULTS_AGG, size = 2)+
@@ -89,11 +88,11 @@ ggplot(RESULTS)+
   #ylim(0,1.5)+
   coord_flip()
 
-RESULTS_AGG = RESULTS_AGG[order(RESULTS_AGG$rmse_smoa_agg/RESULTS_AGG$rmse_rw_agg),]
-DISEASE_ORDER = rev(RESULTS_AGG$disease_source)
 
 #####################
 # Create Supplement Figure 3 (second part)
+RESULTS_AGG = RESULTS_AGG[order(RESULTS_AGG$rmse_smoa_agg/RESULTS_AGG$rmse_rw_agg),]
+DISEASE_ORDER = rev(RESULTS_AGG$disease_source)
 ggplot(RESULTS)+
   geom_point(aes(x=factor(disease_source, levels = DISEASE_ORDER), y=rmse_smoa/rmse_rw))+
   geom_point(aes(x=factor(disease_source, levels = DISEASE_ORDER), y=rmse_smoa_agg/rmse_rw_agg), color = 'red', data = RESULTS_AGG, size = 2)+

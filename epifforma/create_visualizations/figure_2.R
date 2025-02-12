@@ -81,11 +81,17 @@ RESULTS_STACKED = merge(RESULTS_STACKED, data.frame(disease = DISEASES, disease_
 
 
 RESULTS_STACKED$error = abs(RESULTS_STACKED$fcst - RESULTS_STACKED$truth)
+RESULTS_STACKED = data.frame(RESULTS_STACKED)
 RESULTS_STACKED = RESULTS_STACKED %>% dplyr::group_by(disease, geography, last_obs_time, h) %>% dplyr::mutate(error_scaled = error/min(error), 
                                                                                                               error_minmax = (error - min(error))/(max(error)-min(error)),
                                                                                                               mae_rank = rank(error, ties = 'min'),
                                                                                                               weights_rank = rank(1-weights, ties = 'min'))
 
+
+A = RESULTS_STACKED[which.max(as.numeric(as.character(unlist(RESULTS_STACKED$mae_rank)))),]
+RESULTS_STACKED = data.frame(RESULTS_STACKED)
+B = RESULTS_STACKED[RESULTS_STACKED$disease == A$disease & RESULTS_STACKED$geography == A$geography & RESULTS_STACKED$last_obs_time == A$last_obs_time & RESULTS_STACKED$h == A$h,]
+B = B[B$model == 'rw',]
 
 RESULTS_STACKED$mae_rank = factor(RESULTS_STACKED$mae_rank, levels = rev(sort(unique(RESULTS_STACKED$mae_rank))))
 p1 = ggplot(data = RESULTS_STACKED, aes(y=mae_rank, x = weights, group = mae_rank, fill = factor(stat(quantile))))+
