@@ -21,18 +21,29 @@ library(tidybayes)
 library(gridExtra)
 library(ggExtra)
 library(dplyr)
-setwd("~/GitLab/smoa")
+library(this.path)
+setwd(paste0(this.path::here(),"/../"))
 source("R/smoa_helpers.R")
-source('R/vecchia_scaled.R')
 
 data_path = 'data/coverage_data'
 
+coverage_values = c("1%",
+                    "2.5%",
+                    "5%",
+                    "10%",
+                    "15%",
+                    "20%",
+                    "25%",
+                    "30%",
+                    "35%",
+                    "40%",
+                    "45%")
 coverage_data <- NULL
 for(file_name in list.files(data_path)){
   temp_coverage_data = read.csv(paste(data_path, '/', file_name, sep = ''))
+  temp_coverage_data$X = rep(coverage_values, 4*length(unique(temp_coverage_data$Date)))
   temp_f = function(x){as.numeric(unlist(strsplit(x, split="%"))[1])}
   temp_coverage_data$Nominal_Coverage = (100 - 2*sapply(temp_coverage_data$X,temp_f))/100
-  
   
   coverage_data <- rbind(coverage_data, temp_coverage_data)
 }

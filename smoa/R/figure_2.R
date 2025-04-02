@@ -26,10 +26,9 @@ library(covidHubUtils)
 library(mgcv)
 library(collapse)
 library(dplyr)
-setwd("~/GitLab/smoa")
+library(this.path)
+setwd(paste0(this.path::here(),"/../"))
 source("R/smoa_helpers.R")
-source('R/vecchia_scaled.R')
-
 ncores <- 51
 lopez_models <- c("BPagano-RtDriven", 'CEID-Walk', 'CovidAnalytics-DELPHI', 'COVIDhub-baseline', 'COVIDhub-4_week_ensemble',
                   'COVIDhub-trained_ensemble', 'Covid19Sim-Simulator', 'CU-select', 'FAIR-NRAR', 'FRBSF_Wilson-Econometric',
@@ -37,35 +36,21 @@ lopez_models <- c("BPagano-RtDriven", 'CEID-Walk', 'CovidAnalytics-DELPHI', 'COV
                   'Karlen-pypm', 'LNQ-ens1', 'LANL-GrowthRate', 'Microsoft-DeepSTIA', 'MOBS-GLEAM_COVID',
                   'RobertWalraven-ESG', 'UCLA-SuEIR', 'USC-SI_kJalpha', 'UMass-MechBayes', 'UVA-Ensemble')
 
-###########
-# The following is only for when we run the grid search to test several different
-# hyperparameters:
-sim_idx                         <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID"))
-print(paste("Running slurm job:", sim_idx))
-if(is.na(sim_idx)){
-  sim_idx                       <- 1
-}
+sim_idx                       <- 1
 curr_state                      <- state.name[sim_idx]
-
-
-num_of_each_curve <- c(20000, 30000, 40000, 50000)
-ks <- c(4, 6,7,8)
-epsilons <- c(5e-4, 5e-3, 5e-5, 5e-2)
-closest_ids_vec <- c(1000, 2000, 3000, 5000)
 
 dispersion_forecast_scaling <- seq(from=0.1, to=5, length.out = 64)
 dispersion_forecast <- dispersion_forecast_scaling[sim_idx]
 h                               <- 4
 
 # These are all from the bayesian optimization.
-upper_mle_bound <- 2000
 num_curves <- 18387
-k <- 7
+k <- 5
 closest <- 4422
 lower_CI_scale <- 1
 upper_CI_scale <- 1
-# dispersion_forecast <- 91.32496 / 3
-# mle_lower_bound <- 8.156253
+dispersion_forecast <- 1
+mle_lower_bound <- 1
 
 dispersion_forecast <- 1
 mle_lower_bound <- 1
@@ -96,7 +81,7 @@ y                               <- embed_mat[[2]]
 X_diff                          <- t(apply(X,1,diff))
 y_diff                          <- t(apply(y,1,diff))
 
-quantiles <- c(0.01, 0.025, seq(0.05, 0.95, by = 0.05), 0.975, 0.99)
+quantiles <- c(0.025, 0.1, 0.25, 0.5, 0.75, 0.9, 0.975)
 ## read in stored truth data with as_of
 
 # We pre-built this data file to cut on api calls to github.
@@ -111,7 +96,7 @@ count <- 1
 graph_data_log_95s = NULL
 graph_data_log_50s = NULL
 true_data = NULL
-mle_start_value <- 30
+mle_start_value <- 0.5
 
 for (location in c(curr_state)){
   print(paste("working on location", location))  
@@ -126,17 +111,20 @@ for (location in c(curr_state)){
   }
   
   #### get the list of forecast dates
-  fcast_dates_to_match          <- unique(truth_weekly$target_end_date)
+  targetend_dates_to_match          <- unique(truth_weekly$target_end_date)
   
   # We need to collect the one-step-ahead forecasts for all available data (potentially not just
   # from august 15th onwards).
-  one_step_ahead_forecasts <- c()
-  two_step_ahead_forecasts <- c()
-  three_step_ahead_forecasts <- c()
-  four_step_ahead_forecasts <- c()
+  if(length(which(targetend_dates_to_match <= as.Date("2020-02-28")))>=6){
+    forecasts_data = get_early_pandemic_errors(targetend_dates_to_match, location, k, 
+                                               truth_as_of_tot, X_diff, y_diff,
+                                               truth_weekly, current_end_date = "2020-02-28")
+  } else {
+    forecasts_data = NULL
+  }
   
   #### subset to "2020-08-15" when the revised API started up
-  fcast_dates_to_match          <- fcast_dates_to_match[which(fcast_dates_to_match > as.Date("2020-02-28"))]
+  targetend_dates_to_match          <- targetend_dates_to_match[which((targetend_dates_to_match > as.Date("2020-02-28")))]
   
   #### subset big as of data frame to this specific location
   truth_as_of_tot_loc           <- truth_as_of_tot[truth_as_of_tot$location_name == location ,]
@@ -144,34 +132,33 @@ for (location in c(curr_state)){
   ### hold mse 
   mse_df                        <- NULL
   ### iterate through forecast dates
-  future_dates_count = 1
-  for(fcast_date_idx in 1:(length(fcast_dates_to_match))){
+  future_dates_count = 0
+  for(last_targetend_date_idx in 1:(length(targetend_dates_to_match))){
+    paste0("calculating forecast instance ", last_targetend_date_idx, " of ", length(targetend_dates_to_match))
     #truth_weekly                  <- load_truth(truth_source = "JHU",hub = "US", target_variable = "inc case", 
-    #					  as_of= as.character(as.Date(fcast_dates_to_match[fcast_date_idx])), locations =location,data_location="covidData")
-    
+    #					  as_of= as.character(as.Date(targetend_dates_to_match[last_targetend_date_idx])), locations =location,data_location="covidData")
     
     #### grab the date formatted
-    fcast_date                  <- fcast_dates_to_match[fcast_date_idx]
+    curr_targetend_date                  <- targetend_dates_to_match[last_targetend_date_idx]
     
-    actual_dates <- truth_weekly[truth_weekly$target_end_date <= (fcast_date + h*7),]$target_end_date
+    actual_dates <- truth_weekly[truth_weekly$target_end_date <= (curr_targetend_date + h*7),]$target_end_date
     
     #### subset to data that was available at forecast date
     truth_as_of                 <- truth_as_of_tot_loc[truth_as_of_tot_loc$as_of == (as.Date("2020-08-15")+(future_dates_count)*7) ,]
     #### double check its ordered properly
     truth_as_of                 <- truth_as_of[order(truth_as_of$target_end_date),]
-    
-    #### make sure that the target end date is less than or equal to fcast_date
-    data_till_now               <- truth_as_of[truth_as_of$target_end_date <= fcast_date,]
+    #### make sure that the target end date is less than or equal to curr_targetend_date
+    data_till_now               <- truth_as_of[truth_as_of$target_end_date <= curr_targetend_date,]
     data_till_now$value         <- pmax(1,data_till_now$value)
     data_till_now$t             <- 1:nrow(data_till_now)
     
     if(nrow(data_till_now)<=k) next
     
     #### light smoothing and differencing and get last k 
-    data_till_now_smoothed      <- gam(value~ s(t,k=round(nrow(data_till_now)/2)),data=data_till_now)$fitted.values
-    actual_data_temp      <- data_till_now$value
+    data_till_now_smoothed      <- pmax(1,gam(value~ s(t,k=round(nrow(data_till_now)/2)),data=data_till_now)$fitted.values)
+    actual_data_temp            <- data_till_now$value
     
-    if(actual_dates[(length(actual_data_temp))]>"2020-08-15"){
+    if(curr_targetend_date>="2020-08-15"){
       # I need at least four more weeks of data from here in the true data, then leave.
       true_data <- rbind(true_data, data.frame(date = actual_dates[(length(actual_data_temp))],
                                                value = actual_data_temp[(length(actual_data_temp))], 
@@ -179,7 +166,7 @@ for (location in c(curr_state)){
                                                location_name = location)
       )
       future_dates_count = future_dates_count + 1
-      if(future_dates_count == 5) break
+      if(future_dates_count == 4) break
       next
     } 
     
@@ -199,120 +186,117 @@ for (location in c(curr_state)){
     #### convert from difference back to raw cases
     fcast                       <- tail(data_till_now$value,1) + cumsum(fcast)
     fcast                       <- pmax(1,fcast)
-    data_future                 <- tail(truth_weekly[truth_weekly$target_end_date <= (fcast_date + h*7),]$value,h) # Note that that '7' is for the length of a week (7 days).
+    data_future                 <- tail(truth_weekly[truth_weekly$target_end_date <= (curr_targetend_date + h*7),]$value,h) # Note that that '7' is for the length of a week (7 days).
+    
+    ##
+    # data_till_now is the vector we used to get the bit that we 'match' in sMOA.  This is where I grab the most recent value.
+    # This is used if we decide to impose 'guard rails' on the sMOA forecast so it cannot explode upwards to high.
+    most_recent_value = data_till_now$value[length(data_till_now$value)]
+    ##
+    
+    mle_memory <- Inf
     
     point <- pmax(1,tail(data_till_now$value,1) +cumsum(head(apply(y_diff[closest_ids,],2,median),h)))
     vars <- pmax(1,tail(data_till_now$value,1) +cumsum(head(apply(y_diff[closest_ids,],2,sd),h)))
     
-    # If there are only 5 or less forecasts so far, get the error bounds from NBR models with pre-learned dispersion parameters
-    # according to a bayesian optimization scheme on a hold-out set of synthetic data.
-    if (length(one_step_ahead_forecasts) < 7){
-      sim_nb1 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 1*dispersion_forecast),ncol=length(point),byrow = T)
-      sim_nb2 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 0.5*dispersion_forecast),ncol=length(point),byrow = T)
-      sim_nb3 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 0.25*dispersion_forecast),ncol=length(point),byrow = T)
-      sim_nb4 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 0.125*dispersion_forecast),ncol=length(point),byrow = T)
+    # # If there are only 5 or less forecasts so far, get the error bounds from NBR models with pre-learned dispersion parameters
+    # # according to a bayesian optimization scheme on a hold-out set of synthetic data.
+    # if (length(one_step_ahead_forecasts) < 7){
+    #   sim_nb1 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 1*dispersion_forecast),ncol=length(point),byrow = T)
+    #   sim_nb2 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 0.5*dispersion_forecast),ncol=length(point),byrow = T)
+    #   sim_nb3 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 0.25*dispersion_forecast),ncol=length(point),byrow = T)
+    #   sim_nb4 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 0.125*dispersion_forecast),ncol=length(point),byrow = T)
+    #   
+    #   print("no optimal ks yet")
+    #   
+    #   # Otherwise, we learn the dispersion parameters for each forecast horizon using an MLE on the observations so far.
+    #   # This is an online update for the MLE of the dispersion parameters.
+    # } 
+    if (is.null(nrow(forecasts_data))){
+      sim_nb1 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 20*dispersion_forecast),ncol=length(point),byrow = T)
+      sim_nb2 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 20*0.5*dispersion_forecast),ncol=length(point),byrow = T)
+      sim_nb3 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 20*0.3*dispersion_forecast),ncol=length(point),byrow = T)
+      sim_nb4 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 20*0.3*dispersion_forecast),ncol=length(point),byrow = T)
       
-      print("no optimal ks yet")
-      
+      print(curr_targetend_date)
       # Otherwise, we learn the dispersion parameters for each forecast horizon using an MLE on the observations so far.
       # This is an online update for the MLE of the dispersion parameters.
-    } else{
+    } else if ((nrow(forecasts_data) < 6*4)){
+      sim_nb1 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 20*dispersion_forecast),ncol=length(point),byrow = T)
+      sim_nb2 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 20*0.5*dispersion_forecast),ncol=length(point),byrow = T)
+      sim_nb3 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 20*0.3*dispersion_forecast),ncol=length(point),byrow = T)
+      sim_nb4 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 20*0.3*dispersion_forecast),ncol=length(point),byrow = T)
+      
+      print(curr_targetend_date)
+      # Otherwise, we learn the dispersion parameters for each forecast horizon using an MLE on the observations so far.
+      # This is an online update for the MLE of the dispersion parameters.
+    } else {
       mle_memory <- Inf
       
-      fit_nb_function <- function(k){
-        mu <- one_step_ahead_forecasts
-        shifted_data <- tail(data_till_now_smoothed[2:length(data_till_now_smoothed)],length(one_step_ahead_forecasts))
-        one_step_ahead_forecasts[which(one_step_ahead_forecasts<100)] = shifted_data[which(one_step_ahead_forecasts<100)]
-        if(length(shifted_data)>mle_memory){
-          one_step_ahead_forecasts <- one_step_ahead_forecasts[(length(shifted_data)-mle_memory+1):length(shifted_data)]
-          shifted_data <- shifted_data[(length(shifted_data)-mle_memory+1):length(shifted_data)]
-        }
-        
-        -sum(dnbinom(round(shifted_data),mu = one_step_ahead_forecasts,size=k,log = T))
+      fit_nb_function <- function(k_){
+        subset_forecasts = forecasts_data %>% subset(horizon == 1)
+        if(nrow(subset_forecasts)>mle_memory){
+          subset_forecasts = subset_forecasts[(nrow(subset_forecasts)-mle_memory):nrow(subset_forecasts),]
+        } 
+        mu <- subset_forecasts$true_values
+        horizon_subset <- subset_forecasts$forecasts
+        horizon_subset[which(horizon_subset<100)] = mu[which(horizon_subset<100)]
+        xx=-sum(dnbinom(round(mu),mu = horizon_subset,size=1/k_,log = T))
+        return(xx)
       }
-      optimal_k_1 <- optim(mle_start_value,fit_nb_function,method="Brent",lower = lower_mle_bound,upper = upper_mle_bound)
+      optimal_k_1 <- optim(mle_start_value,fit_nb_function,method="Brent",lower = 0, upper = 1)
       
-      fit_nb_function <- function(k){
-        mu <- two_step_ahead_forecasts
-        two_step_subset <- two_step_ahead_forecasts[1:(length(two_step_ahead_forecasts)-1)]
-        shifted_data <- tail(data_till_now_smoothed[2:length(data_till_now_smoothed)],length(two_step_subset))
-        if(length(shifted_data)>mle_memory){
-          two_step_subset <- two_step_subset[(length(shifted_data)-mle_memory+1):length(shifted_data)]
-          shifted_data <- shifted_data[(length(shifted_data)-mle_memory+1):length(shifted_data)]
-        }
-        two_step_subset[which(two_step_subset<100)] = shifted_data[which(two_step_subset<100)]
-        -sum(dnbinom(round(shifted_data),mu = two_step_subset,size=k,log = T))
+      fit_nb_function <- function(k_){
+        subset_forecasts = forecasts_data %>% subset(horizon == 2)
+        if(nrow(subset_forecasts)>mle_memory){
+          subset_forecasts = subset_forecasts[(nrow(subset_forecasts)-mle_memory):nrow(subset_forecasts),]
+        } 
+        mu <- subset_forecasts$true_values
+        horizon_subset <- subset_forecasts$forecasts
+        horizon_subset[which(horizon_subset<100)] = mu[which(horizon_subset<100)]
+        xx=-sum(dnbinom(round(mu),mu = horizon_subset,size=1/k_,log = T))
+        return(xx)
       }
-      optimal_k_2 <- optim(mle_start_value,fit_nb_function,method="Brent",lower = lower_mle_bound,upper = upper_mle_bound)
+      optimal_k_2 <- optim(mle_start_value,fit_nb_function,method="Brent",lower = 0, upper = 1)
       
-      fit_nb_function <- function(k){
-        mu <- three_step_ahead_forecasts
-        three_step_subset <- two_step_ahead_forecasts[1:(length(three_step_ahead_forecasts)-2)]
-        shifted_data <- tail(data_till_now_smoothed[2:length(data_till_now_smoothed)],length(three_step_subset))
-        if(length(shifted_data)>mle_memory){
-          three_step_subset <- three_step_subset[(length(shifted_data)-mle_memory+1):length(shifted_data)]
-          shifted_data <- shifted_data[(length(shifted_data)-mle_memory+1):length(shifted_data)]
-        }
-        three_step_subset[which(three_step_subset<100)] = shifted_data[which(three_step_subset<100)]
-        -sum(dnbinom(round(shifted_data),mu = three_step_subset,size=k,log = T))
+      fit_nb_function <- function(k_){
+        subset_forecasts = forecasts_data %>% subset(horizon == 3)
+        if(nrow(subset_forecasts)>mle_memory){
+          subset_forecasts = subset_forecasts[(nrow(subset_forecasts)-mle_memory):nrow(subset_forecasts),]
+        } 
+        mu <- subset_forecasts$true_values
+        horizon_subset <- subset_forecasts$forecasts
+        horizon_subset[which(horizon_subset<100)] = mu[which(horizon_subset<100)]
+        xx=-sum(dnbinom(round(mu),mu = horizon_subset,size=1/k_,log = T))
+        return(xx)
       }
-      optimal_k_3 <- optim(mle_start_value,fit_nb_function,method="Brent",lower = lower_mle_bound,upper = upper_mle_bound)
+      optimal_k_3 <- optim(mle_start_value,fit_nb_function,method="Brent",lower = 0, upper = 1)
       
-      fit_nb_function <- function(k){
-        mu <- four_step_ahead_forecasts
-        four_step_subset <- two_step_ahead_forecasts[1:(length(four_step_ahead_forecasts)-3)]
-        shifted_data <- tail(data_till_now_smoothed[2:length(data_till_now_smoothed)],length(four_step_subset))
-        if(length(shifted_data)>mle_memory){
-          four_step_subset <- four_step_subset[(length(shifted_data)-mle_memory+1):length(shifted_data)]
-          shifted_data <- shifted_data[(length(shifted_data)-mle_memory+1):length(shifted_data)]
-        }
-        four_step_subset[which(four_step_subset<100)] = shifted_data[which(four_step_subset<100)]
-        -sum(dnbinom(round(shifted_data),mu = four_step_subset,size=k,log = T))
+      fit_nb_function <- function(k_){
+        subset_forecasts = forecasts_data %>% subset(horizon == 4)
+        if(nrow(subset_forecasts)>mle_memory){
+          subset_forecasts = subset_forecasts[(nrow(subset_forecasts)-mle_memory):nrow(subset_forecasts),]
+        } 
+        mu <- subset_forecasts$true_values
+        horizon_subset <- subset_forecasts$forecasts
+        horizon_subset[which(horizon_subset<100)] = mu[which(horizon_subset<100)]
+        xx=-sum(dnbinom(round(mu),mu = horizon_subset,size=1/k_,log = T))
+        return(xx)
       }
-      optimal_k_4 <- optim(mle_start_value,fit_nb_function,method="Brent",lower = lower_mle_bound,upper = upper_mle_bound)
+      optimal_k_4 <- optim(mle_start_value,fit_nb_function,method="Brent",lower = 0, upper = 1)
       
-      dispersion_estimates = c(optimal_k_1$par,
-                               optimal_k_2$par,
-                               optimal_k_3$par,
-                               optimal_k_4$par)
-      for(horizon_num in 2:h){
-        if(dispersion_estimates[horizon_num] >= upper_mle_bound-5){
-          dispersion_estimates[horizon_num] <- dispersion_estimates[horizon_num-1]*0.5
-        }
-      }
+      
+      dispersion_estimates = c(1/optimal_k_1$par,
+                               1/optimal_k_2$par,
+                               1/optimal_k_3$par,
+                               1/optimal_k_4$par)
       
       temp_point <- point
-      # for(horizon_idx in 2:h){
-      #   if(temp_point[horizon_idx]<200) temp_point[horizon_idx] <- temp_point[horizon_idx-1]
-      # }
-      sim_nb1 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = 1*dispersion_estimates[1]*dispersion_forecast),ncol=length(point),byrow = T)
-      sim_nb2 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = 0.5*dispersion_estimates[2]*dispersion_forecast),ncol=length(point),byrow = T)
-      sim_nb3 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = 0.25*dispersion_estimates[3]*dispersion_forecast),ncol=length(point),byrow = T)
-      sim_nb4 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = 0.125*dispersion_estimates[4]*dispersion_forecast),ncol=length(point),byrow = T)
-      
-      print("optimal ks are")
-      # print(optimal_k_1$par)
-      # print(optimal_k_2$par)
-      # print(optimal_k_3$par)
-      # print(optimal_k_4$par)
-      print(dispersion_estimates)
-      print("and the forecasts are")
-      print(point)
-      print(fcast)
-      print("-----------")
-      print(actual_dates[(length(data_till_now_smoothed))])
-      print(one_step_ahead_forecasts)
-      print(two_step_ahead_forecasts)
-      print(three_step_ahead_forecasts)
-      print(four_step_ahead_forecasts)
-      print("-----------")
+      sim_nb1 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = dispersion_estimates[1]*dispersion_forecast),ncol=length(point),byrow = T)
+      sim_nb2 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = dispersion_estimates[2]*dispersion_forecast),ncol=length(point),byrow = T)
+      sim_nb3 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = dispersion_estimates[3]*dispersion_forecast),ncol=length(point),byrow = T)
+      sim_nb4 <- matrix(rnbinom(5000*length(point),mu = (temp_point), size = dispersion_estimates[4]*dispersion_forecast),ncol=length(point),byrow = T)
     }
-    
-    # These must be collected for MLE calculations on future dates. 
-    one_step_ahead_forecasts <- c(one_step_ahead_forecasts,fcast[1])
-    two_step_ahead_forecasts <- c(two_step_ahead_forecasts,fcast[2])
-    three_step_ahead_forecasts <- c(three_step_ahead_forecasts,fcast[3])
-    four_step_ahead_forecasts <- c(four_step_ahead_forecasts,fcast[4])
     
     # In the following, we calculate the WIS for each forecast horizon. 
     lower_95s <- c()
@@ -324,58 +308,53 @@ for (location in c(curr_state)){
     lower_CI_scale <- 1
     upper_CI_scale <- 1
     
+    ## Horizon == 1/
+    curr_horizon <- 1
     est_intervals <- quantile(sim_nb1[,1],probs = quantiles)
-    est_intervals[quantiles<0.5] <- est_intervals[quantiles<0.5] * lower_CI_scale
-    est_intervals[quantiles>0.5] <- est_intervals[quantiles>0.5] * upper_CI_scale
-    lower_95s <- c(lower_95s, est_intervals[2])
-    upper_95s <- c(upper_95s, est_intervals[22])
-    lower_50s <- c(lower_50s, est_intervals[7])
-    upper_50s <- c(upper_50s, est_intervals[17])
-    medians   <- c(medians, est_intervals[12])
-    
+    est_intervals <- point[curr_horizon] + (est_intervals-est_intervals[quantiles==0.5]) 
+    lower_95s <- c(lower_95s, est_intervals[1])
+    upper_95s <- c(upper_95s, est_intervals[7])
+    lower_50s <- c(lower_50s, est_intervals[3])
+    upper_50s <- c(upper_50s, est_intervals[5])
+    medians   <- c(medians, est_intervals[4])
     wis_tmp_1 <- weighted_interval_score(quantiles,value = est_intervals, actual_value = data_future[1])
-    
     temp_est_intervals <- est_intervals
+    
+    ## Horizon == 2
+    curr_horizon <- 2
     est_intervals <- quantile(sim_nb2[,2],probs = quantiles)
-    # if(any(est_intervals<=10)){
-    #   est_intervals[est_intervals<=10] <- temp_est_intervals[est_intervals<=10]
-    # }
-    est_intervals[quantiles<0.5] <- est_intervals[quantiles<0.5] * lower_CI_scale
-    est_intervals[quantiles>0.5] <- est_intervals[quantiles>0.5] * upper_CI_scale
+    est_intervals <- point[curr_horizon] + (est_intervals-est_intervals[quantiles==0.5]) 
+    lower_95s <- c(lower_95s, est_intervals[1])
+    upper_95s <- c(upper_95s, est_intervals[7])
+    lower_50s <- c(lower_50s, est_intervals[3])
+    upper_50s <- c(upper_50s, est_intervals[5])
+    medians   <- c(medians, est_intervals[4])
     wis_tmp_2 <- weighted_interval_score(quantiles,value = est_intervals, actual_value = data_future[2])
-    lower_95s <- c(lower_95s, est_intervals[2])
-    upper_95s <- c(upper_95s, est_intervals[22])
-    lower_50s <- c(lower_50s, est_intervals[7])
-    upper_50s <- c(upper_50s, est_intervals[17])
-    medians   <- c(medians, est_intervals[12])
-    
     temp_est_intervals <- est_intervals
+    
+    ## Horizon == 3
+    curr_horizon <- 3
     est_intervals <- quantile(sim_nb3[,3],probs = quantiles)
-    # if(any(est_intervals<=10)){
-    #   est_intervals[est_intervals<=10] <- temp_est_intervals[est_intervals<=10]
-    # }
-    est_intervals[quantiles<0.5] <- est_intervals[quantiles<0.5] * lower_CI_scale
-    est_intervals[quantiles>0.5] <- est_intervals[quantiles>0.5] * upper_CI_scale
+    est_intervals <- point[curr_horizon] + (est_intervals-est_intervals[quantiles==0.5]) 
+    lower_95s <- c(lower_95s, est_intervals[1])
+    upper_95s <- c(upper_95s, est_intervals[7])
+    lower_50s <- c(lower_50s, est_intervals[3])
+    upper_50s <- c(upper_50s, est_intervals[5])
+    medians   <- c(medians, est_intervals[4])
     wis_tmp_3 <- weighted_interval_score(quantiles,value = est_intervals, actual_value = data_future[3])
-    lower_95s <- c(lower_95s, est_intervals[2])
-    upper_95s <- c(upper_95s, est_intervals[22])
-    lower_50s <- c(lower_50s, est_intervals[7])
-    upper_50s <- c(upper_50s, est_intervals[17])
-    medians   <- c(medians, est_intervals[12])
-    
     temp_est_intervals <- est_intervals
+    
+    ## Horizon == 4
+    curr_horizon <- 4
     est_intervals <- quantile(sim_nb4[,4],probs = quantiles)
-    # if(any(est_intervals<=10)){
-    #   est_intervals[est_intervals<=10] <- temp_est_intervals[est_intervals<=10]
-    # }
-    est_intervals[quantiles<0.5] <- est_intervals[quantiles<0.5] * lower_CI_scale
-    est_intervals[quantiles>0.5] <- est_intervals[quantiles>0.5] * upper_CI_scale
+    est_intervals <- point[curr_horizon] + (est_intervals-est_intervals[quantiles==0.5]) 
+    lower_95s <- c(lower_95s, est_intervals[1])
+    upper_95s <- c(upper_95s, est_intervals[7])
+    lower_50s <- c(lower_50s, est_intervals[3])
+    upper_50s <- c(upper_50s, est_intervals[5])
+    medians   <- c(medians, est_intervals[4])
     wis_tmp_4 <- weighted_interval_score(quantiles,value = est_intervals, actual_value = data_future[4])
-    lower_95s <- c(lower_95s, est_intervals[2])
-    upper_95s <- c(upper_95s, est_intervals[22])
-    lower_50s <- c(lower_50s, est_intervals[7])
-    upper_50s <- c(upper_50s, est_intervals[17])
-    medians   <- c(medians, est_intervals[12])
+    temp_est_intervals <- est_intervals
     
     print("-----------")
     print(actual_dates[(length(data_till_now_smoothed))])
@@ -385,7 +364,7 @@ for (location in c(curr_state)){
     
     # # Now plot all of this for Casey:
     all_data = c(data_till_now_smoothed, data_future)
-    actual_dates = truth_weekly[truth_weekly$target_end_date <= (fcast_date + h*7),]$target_end_date
+    actual_dates = truth_weekly[truth_weekly$target_end_date <= (curr_targetend_date + h*7),]$target_end_date
     graph_data = data.frame(x = actual_dates, 
                             value = all_data,
                             type = rep('true_data', times = length(all_data)),
@@ -445,14 +424,27 @@ for (location in c(curr_state)){
     
     ### compute mse and append
     ### could undo horizon mean and include horizon 
-    tmp_df                      <- data.frame(location=location,target_end_date=fcast_date,horizon=1:h,abs_error_moa=abs(fcast-data_future), wis_error_moa=wis_tot)
+    tmp_df                      <- data.frame(location=location,fcast_date=curr_targetend_date,forecasts=fcast, true_values = data_future,
+                                              horizon=1:h,abs_error_moa=abs(fcast-data_future), 
+                                              wis_error_moa=wis_tot,
+                                              target_end_date = c(curr_targetend_date + 7,
+                                                                  curr_targetend_date + 14,
+                                                                  curr_targetend_date + 21,
+                                                                  curr_targetend_date + 28),
+                                              lower_95s = lower_95s,
+                                              upper_95s = upper_95s
+    )
     mse_df                      <- rbind(mse_df,tmp_df)
     
-    
-    one_step_ahead_forecasts <- one_step_ahead_forecasts[one_step_ahead_forecasts>100]
-    two_step_ahead_forecasts <- two_step_ahead_forecasts[two_step_ahead_forecasts>100]
-    three_step_ahead_forecasts <- three_step_ahead_forecasts[three_step_ahead_forecasts>100]
-    four_step_ahead_forecasts <- four_step_ahead_forecasts[four_step_ahead_forecasts>100]
+    forecasts_data = rbind(forecasts_data, data.frame(forecasts = fcast,
+                                                      horizon = c(1:4),
+                                                      target_end_date = c(curr_targetend_date + 7,
+                                                                          curr_targetend_date + 14,
+                                                                          curr_targetend_date + 21,
+                                                                          curr_targetend_date + 28), 
+                                                      true_values = data_future
+                          )
+    )
     
   }
   

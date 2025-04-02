@@ -16,9 +16,11 @@ library(GGally)
 library(viridis)
 library(ggrepel)
 library(dplyr)
+library(this.path)
+setwd(paste0(this.path::here(),"/../"))
 theme_set(theme_classic())
 
-output_path = '~/Documents/evaluations/'
+output_path = 'data/evaluations/'
 
 FILES = list.files(output_path)
 

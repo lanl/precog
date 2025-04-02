@@ -8,13 +8,14 @@ library(umap)
 library(dplyr)
 library(ggExtra)
 library(gridExtra)
+library(this.path)
+setwd(paste0(this.path::here(),"/../"))
 theme_set(theme_bw())
 
-setwd("~/Documents/forecasting_23-26/embed_synthetic_w_data")
-savepath <- "~/Documents/forecasting_23-26/embed_synthetic_w_data"
-filepath_covid <- "~/Documents/forecasting_23-26/embed_synthetic_w_data/"
-filepath_other <- "~/Documents/forecasting_23-26/embed_synthetic_w_data/embeddings_for_murph/"
-load("~/Documents/forecasting_23-26/embed_synthetic_w_data/synthetic_X.RData")
+savepath <- "data/embed_synthetic_w_data"
+filepath_covid <- "data/forecasting_23-26/embed_synthetic_w_data/"
+filepath_other <- "data/forecasting_23-26/embed_synthetic_w_data/embeddings_for_murph/"
+load("data/forecasting_23-26/embed_synthetic_w_data/synthetic_X.RData")
 
 ## pick 100k rows of synthetic data
 set.seed(75600)
@@ -31,47 +32,47 @@ qplot(X1, X2, data=smallX, color=I("grey"))+
 
 
 ## read in covid embeddings (by state)
-statefiles <- list.files("~/Documents/forecasting_23-26/embed_synthetic_w_data/embeddings_by_location/")
+statefiles <- list.files("data/forecasting_23-26/embed_synthetic_w_data/embeddings_by_location/")
 statefiles <- statefiles[grep("_X.RData",statefiles)]
 realX <- NULL
 for(i in 1:length(statefiles)){
   print(i)
-  load(paste0("~/Documents/forecasting_23-26/embed_synthetic_w_data/embeddings_by_location/",statefiles[i]))
+  load(paste0("data/forecasting_23-26/embed_synthetic_w_data/embeddings_by_location/",statefiles[i]))
   xx = data.frame(t(apply(state_X,1,diff)))
   state_X <- data.frame(state = 'COVID-19', xx, max_val = apply(xx,1,max))
   realX <- rbind(realX, state_X)
 }
 
 ## read in Chikungunya
-state_X <- read.csv("~/Documents/forecasting_23-26/embed_synthetic_w_data/embeddings_for_murph/embed_Chikungunya_deSouza_X.csv",
+state_X <- read.csv("data/forecasting_23-26/embed_synthetic_w_data/embeddings_for_murph/embed_Chikungunya_deSouza_X.csv",
                     col.names = c('X0','X1','X2','X3','X4','X5'))
 xx = data.frame(t(apply(state_X,1,diff)))
 state_X <- data.frame(state = 'Chikungunya', xx, max_val = apply(xx,1,max))
 realX <- rbind(realX, state_X)
 
 ## read in Dengue
-state_X <- read.csv("~/Documents/forecasting_23-26/embed_synthetic_w_data/embeddings_for_murph/embed_Dengue_opendengue_X.csv",
+state_X <- read.csv("data/forecasting_23-26/embed_synthetic_w_data/embeddings_for_murph/embed_Dengue_opendengue_X.csv",
                     col.names = c('X0','X1','X2','X3','X4','X5'))
 xx = data.frame(t(apply(state_X,1,diff)))
 state_X <- data.frame(state = 'Dengue', xx, max_val = apply(xx,1,max))
 realX <- rbind(realX, state_X)
 
 ## read in Influenza (usflu)
-state_X <- read.csv("~/Documents/forecasting_23-26/embed_synthetic_w_data/embeddings_for_murph/embed_Influenza_usflunet_X.csv",
+state_X <- read.csv("data/forecasting_23-26/embed_synthetic_w_data/embeddings_for_murph/embed_Influenza_usflunet_X.csv",
                     col.names = c('X0','X1','X2','X3','X4','X5'))
 xx = data.frame(t(apply(state_X,1,diff)))
 state_X <- data.frame(state = 'Influenza (usflu)', xx, max_val = apply(xx,1,max))
 realX <- rbind(realX, state_X)
 
 ## read in Influenza (ushhs)
-state_X <- read.csv("~/Documents/forecasting_23-26/embed_synthetic_w_data/embeddings_for_murph/embed_Influenza_ushhs_X.csv",
+state_X <- read.csv("data/forecasting_23-26/embed_synthetic_w_data/embeddings_for_murph/embed_Influenza_ushhs_X.csv",
                     col.names = c('X0','X1','X2','X3','X4','X5'))
 xx = data.frame(t(apply(state_X,1,diff)))
 state_X <- data.frame(state = 'Influenza (ushhs)', xx, max_val = apply(xx,1,max))
 realX <- rbind(realX, state_X)
 
 ## read in Mpox
-state_X <- read.csv("~/Documents/forecasting_23-26/embed_synthetic_w_data/embeddings_for_murph/embed_Mpox_who_X.csv",
+state_X <- read.csv("data/forecasting_23-26/embed_synthetic_w_data/embeddings_for_murph/embed_Mpox_who_X.csv",
                     col.names = c('X0','X1','X2','X3','X4','X5'))
 xx = data.frame(t(apply(state_X,1,diff)))
 state_X <- data.frame(state = 'Monkey Pox', xx, max_val = apply(xx,1,max))
@@ -88,18 +89,18 @@ set.seed(1128)
 myumap <- umap(umapX[,-1], n_components = 2)
 
 # ## prepare for plotting
-# umap_layout <- data.frame(myumap$layout)
-# umapdf <- data.frame(index = umapX$index, state=umapX$state, data.frame(umap_layout))
-# umapdf$type <- "real"
-# umapdf[umapdf$state == "Synthetic",]$type <- "synthetic"
-# umapdf$sum_snippet <- rowSums(umapX[,-1])
-# umapdf <- umapdf[order(umapdf$sum_snippet),]
-# umapdf$sum_snippet2 <- 1:nrow(umapdf)
-# 
-# 
-# umapdf$state = factor(umapdf$state, levels = unique(umapdf$state))
-# umapdf = as_tibble(umapdf)
-# save(umapdf, file='UMAP_data_alldiseases_diff.RData')
+umap_layout <- data.frame(myumap$layout)
+umapdf <- data.frame(index = umapX$index, state=umapX$state, data.frame(umap_layout))
+umapdf$type <- "real"
+umapdf[umapdf$state == "Synthetic",]$type <- "synthetic"
+umapdf$sum_snippet <- rowSums(umapX[,-1])
+umapdf <- umapdf[order(umapdf$sum_snippet),]
+umapdf$sum_snippet2 <- 1:nrow(umapdf)
+
+
+umapdf$state = factor(umapdf$state, levels = unique(umapdf$state))
+umapdf = as_tibble(umapdf)
+save(umapdf, file='UMAP_data_alldiseases_diff.RData')
 load(file='data/UMAP_data_alldiseases_diff.RData')
 
 p_all_unbounded = ggplot(umapdf, aes(x=X1, y = X2, color = state)) + geom_point() + theme_bw() + 

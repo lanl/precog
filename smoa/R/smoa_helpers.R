@@ -1,6 +1,93 @@
 # Helper Functions for the run_smoa.R main file.
 ## Author: AC Murph and LJ Beesley
 
+get_early_pandemic_errors <- function(targetend_dates_to_match, location, k, 
+                                      truth_as_of_tot, X_diff, y_diff,
+                                      truth_weekly){
+  # We need to collect the one-step-ahead forecasts for all available data (potentially not just
+  # from august 15th onwards).
+  one_step_ahead_forecasts <- c()
+  two_step_ahead_forecasts <- c()
+  three_step_ahead_forecasts <- c()
+  four_step_ahead_forecasts <- c()
+  
+  #### subset to "2020-08-15" when the revised API started up
+  targetend_dates_to_match          <- targetend_dates_to_match[(k+1):length(targetend_dates_to_match)]
+  targetend_dates_to_match          <- targetend_dates_to_match[which(targetend_dates_to_match <= as.Date("2020-08-15"))]
+  
+  #### subset big as of data frame to this specific location
+  truth_as_of_tot_loc           <- truth_as_of_tot[truth_as_of_tot$location_name == location ,]
+  
+  ### hold mse 
+  mse_df                        <- NULL 
+  
+  state_X = NULL
+  state_y = NULL
+  
+  ### iterate through forecast dates
+  forecasts_data = NULL
+  for ( last_targetend_date_idx in 1:(length(targetend_dates_to_match)) ){ 
+    paste0("calculating forecast instance ", last_targetend_date_idx, " of ", length(targetend_dates_to_match))
+
+    #### grab the date formatted
+    curr_targetend_date                  <- targetend_dates_to_match[last_targetend_date_idx]
+    
+    #### subset to data that was available at forecast date
+    truth_as_of                 <- truth_as_of_tot_loc[truth_as_of_tot_loc$as_of == as.Date('2020-08-15'),]
+    #### double check its ordered properly
+    truth_as_of                 <- truth_as_of[order(truth_as_of$target_end_date),]
+    #### make sure that the target end date is less than or equal to curr_targetend_date
+    data_till_now               <- truth_as_of[truth_as_of$target_end_date <= curr_targetend_date,]
+    data_till_now$value         <- pmax(1,data_till_now$value)
+    data_till_now$t             <- 1:nrow(data_till_now)
+    
+    #### light smoothing and differencing and get last k 
+    data_till_now_smoothed      <- gam(value~ s(t,k=round(nrow(data_till_now)/2)),data=data_till_now)$fitted.values
+    
+    #### could use gam smoother 
+    to_match_in_moa             <- tail((data_till_now_smoothed),k+1)
+    
+    #### This is where the sMOA calculation actually happens! 
+    #### take our matrix to match (X_diff) and efficiently compute distances from to_match_in_moa to X_diff
+    gc()
+    dist_to_test <- rowSums(abs(X_diff %r-% tail(diff(to_match_in_moa),k)))
+    gc()
+    
+    #### get the closest ids in the X_diff mat
+    closest_ids                 <- sort(dist_to_test,index.return = TRUE)$ix[1:closest]
+    dists_of_closest            <- sort(dist_to_test)[1:closest]
+    fcast                       <- head(apply(y_diff[closest_ids,],2,median),h)
+    
+    #### convert from difference back to raw cases
+    fcast                       <- tail(data_till_now$value,1) + cumsum(fcast)
+    fcast                       <- pmax(1,fcast)
+    data_future                 <- tail(truth_weekly[truth_weekly$target_end_date <= (curr_targetend_date + h*7),]$value,h) # Note that that '7' is for the length of a week (7 days).
+    
+    ##
+    # data_till_now is the vector we used to get the bit that we 'match' in sMOA.  This is where I grab the most recent value.
+    # This is used if we decide to impose 'guard rails' on the sMOA forecast so it cannot explode upwards to high.
+    most_recent_value = data_till_now$value[length(data_till_now$value)]      
+    ##
+    
+    point <- pmax(1,tail(data_till_now$value,1) +cumsum(head(apply(y_diff[closest_ids,],2,median),h)))
+    vars <- pmax(1,tail(data_till_now$value,1) +cumsum(head(apply(y_diff[closest_ids,],2,sd),h)))
+    
+    # These must be collected for MLE calculations on future dates. 
+    tmp_row = data.frame(forecasts = fcast,
+                         horizon = c(1:4),
+                         target_end_date = c(curr_targetend_date + 7,
+                                             curr_targetend_date + 14,
+                                             curr_targetend_date + 21,
+                                             curr_targetend_date + 28), 
+                         true_values = data_future
+    )
+    forecasts_data = rbind(forecasts_data, tmp_row)
+  }
+  
+  return(forecasts_data)
+  
+}
+
 create_embed_matrix               <- function(synthetic, h, k = 4){
   s_idx                           <- 1
   for (s in synthetic){
@@ -171,11 +258,12 @@ abbr_to_name                      <- function(abbr, ignore.case = FALSE, perl = 
 #' @export
 fips_to_abbr                      <- function(code)
 {
-  fips                            <- sprintf("%02d", covidcast::state_census$STATE)
+  state_census                    <- read.csv('data/state_census.csv')
+  fips                            <- sprintf("%02d", state_census$STATE)
   index                           <- match(substr(code, 1, 2), fips)
   state_census                    <- read.csv('data/state_census.csv')
   state_census$X                  <- NULL
-  output                          <- covidcast::state_census$ABBR[index]
+  output                          <- state_census$ABBR[index]
   names(output)                   <- fips[index]
   output
 }
@@ -1059,6 +1147,97 @@ weighted_interval_score           <- function(quantile, value, actual_value) {
     na.rm = TRUE))
   
   return(wis)
+}
+
+overprediction <- function(quantile, value, actual_value) {
+  score_func_param_checker(quantile, value, actual_value, "overprediction")
+  if (!is_symmetric(quantile)) {
+    warning(paste0("overprediction/underprediction/sharpness require",
+                   "symmetric quantile forecasts. Using NA."))
+    return(NA)
+  }
+  if (all(is.na(actual_value))) return(NA)
+  # `score_func_param_checker` above has already checked for uniqueness, so we
+  # can save a bit of effort and just take the first actual.
+  actual_value <- actual_value[[1L]]
+  
+  lower <- value[!is.na(quantile) & quantile < .5]
+  med <- value[find_quantile_match(quantile, 0.5)]
+  
+  if (length(med) > 1L) return(NA)
+  m <- ifelse(length(med == 1L),
+              (med - actual_value) * (med > actual_value),
+              NULL)
+  
+  ans <- mean(c(
+    rep((lower - actual_value) * (lower > actual_value), 2), m))
+  
+  return(ans)
+}
+
+
+#' Underprediction component of the weighted interval score
+#' 
+#' Requires symmetric quantile forecasts. Roughly, a penalty for predicted 
+#' quantiles larger than .5 falling under the observed value.
+#'
+#' @param quantile vector of forecasted quantiles
+#' @param value vector of forecasted values
+#' @param actual_value Actual value.
+#' 
+#' @export
+underprediction <- function(quantile, value, actual_value) {
+  score_func_param_checker(quantile, value, actual_value, "underprediction")
+  if (!is_symmetric(quantile)) {
+    warning(paste0("overprediction/underprediction/sharpness require",
+                   "symmetric quantile forecasts. Using NA."))
+    return(NA)
+  }
+  if (all(is.na(actual_value))) return(NA)
+  # `score_func_param_checker` above has already checked for uniqueness, so we
+  # can save a bit of effort and just take the first actual.
+  actual_value <- actual_value[[1L]]
+  
+  upper <- value[!is.na(quantile) & quantile > .5]
+  med <- value[find_quantile_match(quantile, 0.5)]
+  
+  if (length(med) > 1L) return(NA)
+  m <- ifelse(length(med == 1L),
+              (actual_value - med) * (med < actual_value),
+              NULL)
+  ans <- mean(c(
+    rep((actual_value - upper) * (upper < actual_value),2), m))
+  
+  return(ans)
+}
+
+#' Sharpness component of the weighted interval score
+#' 
+#' Requires symmetric quantile forecasts. Roughly, a penalty for the
+#' width of predicted quantiles.
+#'
+#' @param quantile vector of forecasted quantiles
+#' @param value vector of forecasted values
+#' @param actual_value Actual value.
+#' 
+#' @export
+
+sharpness <- function(quantile, value, actual_value) {
+  weighted_interval_score(quantile, value, actual_value) - 
+    overprediction(quantile, value, actual_value) - 
+    underprediction(quantile, value, actual_value)
+}
+
+is_symmetric <- function(x, tol=1e-8) {
+  # Checking if `x` is sorted is much faster than trying to sort it again
+  if (is.unsorted(x, na.rm=TRUE)) {
+    # Implicitly drops NA values
+    x <- sort(x)
+  } else {
+    # Match `sort` behavior
+    x <- x[!is.na(x)]
+  }
+  all(abs(x + rev(x) - 1) < tol)
 }
 
 #' Common parameter checks for score functions

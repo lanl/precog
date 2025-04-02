@@ -1,0 +1,17 @@
+logfiles
+.Rhistory
+.DS_Store
+SLURMOUT
+data
+!data/scores_tot.csv
+!data/state_census.csv
+!data/tdat_list_tot_weekly.csv
+!data/state_truths
+.RData
+initial_lhs.RData
+synthetic_X_diff.RData
+synthetic_y_diff.RData
+synthetic_X.RData
+synthetic_y.RData
+wis_comparison_data.rds
+mae_comparison_data.rds
