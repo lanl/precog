@@ -231,6 +231,7 @@ for (location in c(curr_state)){
       # Otherwise, we learn the dispersion parameters for each forecast horizon using an MLE on the observations so far.
       # This is an online update for the MLE of the dispersion parameters.
     } else {
+      print("WE ARE ACTUALLY DOING THE ONLINE STUFF")
       mle_memory <- Inf
       
       fit_nb_function <- function(k_){

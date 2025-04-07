@@ -17,6 +17,8 @@ library(viridis)
 library(ggrepel)
 library(dplyr)
 library(this.path)
+library(patchwork)
+library(gridExtra)
 setwd(paste0(this.path::here(),"/../"))
 theme_set(theme_classic())
 
@@ -77,33 +79,61 @@ RESULTS_AGG = RESULTS_AGG[!duplicated(RESULTS_AGG$disease_source),]
 
 A = RESULTS[grepl('Chik',RESULTS$disease_source),]
 
+
 #####################
+# Create Supplement Figure 3
+DISEASE_ORDER <- c(
+  "Mpox_who",
+  "Dengue_opendengue",
+  "Influenza_usflunet",
+  "Influenza_ushhs",
+  "Chikungunya_deSouza"
+)
+
+# Corresponding pretty names for axis labels
+DISEASE_LABELS <- c(
+  "Monkey Pox",
+  "Dengue Fever",
+  "ILI Incidence",
+  "Influenza Hospitalizations",
+  "Chikungunya"
+)
+
 # Create Supplement Figure 3 (first part)
 RESULTS_AGG = RESULTS_AGG[order(RESULTS_AGG$mae_smoa_agg/(RESULTS_AGG$mae_rw_agg+1e-6)),]
-DISEASE_ORDER = rev(RESULTS_AGG$disease_source)
-ggplot(RESULTS)+
+
+# Create a named vector for relabeling
+names(DISEASE_LABELS) <- DISEASE_ORDER
+
+# DISEASE_ORDER = rev(RESULTS_AGG$disease_source)
+p1 = ggplot(RESULTS)+
   geom_point(aes(x=factor(disease_source, levels = DISEASE_ORDER), y=mae_smoa/(mae_rw+1e-6)))+
-  geom_point(aes(x=factor(disease_source, levels = DISEASE_ORDER), y=mae_smoa_agg/(mae_rw_agg+1e-6)), color = 'red', data = RESULTS_AGG, size = 2)+
-  xlab('Disease_Source')+
-  ylab('MAE(smoa) / MAE(random walk)')+
-  geom_hline(yintercept = 1, color = 'gray', linetype = 2)+
-  #ylim(0,1.5)+
+  geom_point(aes(x=factor(disease_source, levels = DISEASE_ORDER), y=mae_smoa_agg/(mae_rw_agg+1e-6)), 
+             data = RESULTS_AGG,
+             color = 'red',
+             size = 4) +  # Increased size for red points
+  xlab('Disease Source') +
+  ylab('MAE(smoa) / MAE(random walk)') +
+  geom_hline(yintercept = 1, color = 'gray', linetype = 2) +
+  scale_x_discrete(labels = DISEASE_LABELS) +
   coord_flip()
 
-
-#####################
 # Create Supplement Figure 3 (second part)
 RESULTS_AGG = RESULTS_AGG[order(RESULTS_AGG$rmse_smoa_agg/RESULTS_AGG$rmse_rw_agg),]
-DISEASE_ORDER = rev(RESULTS_AGG$disease_source)
-ggplot(RESULTS)+
+# DISEASE_ORDER = rev(RESULTS_AGG$disease_source)
+p2 = ggplot(RESULTS)+
   geom_point(aes(x=factor(disease_source, levels = DISEASE_ORDER), y=rmse_smoa/rmse_rw))+
-  geom_point(aes(x=factor(disease_source, levels = DISEASE_ORDER), y=rmse_smoa_agg/rmse_rw_agg), color = 'red', data = RESULTS_AGG, size = 2)+
-  xlab('Disease_Source')+
+  geom_point(aes(x=factor(disease_source, levels = DISEASE_ORDER), y=rmse_smoa_agg/rmse_rw_agg), 
+             data = RESULTS_AGG,
+             color = 'red',
+             size = 4) +
+  xlab('Disease Source')+
   ylab('rMSE(smoa) / rMSE(random walk)')+
   geom_hline(yintercept = 1, color = 'gray', linetype = 2)+
-  #ylim(0,1.5)+
+    scale_x_discrete(labels = DISEASE_LABELS) +
   coord_flip()
 
+p1 / p2
 
 #####################
 ### Dist vs Error ###
@@ -131,11 +161,35 @@ RESULTS_LONG$mae_rw_ratio2 = RESULTS_LONG$mae_rw/(RESULTS_LONG$obs+1e-6)
 
 #####################
 # Create Supplement Figure 4:
-ggplot(RESULTS_LONG[RESULTS_LONG$obs > 0,])+
-  geom_boxplot(aes(x=disease_source, y = dist_ratio, fill = disease_source))+
-  xlab('Disease')+
-  ylab('Minimum Distance / Last Observed Value')+
-  guides(fill = 'none')+
-  scale_y_continuous(expand = c(0,0))+
+DISEASE_ORDER <- c(
+  "Mpox_who",
+  "Chikungunya_deSouza",
+  "Influenza_ushhs",
+  "Dengue_opendengue",
+  "Influenza_usflunet"
+)
+
+DISEASE_LABELS <- c(
+  "Monkey Pox",
+  "Chikungunya",
+  "Influenza Hospitalizations",
+  "Dengue Fever",
+  "ILI Incidence"
+)
+RESULTS_LONG_SUB <- RESULTS_LONG[RESULTS_LONG$obs > 0, ]
+RESULTS_LONG_SUB$disease_source <- factor(
+  RESULTS_LONG_SUB$disease_source,
+  levels = DISEASE_ORDER
+)
+
+# Plot
+ggplot(RESULTS_LONG_SUB) +
+  geom_boxplot(aes(x = disease_source, y = dist_ratio, fill = disease_source)) +
+  xlab("Disease Source") +
+  ylab("Minimum Distance / Last Observed Value") +
+  guides(fill = 'none') +
+  scale_x_discrete(labels = DISEASE_LABELS) +
+  scale_y_continuous(expand = c(0, 0)) +
   coord_flip()
+
 
