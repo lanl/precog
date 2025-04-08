@@ -147,6 +147,7 @@ mae_comparison_data$forecast_date.y <- NULL
 mae_comparison_data$wis <- NULL
 # Triple check that we are making a fair comparison:
 anyNA(mae_comparison_data)
+save(mae_comparison_data, file = 'data/mae_comparison_data.RData')
 
 ggplot_data = mae_comparison_data %>% dplyr::group_by(model) %>% dplyr::summarize(abs_error_model= mean(abs_error_model), 
                                                                                   abs_error_smoa = mean(abs_error_smoa))
