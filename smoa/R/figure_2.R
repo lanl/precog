@@ -531,7 +531,7 @@ ggplot() +
                # limits = c(as.Date("2020-07-25"), as.Date("2021-11-15")),
                expand = expansion()) +
   # scale_y_continuous("Cases", labels = comma) +
-  facet_grid(cols = vars(location_name), rows = vars(model), scales = "free_y") +
+  facet_grid(cols = vars(location_name), rows = vars(model)) + #, scales = "free_y"
   theme_bw() +
   ylab('Hospital Incidence') +
   theme(
