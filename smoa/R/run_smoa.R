@@ -20,7 +20,8 @@ library(ggridges)
 library(utils)
 library(parallel)
 library(doParallel)
-setwd("~/GitLab/smoa")
+library(this.path)
+setwd(paste0(this.path::here(), '/../'))
 source("R/smoa_helpers.R")
 
 ncores <- 51

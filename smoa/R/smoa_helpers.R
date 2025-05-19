@@ -95,6 +95,7 @@ create_embed_matrix               <- function(synthetic, h, k = 4){
     synthetic[[s_idx]]            <- s
     s_idx                         <- s_idx + 1
   }
+  browser()
   embed_mat                       <- lapply(synthetic,function(x){ embed( pmax(1e-8,x$ts),k+h)})
   embed_mat                       <- do.call(rbind,embed_mat)
   embed_mat                       <- embed_mat[,ncol(embed_mat):1] #casey

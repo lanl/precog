@@ -200,6 +200,7 @@ bigcomponents <- components
 
 ### add rows for equal_wt
 SUB = bigplotoutput[!is.na(bigplotoutput$h) & bigplotoutput$model != 'epifforma',]
+SUB = SUB[SUB$model != 'mirror',]
 SUB = SUB %>% dplyr::group_by(ts_length, ts_id, h) %>% dplyr::mutate(fcst_mean = mean(fcst, na.rm=T))
 SUB = SUB[!duplicated(paste0(SUB$ts_length, '_', SUB$h, '_', SUB$ts_id)),]
 SUB$fcst = SUB$fcst_mean

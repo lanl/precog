@@ -247,15 +247,14 @@ results$wis_interval_equalwt = (1/1.5)*(0.5*abs(results$fcst_equalwt-results$tru
 
 
 
-results_long = rbind(data.frame(type = 'Epifforma (Interval)',             wis = results$wis_interval_epifforma, msis = results$msis_interval_epifforma,   width = results$width_interval_epifforma, coverage = results$covers_interval_epifforma, lower = results$fcst_interval_epifforma_0.025, upper = results$fcst_interval_epifforma_0.975, results[,c('geography', 'disease','last_obs_time', 'h','truth')], fcst = results$fcst_epifforma),
-                     data.frame(type = 'Equalwt (Interval)',               wis = results$wis_interval_equalwt, msis = results$msis_interval_equalwt,     width = results$width_interval_equalwt, coverage = results$covers_interval_equalwt, lower = results$fcst_interval_equalwt_0.025, upper = results$fcst_interval_equalwt_0.975, results[,c('geography', 'disease','last_obs_time', 'h','truth')], fcst = results$fcst_equalwt))
+results_long = rbind(data.frame(type = 'Epifforma (Interval)',             wis = results$wis_interval_epifforma,  width = results$width_interval_epifforma, coverage = results$covers_interval_epifforma, lower = results$fcst_interval_epifforma_0.025, upper = results$fcst_interval_epifforma_0.975, results[,c('geography', 'disease','last_obs_time', 'h','truth')], fcst = results$fcst_epifforma),
+                     data.frame(type = 'Equalwt (Interval)',               wis = results$wis_interval_equalwt,   width = results$width_interval_equalwt, coverage = results$covers_interval_equalwt, lower = results$fcst_interval_equalwt_0.025, upper = results$fcst_interval_equalwt_0.975, results[,c('geography', 'disease','last_obs_time', 'h','truth')], fcst = results$fcst_equalwt))
 
 library(plyr)
 accuracydf <- ddply(results_long,.(type),summarise,
                     n = length(width),
                     median_width_scaled = median((width/fcst)[fcst>0],na.rm=T),
                     coverage = mean(coverage, na.rm=T), 
-                    median_msis = median(msis[fcst>0], na.rm=T),
                     median_wis = median(wis[fcst>0], na.rm=T))
 print(accuracydf)
 gc()  

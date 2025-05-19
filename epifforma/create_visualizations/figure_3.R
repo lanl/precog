@@ -1,21 +1,15 @@
 # Script for the Figure 3 in the epiFFORMA paper.
 ## Authors: Lauren Beesley and Alexander C. Murph
 ## Date: Novemember 2024
-library(ggrepel)
-library(patchwork)
-library(gridExtra)
-library(ggExtra)
-library(tidyverse)
-library(reshape2)
 library(ggplot2)
 library(data.table)
 library(GGally)
 library(viridis)
+library(ggrepel)
 library(dplyr)
+library(gridGraphics)
 library(plyr)
 theme_set(theme_classic())
-
-# Start by making the boxplots.
 
 library(this.path)
 my_path = this.path::here()
@@ -27,16 +21,17 @@ savepath <- paste0(my_path,"/../evaluate_model/evaluation/")
 ## get .RDS file names
 FILES = list.files(savepath)
 FILES = FILES[grepl('.RDS',FILES)]
-FILES = FILES[grepl('_order',FILES)] 
-FILES = FILES[!grepl('synthetic',FILES)] ###added 1/16
- 
+FILES = FILES[grepl('_order',FILES)]
+#FILES = FILES[!grepl('synthetic',FILES)]
 
 ### TAKES A LONG TIME!!!! ###
 RESULTS = replicate(length(FILES),list(NULL))
 RANKS = replicate(length(FILES),list(NULL))
 RANKS_EQUAL_WT = replicate(length(FILES),list(NULL))
+total_fcts_count = 0
 for(i in 1:length(FILES)){
-
+  #for(i in 4:5){
+  
   output_list = readRDS(paste0(savepath, FILES[i]))
   
   ### Get Accuracy Table
@@ -45,10 +40,13 @@ for(i in 1:length(FILES)){
   
   
   ### Get Accuracy Table by Last Obs Time
+  library(plyr)
   accuracydf = output_list['plot_df']$plot_df
   accuracydf = accuracydf[accuracydf$h != 0 & !is.na(accuracydf$h) & accuracydf$truth > 0 & accuracydf$type == 'fcst',]
   accuracydf$smape = abs(accuracydf$fcst - accuracydf$truth)/(0.5*(abs(accuracydf$fcst) + abs(accuracydf$truth)))
   accuracydf$mae = abs(accuracydf$fcst - accuracydf$truth)
+  
+  total_fcts_count = total_fcts_count  + nrow(subset(accuracydf, model == 'epifforma'))
   if('last_obs_time' %in% names(accuracydf)){
     accuracydf = accuracydf %>% dplyr::group_by(geography,last_obs_time,h) %>% dplyr::mutate(mae_rank = rank(mae, ties = 'min'))
   }else{
@@ -126,182 +124,107 @@ RESULTS_STACKED_EXTRA = merge(RESULTS_STACKED_EXTRA, data.frame(disease = DISEAS
                               all.y = F)
 
 
-SUBSET = RESULTS_STACKED[RESULTS_STACKED$fit_type == 'multi_error',]
-SUBSET = SUBSET %>% dplyr::group_by(disease) %>% dplyr::mutate(mae_ratio = mae/mae[which(model=='equal_wt')])
-SUBSET = SUBSET %>% dplyr::group_by(disease) %>% dplyr::mutate(rmse_ratio = rmse/rmse[which(model=='equal_wt')])
-SUBSET = SUBSET[,c(2,21,22,23)] 
-SUBSET_melted = melt(SUBSET, id = c(1,2))
-SUBSET_melted = SUBSET_melted[complete.cases(SUBSET_melted),]
-SUBSET_melted = SUBSET_melted[which(SUBSET_melted$model!='equal_wt'),]
-SUBSET_melted$model = factor(SUBSET_melted$model, levels = c('epifforma', 'rw', 'theta', 'arima', 'gam', 'gam2mirror', 'meanfcst', 'mirror', 'moa', 'moa_deriv'))
-p2 = ggplot(SUBSET_melted)+
-  geom_boxplot(aes(x=model, y = value, fill = variable))+
-  # coord_cartesian(ylim = c(1,3))+
-  theme_classic() + 
-  #geom_boxplot(aes(y=value, x = model, fill = variable), alpha=.5, data = SUBSET_melted[SUBSET_melted$model == 'equal_wt',], color = 'black', size = 1.1)+
-  geom_boxplot(aes(y=value, x = model, fill = variable), alpha=.5, data = SUBSET_melted[SUBSET_melted$model == 'epifforma',], color = 'black', size = 1.1)+ 
-  theme(legend.position = 'top',axis.text=element_text(size=15),
-        axis.title=element_text(size=18,face="bold"), plot.title = element_text(size=22),
-        legend.title=element_text(size=18), 
-        legend.text=element_text(size=15))
-boxplot_figure = p2 + geom_hline(yintercept = 1) + scale_y_continuous(trans='log10')
-boxplot_figure = boxplot_figure +  scale_fill_discrete(type = c('#A3D5D3', '#ECD5B3'),
-                                                       name = 'Metric',
-                                                       labels = c('mae_ratio' = "Relative MAE", 
-                                                                  'rmse_ratio' = 'Relative RMSE'),
-                                                       breaks = c('mae_ratio', 'rmse_ratio'))
-
-
-
-
-## define paths
-savepath <- paste0(my_path,"/../evaluate_model/evaluation/")
-
-## get .RDS file names
-FILES = list.files(savepath)
-FILES = FILES[grepl('.RDS',FILES)]
-FILES = FILES[grepl('_order',FILES)]
-FILES = FILES[!grepl('synthetic',FILES)]
-FILES = FILES[grepl('multierror',FILES)]
-
-
-### TAKES A LONG TIME!!!! ###
-RESULTS_MAE = replicate(length(FILES),list(NULL))
-RESULTS_WIS = replicate(length(FILES),list(NULL))
-for(i in 1:length(FILES)){
-  
-  
-  ### MAE Table
-  output_list = readRDS(paste0(savepath, FILES[i]))
-  RESULTS_MAE[[i]] = data.frame(output_list['accuracy_table']$accuracy_table,
-                                key = FILES[i])
-  rm(output_list)
-  
-  
-  ### WIS Table
-  output_list = readRDS(paste0(savepath,'../../evaluate_probabilistic/evaluation/',gsub('_multierror','' ,FILES[i])))
-  accuracydf = ddply(output_list['results']$results,.(type),summarise,
-                     median_truth = median(truth))
-  RESULTS_WIS[[i]] = data.frame(output_list['accuracydf']$accuracydf,
-                                median_truth = accuracydf$median_truth[1],
-                                key = FILES[i])
-  rm(output_list)
-  
-  
-  gc()
-  print(paste0('Finished: ', i, ' of ', length(FILES)))
-}
-
-DISEASES = c('synthetic_training','synthetic_test',
-             'us_covid_rollercoaster','global_covid_rollercoaster','us_ili_rollercoaster','dengue_rollercoaster',
-             'us_diphtheria','us_measles','us_mumps','us_polio',
-             'us_rubella','us_smallpox',
-             'chikungunya')
-DISEASE_LABELS = c('Synthetic (Training)', 'Synthetic (Test)',
-                   'COVID-19 (US)', 'COVID-19 (Global)', 'ILI (US)','Dengue Fever (Global)', 
-                   'Diphtheria (US)', 'Measles (US)', 'Mumps (US)',
-                   'Polio (US)', 'Rubella (US)', 'Smallpox (US)', 
-                   'Chikungunya (Brazil)')
-
-
-RESULTS_STACKED = NULL
-for(i in 1:length(FILES)){
-  A = RESULTS_MAE[[i]]
-  B = RESULTS_WIS[[i]]
-  A = A[A$model %in% c('equal_wt', 'epifforma'),]
-  B = B[B$type %in% c('Epifforma (Interval)', 'Equalwt (Interval)'),]
-  B$model = c('epifforma', 'equal_wt')
-  
-  RES = merge(A[,c('model', 'mae', 'rmse','key')], B[,c('model', 'median_width_scaled','coverage','median_msis','median_wis','median_truth')],
-              by= c('model'), all.x = T, all.y = T)
-  RESULTS_STACKED = rbind(RESULTS_STACKED, RES)
-}
-RESULTS_STACKED$disease = gsub('_order_multierror.RDS','',gsub('_order_multilogloss.RDS','',RESULTS_STACKED$key))
-RESULTS_STACKED = merge(RESULTS_STACKED, data.frame(disease = DISEASES, disease_pretty = DISEASE_LABELS), by = 'disease', all.x = T,
-                        all.y = F)
 
 RESULTS_STACKED$disease = factor(RESULTS_STACKED$disease, levels = rev(DISEASES))
-SUBSET = RESULTS_STACKED
-SUBSET = SUBSET %>% dplyr::group_by(disease) %>% dplyr::mutate(mae_scaled = mae/median_truth)
-SUBSET = SUBSET %>% dplyr::group_by(disease) %>% dplyr::mutate(wis_scaled = median_wis/median_truth)
-SUBSET = SUBSET %>% dplyr::group_by(disease) %>% dplyr::mutate(rmse_scaled = rmse/median_truth)
+SUBSET = RESULTS_STACKED[RESULTS_STACKED$fit_type == 'multi_error',]
+SUBSET = subset(SUBSET, !(key%in%c("synthetic_test_order_multierror", "synthetic_training_order_multierror")))
+SUBSET$model <- factor(SUBSET$model, levels = c(
+  'epifforma', 'equal_wt', 'gam2mirror', 'mirror', 'moa_deriv', 
+  'theta', 'gam', 'meanfcst', 'moa', 'rw', 'arima'
+))
+custom_colors <- c(
+  "#1f77b4",  # epifforma
+  "#6baed6",  # gam2mirror
+  "#ff7f0e",  # mirror
+  "#2ca02c",  # moa_deriv
+  "#d62728",  # theta
+  "#9467bd", # equal_wt
+  "#8c564b",  # gam
+  "#e377c2",  # meanfcst
+  "#FFD700",  # moa
+  "#008080",  # rw
+  "#7FFF00"   # (extra color if needed)
+)
 
-SUBSET_all = SUBSET[,c(2,9,11,12,13,14)]
-SUBSET_1 = SUBSET_all[which(SUBSET_all$model=='epifforma'),]
-SUBSET_2 = SUBSET_all[which(SUBSET_all$model=='equal_wt'),]
-graph_data = merge(SUBSET_1, SUBSET_2, by.x = 'disease_pretty', by.y = 'disease_pretty')
-# graph_data = graph_data[graph_data$disease_pretty!='ILI (US)',]
+# ggplot code
+p2 <- ggplot(SUBSET) +
+  geom_tile(aes(y = disease, x = mae_rank, color = model, fill = model)) +
+  geom_tile(aes(y = disease, x = mae_rank, fill = model), 
+            color = 'black', 
+            data = SUBSET[SUBSET$model == 'epifforma',], linewidth = 2) +
+  theme_classic() +
+  xlab('MAE Rank') +
+  ylab('Disease') +
+  # labs(title = 'MAE Rank') +
+  scale_fill_manual('Model', values = custom_colors[1:11]) +
+  scale_color_manual(values = rep("black", length(levels(SUBSET$model)))) +
+  scale_x_continuous(expand = c(0,0), breaks = 1:length(unique(SUBSET$model))) +
+  scale_y_discrete(breaks = DISEASES, labels = DISEASE_LABELS) +
+  theme(legend.position = 'none') +
+  guides(fill = guide_legend(ncol = 6))+ theme(
+    legend.text = element_text(size = 12),  # Increase legend text size
+    axis.title.x = element_text(size = 14),  # Increase x-axis title size
+    axis.title.y = element_text(size = 16)  # Increase x-axis title size
+  )+ theme(
+    axis.text.x = element_text(angle = 90, size = 14, hjust = 0.5, vjust = 0.5),
+    axis.text.y = element_text(size = 12, hjust = 0.5, vjust = 0.5)
+  )+coord_flip()
+p1 <- ggplot(SUBSET) +
+  geom_tile(aes(y = disease, x = rmse_rank, color = model, fill = model)) +
+  geom_tile(aes(y = disease, x = rmse_rank, fill = model),
+            color = 'black', 
+            data = SUBSET[SUBSET$model == 'epifforma',], linewidth = 2) +
+  theme_classic() +
+  xlab('RMSE Rank') +
+  ylab('Disease') +
+  # labs(title = 'RMSE Rank') +
+  scale_fill_manual('Model', values = custom_colors) +
+  scale_color_manual(values = rep("black", length(levels(SUBSET$model)))) +
+  scale_x_continuous(expand = c(0,0), breaks = 1:length(unique(SUBSET$model))) +
+  scale_y_discrete(breaks = DISEASES, labels = DISEASE_LABELS) +
+  theme(legend.position = 'top') +
+  guides(fill = guide_legend(ncol = 6), color = 'none')+ theme(
+    legend.text = element_text(size = 12),  # Increase legend text size
+    axis.title.x = element_text(size = 14),  # Increase x-axis title size
+    axis.title.y = element_text(size = 16)  # Increase x-axis title size
+  )+ theme(
+    axis.text.x = element_text(angle = 90, size = 14, hjust = 0.5, vjust = 0.5),
+    axis.text.y = element_text(size = 12, hjust = 0.5, vjust = 0.5)
+  )+coord_flip()
+legend = cowplot::get_plot_component(p1, 'guide-box-top', return_all = TRUE)
+p1 = p1+theme(legend.position = "none")
+# p1 = p1 + theme(axis.text.y = element_blank())
+# p2 = p2 + theme(axis.text.x = element_blank())
+p0 = cowplot::plot_grid(p2,p1,ncol = 1, nrow = 2, rel_widths = c(1.4,1))
+p00 = cowplot::plot_grid(legend,p0,ncol = 1, nrow = 2, rel_heights = c(0.15,2))
+p00
 
-models_to_label <- c("COVID-19 (US)", "ILI (US)", 'Dengue Fever (Global)', 'Mumps (US)')
-
-graph_data$side_of_line <- factor(as.numeric(graph_data$mae_scaled.x<=graph_data$mae_scaled.y), levels = c('0','1'))
-p1 <- ggplot(graph_data,aes(x = mae_scaled.x, y = mae_scaled.y,fill=side_of_line)) + 
-  geom_point(color=I('black'), shape=I(21), size = I(3)) + geom_abline()+ 
-  scale_fill_discrete(labels = c('0' = "0", 
-                                 '1' = "1"),
-                      breaks = c('0','1'),
-                      type = c("lavender", "white"))+
-  geom_label_repel(aes(label = ifelse(disease_pretty%in%models_to_label,as.character(disease_pretty),'')),
-                   box.padding   = 0.35, 
-                   point.padding = 0.5,
-                   segment.color = 'grey50',
-                   size = 5)+ scale_x_continuous(trans='log10')+ scale_y_continuous(trans='log10')+
-  theme(legend.position = 'none') + xlab("Average MAE for epiFFORMA") + ylab("Average MAE for Equal Weights") + 
-  theme(axis.text=element_text(size=15), axis.title = element_text(size = 18),
-        title = element_text(size=15)) + coord_flip() +
-  theme(panel.spacing = unit(0, "cm"),
-        plot.margin = margin(0, 0, 0, 0, "cm"), 
-        plot.caption = element_blank())
-
-graph_data$side_of_line <- factor(as.numeric(graph_data$rmse_scaled.x<=graph_data$rmse_scaled.y), levels = c('0','1'))
-p2 <- ggplot(graph_data,aes(x = rmse_scaled.x, y = rmse_scaled.y,fill=side_of_line)) + 
-  geom_point(color=I('black'), shape=I(21), size = I(3)) + geom_abline()+ 
-  scale_fill_discrete(labels = c('0' = "0", 
-                                 '1' = "1"),
-                      breaks = c('0','1'),
-                      type = c("lavender", "white"))+
-  geom_label_repel(aes(label = ifelse(disease_pretty%in%models_to_label,as.character(disease_pretty),'')),
-                   box.padding   = 0.35, 
-                   point.padding = 0.5,
-                   segment.color = 'grey50',
-                   size = 5)+ scale_x_continuous(trans='log10')+ scale_y_continuous(trans='log10')+
-  theme(legend.position = 'none') + xlab("Average RMSE for epiFFORMA") + ylab("Average RMSE for Equal Weights") + 
-  theme(axis.text=element_text(size=15), axis.title = element_text(size = 18),
-        title = element_text(size=15)) + coord_flip() +
-  theme(panel.spacing = unit(0, "cm"),
-        plot.margin = margin(0, 0, 0, 0, "cm"), 
-        plot.caption = element_blank()) 
-
-graph_data$side_of_line <- factor(as.numeric(graph_data$wis_scaled.x<=graph_data$wis_scaled.y), levels = c('0','1'))
-p3 <- ggplot(graph_data,aes(x = wis_scaled.x, y = wis_scaled.y,fill=side_of_line)) + 
-  geom_point(color=I('black'), shape=I(21), size = I(3)) + geom_abline()+ 
-  scale_fill_discrete(labels = c('0' = "0", 
-                                 '1' = "1"),
-                      breaks = c('0','1'),
-                      type = c("white","lavender"))+
-  geom_label_repel(aes(label = ifelse(disease_pretty%in%models_to_label,as.character(disease_pretty),'')),
-                   box.padding   = 0.35, 
-                   point.padding = 0.5,
-                   segment.color = 'grey50',
-                   size = 5)+ scale_x_continuous(trans='log10')+ scale_y_continuous(trans='log10')+
-  theme(legend.position = 'none') + xlab("Median WIS for epiFFORMA") + ylab("Median WIS for Equal Weights") + 
-  theme(axis.text=element_text(size=15), axis.title = element_text(size = 18),
-        title = element_text(size=15)) + coord_flip() +
-  theme(panel.spacing = unit(0, "cm"),
-        plot.margin = margin(0, 0, 0, 0, "cm"), 
-        plot.caption = element_blank()) 
-
-
-# Now visualize all plots together. 
-
-layoutplot   <- "
-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-eeeeeeeeeeegggggggggggghhhhhhhhhhhh
-eeeeeeeeeeegggggggggggghhhhhhhhhhhh
-"
-
-plotlist  <- list(a=boxplot_figure, e = p1, g = p2, h = p3)
-
-pdf(file = paste0(my_path,'/figure3.pdf'), width = 16, height = 10)
-wrap_plots(plotlist, design = layoutplot)
+pdf(file = paste0(my_path,'/figure3.pdf'), width = 8, height = 16)
+p00
 dev.off()
+
+
+RANKS_STACKED = rbind(data.frame(do.call('rbind',RANKS),model = 'Epifforma'),
+                      data.frame(do.call('rbind',RANKS_EQUAL_WT),model = 'Equal Weight'))
+RANKS_STACKED = RANKS_STACKED[!(RANKS_STACKED$disease %in% c('synthetic_training', 'synthetic_test')),]
+RANKS_STACKED = RANKS_STACKED %>% dplyr::group_by(model, rank) %>% dplyr::mutate(prop_sum = sum(prop)/length(prop))
+RANKS_STACKED = RANKS_STACKED[order(RANKS_STACKED$rank),]
+RANKS_STACKED = merge(RANKS_STACKED, data.frame(disease = DISEASES, disease_pretty = DISEASE_LABELS), by = 'disease', all.x = T,
+                      all.y = F)
+RANKS_STACKED = RANKS_STACKED[RANKS_STACKED$fit_type == 'multi_error',]
+RANKS_STACKED = RANKS_STACKED[!duplicated(paste0(RANKS_STACKED$model, '_', RANKS_STACKED$rank)),]
+p1 = ggplot(RANKS_STACKED[RANKS_STACKED$type == 'MAE',])+
+  geom_line(aes(y=prop_sum, x=factor(rank), 
+                group =model), linewidth = 2.5, color = 'black')+
+  geom_line(aes(y=prop_sum, x=factor(rank), color = model, 
+                group =model), linewidth = 2)+
+  geom_hline(yintercept = 1/nrow(RESULTS[[1]]), color = 'gray', linetype = 2, linewidth = 0.5)+
+  xlab('Rank')+ylab('Proportion of Forecasts')+
+  labs(title = 'Distribution of MAE Rankings across All Forecasts')+
+  theme(legend.position = 'top')+
+  scale_color_discrete('Model')
+
+# pdf(file = paste0(my_path,'/supp_rank_densities.pdf'), width = 8, height = 5)
+p1
+# dev.off()
+

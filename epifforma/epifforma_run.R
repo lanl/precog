@@ -57,11 +57,12 @@ if(!file.exists(paste0(training_path,"embed_mat/embed_mat_y.csv"))){
 if(!file.exists(paste0(training_path,"embed_mat/embed_mat_y_deriv.csv"))){
   h = 4
   synthetic <- readRDS(paste0(synthetic_path,"synthetic_moa.RDS")) #CHANGED TO SEPARATE SYNTHETIC!!!!!!
-  embed_mat_deriv <- create_embed_matrix(synthetic, h = h+1, k=5)
+  embed_mat_deriv <- create_embed_matrix(synthetic, h = h, k=5)
   embed_mat_X_deriv <- apply(embed_mat_deriv[[1]],1,diff)
   embed_mat_y_deriv <- apply(embed_mat_deriv[[2]],1,diff)
   embed_mat_X_deriv = t(embed_mat_X_deriv)
   embed_mat_y_deriv = t(embed_mat_y_deriv)
+  embed_mat_y_deriv = cbind(embed_mat_deriv[[2]][,1] - embed_mat_deriv[[1]][,ncol(embed_mat_deriv[[1]])], embed_mat_y_deriv) #changed on 5/12/25
   NMAX = 10000000 #don't allow more than 10M snippets
   set.seed('4321')
   inds = sample(1:nrow(embed_mat_X_deriv), NMAX, replace = F)

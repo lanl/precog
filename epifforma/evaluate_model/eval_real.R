@@ -563,6 +563,7 @@ myoutput <- foreach(g = 1:length(testingids),
                         
                         # add equal_wt benchmark to epifforma
                         SUB = temp_pred$output_df[temp_pred$output_df$model != 'epifforma',]
+                        SUB = SUB$output_df[SUB$output_df$model != 'mirror',]
                         SUB = SUB[!is.na(SUB$h),]
                         SUB = SUB %>% dplyr::group_by(last_obs_time, h, geography) %>% dplyr::mutate(fcst_mean = mean(fcst, na.rm=T))
                         SUB = SUB[!duplicated(paste0(SUB$last_obs_time, '_', SUB$h, '_', SUB$geography)),]

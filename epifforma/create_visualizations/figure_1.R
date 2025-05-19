@@ -143,8 +143,8 @@ p3 = ggplot(components_sub)+
         plot.caption = element_blank()) 
 
 lst_p = list(p1, p3)
-pdf(file = paste0(my_path,'/figure1.pdf'), width = 16, height = 10)
+# pdf(file = paste0(my_path,'/figure1.pdf'), width = 16, height = 10)
 grid.arrange(lst_p[[1]], lst_p[[2]],
              layout_matrix = matrix(c(1, 2),
                                     byrow = TRUE, nrow = 2, ncol = 1))
-dev.off()
+# dev.off()
