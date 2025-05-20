@@ -69,8 +69,7 @@ get_early_pandemic_errors <- function(targetend_dates_to_match, location, k,
     most_recent_value = data_till_now$value[length(data_till_now$value)]      
     ##
     
-    point <- pmax(1,tail(data_till_now$value,1) +cumsum(head(apply(y_diff[closest_ids,],2,median),h)))
-    vars <- pmax(1,tail(data_till_now$value,1) +cumsum(head(apply(y_diff[closest_ids,],2,sd),h)))
+    point <- pmax(1,tail(data_till_now$value,1) + cumsum(apply(y_diff[closest_ids,],2,median)))
     
     # These must be collected for MLE calculations on future dates. 
     tmp_row = data.frame(forecasts = fcast,
@@ -95,7 +94,6 @@ create_embed_matrix               <- function(synthetic, h, k = 4){
     synthetic[[s_idx]]            <- s
     s_idx                         <- s_idx + 1
   }
-  browser()
   embed_mat                       <- lapply(synthetic,function(x){ embed( pmax(1e-8,x$ts),k+h)})
   embed_mat                       <- do.call(rbind,embed_mat)
   embed_mat                       <- embed_mat[,ncol(embed_mat):1] #casey
@@ -124,7 +122,7 @@ sir                               <- function(beta, gamma, S0, I0, R0, times) {
       return(list(c(dS, dI, dR)))
     })
   }
-  
+
   # the parameters values:
   parameters_values               <- c(beta  = beta, gamma = gamma)
   
@@ -1222,7 +1220,6 @@ underprediction <- function(quantile, value, actual_value) {
 #' @param actual_value Actual value.
 #' 
 #' @export
-
 sharpness <- function(quantile, value, actual_value) {
   weighted_interval_score(quantile, value, actual_value) - 
     overprediction(quantile, value, actual_value) - 

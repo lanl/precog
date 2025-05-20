@@ -318,5 +318,7 @@ ggplot(data=dd1, aes(x=last_date))+
   scale_y_continuous(limits = c(0,1), breaks = seq(0,1,.2))+
   ylab("Proportion of Models sMOA outperforms")+
   ggtitle("The proportion of all models (black) and best-in-class models (red)\nsMOA outperforms if validation is stopped on the x-axis date")+
-  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y") 
+  scale_x_date(date_breaks = "3 months", date_labels = "%b %Y") +
+  theme(axis.text=element_text(size=15), axis.title = element_text(size = 18),
+        title = element_text(size=15))
 

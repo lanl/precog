@@ -22,7 +22,7 @@ scores                          <- read.csv("data/scores_tot.csv")
 names_of_models  <- unique(scores$model)
 models_to_label <- c()# c("COVIDhub-baseline", "COVIDhub-4_week_ensemble","COVIDhub-trained_ensemble")
 
-file_with_results                                                                                  <- "data/k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records_PAPERONE"
+file_with_results                                                                                  <- "data/k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records"
 sockettype <- "PSOCK"
 
 mae_comparison_data                                                                                <- NULL
@@ -103,7 +103,7 @@ ggplot_data = mae_comparison_data %>% dplyr::group_by(model) %>% dplyr::summariz
                                                                                   abs_error_smoa = mean(abs_error_smoa))
 ggplot_data = subset(ggplot_data, subset=((abs_error_model<16500)&(abs_error_smoa<13000)) )
 
-triangle_data = data.frame(abs_error_model = c(-Inf, -Inf, 0, 13000),
+triangle_data = data.frame(abs_error_model = c(-Inf, -Inf, 0, 10500),
                            abs_error_smoa = c(Inf, -Inf, -Inf, Inf),
                            model = rep(NA, times = 4))
 point_plot_1 <- ggplot(ggplot_data,
@@ -138,12 +138,12 @@ point_plot_1 <- ggplot(ggplot_data,
   annotate("text", x = min(ggplot_data$abs_error_model), y = max(ggplot_data$abs_error_smoa) - 1000, 
            label = "Model Outperforms sMOA", hjust = 0, vjust = 1, size=6) +  
   annotate("text", x = max(ggplot_data$abs_error_model)-1000, y = min(ggplot_data$abs_error_smoa)+1000, 
-           label = "Model Outperformed by sMOA", hjust = 1, vjust = 0, size=6)#+
+           label = "Model Outperformed by sMOA", hjust = 1, vjust = 0, size=6)+
   # xlim(0,16500) + ylim(0,10000)
-  # scale_x_continuous(limits=c(0,16500),expand = c(0,0),
-  #                    oob = scales::oob_keep) +
-  # scale_y_continuous(limits=c(0, 13000),expand = c(0,0),
-  #                    oob = scales::oob_keep)
+  scale_x_continuous(limits=c(0,16500),expand = c(0,0),
+                     oob = scales::oob_keep) +
+  scale_y_continuous(limits=c(0, 10500),expand = c(0,0),
+                     oob = scales::oob_keep)
 
 
 wis_comparison_data$wis_error_model                                                                <- wis_comparison_data$wis
@@ -162,7 +162,7 @@ anyNA(wis_comparison_data)
 ggplot_data = wis_comparison_data %>% dplyr::group_by(model) %>% dplyr::summarize(wis_error_model= mean(wis_error_model), 
                                                                                   wis_error_smoa = mean(wis_error_smoa))
 ggplot_data = subset(ggplot_data, subset=((wis_error_model<16500)&(wis_error_smoa<13000)) )
-triangle_data = data.frame(wis_error_model = c(-Inf, -Inf, 0, 13000),
+triangle_data = data.frame(wis_error_model = c(-Inf, -Inf, 0, 10500),
                            wis_error_smoa = c(Inf, -Inf, -Inf, Inf),
                            model = rep(NA, times = 4))
 
@@ -198,11 +198,11 @@ point_plot_2 = ggplot(ggplot_data,
   annotate("text", x = min(ggplot_data$wis_error_model), y = max(ggplot_data$wis_error_smoa)+1000, 
            label = "Model Outperforms sMOA", hjust = 0, vjust = 1, size=6) +  
   annotate("text", x = max(ggplot_data$wis_error_model)-500, y = min(ggplot_data$wis_error_smoa)+1000, 
-           label = "Model Outperformed by sMOA", hjust = 1, vjust = 0, size=6) #+
-  # scale_x_continuous(limits=c(0,16500),expand = c(0,0),
-  #                    oob = scales::oob_keep) +
-  # scale_y_continuous(limits=c(0, 13000),expand = c(0,0),
-  #                    oob = scales::oob_keep)
+           label = "Model Outperformed by sMOA", hjust = 1, vjust = 0, size=6) +
+  scale_x_continuous(limits=c(0,16500),expand = c(0,0),
+                     oob = scales::oob_keep) +
+  scale_y_continuous(limits=c(0, 10500),expand = c(0,0),
+                     oob = scales::oob_keep)
 
 layoutplot                                                                                         <- "
 eeeeeeeeeeegggggggggggg
