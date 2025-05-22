@@ -28,7 +28,7 @@ scores          <- read.csv("data/scores_tot.csv")
 names_of_models  <- unique(scores$model)
 models_to_label <- c("COVIDhub-baseline", "COVIDhub-4_week_ensemble","COVIDhub-trained_ensemble")
 
-file_with_results         <- "data/k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records"
+file_with_results   <- "data/k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records"
 # file_with_results <- "data/k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_1250_state_records"
 sockettype <- "PSOCK"
 savepath = './'
@@ -39,7 +39,6 @@ mae_comparison_data                                                             
 wis_comparison_data                                                                                <- NULL
 parfctn = function(file_name_idx){
   library(dplyr)
-  full_graph_data                                                                                    <- NULL
   mae_comparison_data                                                                                <- NULL
   wis_comparison_data                                                                                <- NULL
   file_name = list.files(file_with_results)[file_name_idx]
@@ -47,71 +46,30 @@ parfctn = function(file_name_idx){
   results_list                                                                                     <- NULL
   load(file = paste(file_with_results,"/", file_name, sep = ""))
   
-  model_count                                                                                      <- 1
   for(model_name in names_of_models){
     if(is.null(results_list[[model_name]])) next
     
     temp_comparison_data                                                                           <- results_list[[model_name]]
     temp_comparison_data                                                                           <- temp_comparison_data[which(!is.na(temp_comparison_data$abs_error)),]
-    mae_comparison_data                                                                            <- rbind(mae_comparison_data, temp_comparison_data)
+    if(nrow(temp_comparison_data)>10){
+      mae_comparison_data                                                                            <- rbind(mae_comparison_data, temp_comparison_data)
+    }
     
     temp_comparison_data                                                                           <- results_list[[model_name]]
     temp_comparison_data                                                                           <- temp_comparison_data[which(!is.na(temp_comparison_data$wis)),]
-    wis_comparison_data                                                                            <- rbind(wis_comparison_data, temp_comparison_data)
-    
-    if(model_count == 1){
-      # We only need to add in the MOA stuff once per state.
-      temp_data                                                                                    <- results_list[[model_name]]
-      temp_model_results                                                                           <- temp_data
-      
-      temp_data$abs_error                                                                          <- NULL
-      temp_data$abs_error                                                                          <- temp_data$abs_error_moa
-      temp_data$abs_error_moa                                                                      <- NULL
-      temp_data$wis_error                                                                          <- temp_data$wis_error_moa
-      temp_data$wis_error_moa                                                                      <- NULL
-      temp_data$model.x                                                                            <- NULL
-      temp_data$model.y                                                                            <- NULL
-      temp_data$wis                                                                                <- NULL
-      temp_data$model_name                                                                         <- rep('sMOA', times = nrow(temp_data))
-      full_graph_data                                                                              <- rbind(full_graph_data, temp_data)
-      
-      temp_data                                                                                    <- temp_model_results 
-      temp_data$abs_error_moa                                                                      <- NULL
-      temp_data$wis_error                                                                          <- temp_data$wis
-      temp_data$wis_error_moa                                                                      <- NULL
-      temp_data$model.x                                                                            <- NULL
-      temp_data$model.y                                                                            <- NULL
-      temp_data$wis                                                                                <- NULL
-      temp_data$model_name                                                                         <- rep(model_name, times = nrow(temp_data))
-      full_graph_data                                                                              <- rbind(full_graph_data, temp_data)
-    }else{
-      temp_data                                                                                    <- results_list[[model_name]]
-      temp_model_results                                                                           <- temp_data
-      
-      temp_data                                                                                    <- temp_model_results 
-      temp_data$abs_error_moa                                                                      <- NULL
-      temp_data$wis_error                                                                          <- temp_data$wis
-      temp_data$wis_error_moa                                                                      <- NULL
-      temp_data$model.x                                                                            <- NULL
-      temp_data$model.y                                                                            <- NULL
-      temp_data$wis                                                                                <- NULL
-      temp_data$model_name                                                                         <- rep(model_name, times = nrow(temp_data))
-      full_graph_data                                                                              <- rbind(full_graph_data, temp_data)
+    if(nrow(temp_comparison_data)>10){
+      wis_comparison_data                                                                            <- rbind(wis_comparison_data, temp_comparison_data)
     }
-    model_count                                                                                    <- model_count + 1
   }
   
   mae_comparison_data$weekday = weekdays(mae_comparison_data$forecast_date.y)
   wis_comparison_data$weekday = weekdays(wis_comparison_data$forecast_date.y)
-  full_graph_data$weekday = weekdays(full_graph_data$forecast_date.y)
   mae_comparison_data = mae_comparison_data %>% subset(weekday%in%c('Sunday','Monday'))
   wis_comparison_data = wis_comparison_data %>% subset(weekday%in%c('Sunday','Monday'))
-  full_graph_data =  full_graph_data %>% subset(is.na(weekday) | weekday%in%c('Sunday','Monday'))
   
   return(list(
     mae_comparison_data = mae_comparison_data,
-    wis_comparison_data = wis_comparison_data,
-    full_graph_data = full_graph_data
+    wis_comparison_data = wis_comparison_data
   )
   )
 }
@@ -126,16 +84,15 @@ sim_ts <- foreach(i=1:length(list.files(file_with_results)),
                   }
 stopCluster(cl)  
 
-full_graph_data                                                                                    <- NULL
+# full_graph_data                                                                                    <- NULL
 mae_comparison_data                                                                                <- NULL
 wis_comparison_data                                                                                <- NULL
 for(list_idx in 1:length(sim_ts)){
-  full_graph_data     = rbind(full_graph_data, sim_ts[[list_idx]]$full_graph_data)
+  # full_graph_data     = rbind(full_graph_data, sim_ts[[list_idx]]$full_graph_data)
   mae_comparison_data = rbind(mae_comparison_data, sim_ts[[list_idx]]$mae_comparison_data)
   wis_comparison_data = rbind(wis_comparison_data, sim_ts[[list_idx]]$wis_comparison_data)
 }
 
-full_graph_data$forecast_date                                                                    <- as.Date(full_graph_data$forecast_date.x)
 mae_comparison_data$forecast_date                                                                    <- as.Date(mae_comparison_data$forecast_date.x)
 wis_comparison_data$forecast_date                                                                    <- as.Date(wis_comparison_data$forecast_date.x)
 names_other_than_smoa                                                                              <- unique(full_graph_data$model_name)
@@ -167,7 +124,7 @@ wis_comparison_data$forecast_date.y <- NULL
 wis_comparison_data$model.x <- NULL
 names_other_than_smoa                                                                              <- unique(full_graph_data$model_name)
 names_other_than_smoa                                                                              <- names_other_than_smoa[which(names_other_than_smoa!='sMOA')]
-full_graph_data$model_name                                                                         <- factor(full_graph_data$model_name, levels = c('sMOA', names_other_than_smoa))
+# full_graph_data$model_name                                                                         <- factor(full_graph_data$model_name, levels = c('sMOA', names_other_than_smoa))
 
 
 validdf <- read.csv('data/validationdata_2023-12-31.csv')
@@ -297,10 +254,10 @@ for(list_idx in 1:length(sim_ts)){
 
 
 ####################################################
-### Figure 6
+### Figure 5
 namelabeldf <- data.frame(x = ymd("2022-11-01"),
                           metric = c("MAE","MAE","WIS","WIS"),
-                          y = c(.525, .85, .725, .95),
+                          y = c(.525, .85, .625, .95),
                           mylabel = c("Best-in-class Models","All Models","Best-in-class Models","All Models"))
 
 ggplot(data=dd1, aes(x=last_date))+

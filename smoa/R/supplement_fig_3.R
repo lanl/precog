@@ -531,6 +531,9 @@ detach(forecasts_case)
 full_data = rbind(graph_data_log, hub_forecasts)
 full_data$location_name = full_data$location
 
+full_data$model = as.factor(full_data$model)
+levels(full_data$model) = c('4-week ensemble', 'baseline', 'trained ensemble', 'sMOA')
+
 ggplot() +
   geom_lineribbon(
     mapping = aes(x = x, y = y, ymin = .lower, ymax = .upper, group = reference_date),
@@ -549,7 +552,7 @@ ggplot() +
   # scale_y_continuous("Cases", labels = comma) +
   facet_grid(cols = vars(location_name), rows = vars(model)) + #, scales = "free_y"
   theme_bw() +
-  ylab('Hospital Incidence') +
+  ylab('Weekly Incident COVID Cases') +
   theme(
     legend.position = "bottom",
     axis.text.x = element_text(angle = 20, hjust=1, vjust=1)
