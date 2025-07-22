@@ -7,33 +7,40 @@ library(ggplot2)
 library(deSolve)
 library(pracma)
 library(reshape)
+library(parallel)
+library(doParallel)
 theme_set(theme_bw())
-setwd("~/GitLab/incidence_for_sir")
+setwd(this.path::here())
 source('incidence_to_sir_helpers.R')
 
 set.seed(13)
 # Starting alpha,beta for optim calls:
-alpha_initial                = 1.1788322 / 10
-beta_initial                 = 0.8851870 / 10
-alpha_initial                = 0.5
-beta_initial                 = 0.5
+alpha_initial                = 1.1788322 / 2
+beta_initial                 = 0.8851870 / 2
 # Note that i0 can't be greater than the above peak height...
 N          = 10000
-s0         = 0.9
+s0         = 0.95
 i0         = 0.003
 r0         = 1 - i0 - s0
 
+optim_method = "Nelder-Mead"
+
 num_of_sims     = 1000
 simulation_data = NULL
-for(iter in 1:num_of_sims){
-  
+parfctn = function(iter){
+# for(iter in 1:num_of_sims){
+  library(nleqslv)
+  library(ggplot2)
+  library(deSolve)
+  library(pracma)
+  library(reshape)
   print(paste("Starting sim number", iter))
   # Begin a given iteration of this simulation by chosing a random peak height and
   # time.
   # Chose the initial parameters based on dave's paper:
-  peak_height = runif(1, min = 0.003, max = .05)
-  peak_time   = sample(1:35, size = 1)
-
+  peak_height = runif(1, min = 0.005, max = 0.035)
+  peak_time   = sample(5:30, size = 1)
+  
   ####################################################################################
   ####################################################################################
   ## In the following, I'm getting a reasonable peak incidence value + time.
@@ -79,8 +86,8 @@ for(iter in 1:num_of_sims){
                                     fn2(x[1], x[2], observed_incidence_peak_time, observed_peak_incidence, s0, i0)) }
   
   start_time            = proc.time()
-  xx                    = fminunc(c(alpha_initial, beta_initial), temp_fn)
-  xx                    = fmincon(c(alpha_initial, beta_initial), temp_fn, lb = c(0,0), ub = c(10, 0.9))
+  # xx                    = fminunc(c(alpha_initial, beta_initial), temp_fn)
+  xx                    = optim(c(alpha_initial, beta_initial), temp_fn, method = optim_method)
   end_time              = proc.time() - start_time
   computational_runtime = as.numeric(end_time[1])
   
@@ -113,7 +120,8 @@ for(iter in 1:num_of_sims){
   temp_fn          = function(x){(fn1_taylor(x[1], x[2], observed_incidence_peak_time, observed_peak_incidence, s0, i0) + 
                                     fn2_taylor(x[1], x[2], observed_incidence_peak_time, observed_peak_incidence, s0, i0)) }
   start_time       = proc.time()
-  xx               = fminunc(c(alpha_initial, beta_initial), temp_fn)
+  # xx               = fminunc(c(alpha_initial, beta_initial), temp_fn)
+  xx               = optim(c(alpha_initial, beta_initial), temp_fn, method = optim_method)
   end_time         = proc.time() - start_time
   taylor_runtime   = as.numeric(end_time[1])
   
@@ -165,7 +173,7 @@ for(iter in 1:num_of_sims){
   temp_incidences[1]          = 0
   max_incidence_time_fullode  = which.max(temp_incidences) - 2
   max_incidence_value_fullode = max(temp_incidences)
-  # if(is.nan(max_incidence_value_fullode)) browser()
+  if(is.nan(max_incidence_value_fullode)) browser()
   ####################################################################################
   ####################################################################################
   
@@ -173,10 +181,11 @@ for(iter in 1:num_of_sims){
   ####################################################################################
   ## In the following, I get brute force + ode approx solution
   temp_fn            = function(x){(fn1_ode(x[1], x[2], observed_incidence_peak_time, observed_peak_incidence, s0, i0) + 
-                                    fn2_ode(x[1], x[2], observed_incidence_peak_time, observed_peak_incidence, s0, i0)) }
+                                      fn2_ode(x[1], x[2], observed_incidence_peak_time, observed_peak_incidence, s0, i0)) }
   
   start_time         = proc.time()
-  xx                 = fminunc(c(alpha_initial, beta_initial), temp_fn)
+  # xx                 = fminunc(c(alpha_initial, beta_initial), temp_fn)
+  xx                 = optim(c(alpha_initial, beta_initial), temp_fn, method = optim_method)
   end_time           = proc.time() - start_time
   partialode_runtime = as.numeric(end_time[1])
   calculated_alpha   = xx$par[1]
@@ -214,10 +223,27 @@ for(iter in 1:num_of_sims){
                         taylor_time               = taylor_runtime,
                         fullode_time              = fullode_runtime,
                         partialode_time           = partialode_runtime
-                        )
-  simulation_data = rbind(simulation_data, temp_row)
+  )
+  return(temp_row)
+  # simulation_data = rbind(simulation_data, temp_row)
 }
 
-write.csv(simulation_data, file = 'simulation_data.csv')
+
+
+sockettype <- "PSOCK"
+ncores = 10
+cl <- parallel::makeCluster(spec = ncores,type = sockettype) #, outfile=""
+setDefaultCluster(cl)
+registerDoParallel(cl)
+sim_ts <- foreach(i=1:num_of_sims,
+                  .verbose = T,
+                  .combine = rbind)%dopar%{
+                    print(i)
+                    parfctn(i)
+                  }
+stopCluster(cl)  
+
+
+write.csv(sim_ts, file = 'simulation_data.csv')
 # sim_data = read.csv("simulation_data.csv")
 

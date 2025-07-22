@@ -48,7 +48,7 @@ solve_tao_ode          = function(alpha, beta, S0, I0, R0, PIT, times) {
   initial_values <- c(R = r0)
   
   # solving
-  out = data.frame(ode(initial_values, 0:PIT, sir_equations, parameters_values, method = "rk4"))
+  out = data.frame(ode(initial_values, 0:40, sir_equations, parameters_values, method = "rk4"))
   # out = out[complete.cases(out),]
   
   # returning the output:
@@ -170,7 +170,7 @@ approx_proper_time_ode = function(t, alpha, beta, s0, i0){
   # print(paste('the number of rows is', nrow(tao), "while the value of t is", t))
   # print(paste('alpha is', alpha, "while beta is", beta))
   # print(tao)
-  tao = tao$R[t+1]
+  tao = (tao$R[t+1] - (1-s0-i0))/beta
   # print(paste("the tao approx was:", tao))
   return(tao)
 }
@@ -183,8 +183,6 @@ fn1                    = function(alpha, beta, peak_incidence_time, peak_inciden
                                 (alpha * ( s0 * exp(-alpha * tao) ) * ( (s0+i0) - s0*exp(-alpha*tao) - beta*tao ) - peak_incidence_value)**2)
   return_vector        = ifelse( (((s0+i0) - s0*exp(-alpha*tao) - beta*tao)<=0) , 1e3, 
                                  return_vector)
-  return_vector        = ifelse( (alpha > 5) , 1e3, 
-                                 return_vector)
   return(return_vector)
 }
 
@@ -195,8 +193,6 @@ fn2                    = function(alpha, beta, peak_incidence_time, peak_inciden
   return_vector        = ifelse((alpha/beta > max_reproduction_num), 1e3, 
                                 (-(s0 + i0) + beta * tao + 2 * s0 * exp(-alpha*tao) - beta / alpha)**2)
   return_vector        = ifelse( (((s0+i0) - s0*exp(-alpha*tao) - beta*tao)<=0) , 1e3, 
-                                 return_vector)
-  return_vector        = ifelse( (alpha > 5) , 1e3, 
                                  return_vector)
   return(return_vector)
 }
@@ -251,7 +247,7 @@ fn1_taylor             = function(alpha, beta, peak_incidence_time, peak_inciden
   tao                  = taylor_approx(alpha, beta, peak_incidence_time, s0, i0)
   max_reproduction_num = 20
   return_vector        = ifelse( (alpha/beta > max_reproduction_num)|(tao==0) , 1e3, 
-                                (alpha * ( s0 * exp(-alpha * tao) ) * ( (s0+i0) - s0*exp(-alpha*tao) - beta*tao ) - peak_incidence_value)**2)
+                                 (alpha * ( s0 * exp(-alpha * tao) ) * ( (s0+i0) - s0*exp(-alpha*tao) - beta*tao ) - peak_incidence_value)**2)
   return_vector        = ifelse( ((s0+i0) - s0*exp(-alpha*tao) - beta*tao)<=0 , 1e3, 
                                  return_vector)
   return(return_vector)
@@ -278,7 +274,9 @@ ode_approx             = function(alpha_initial, beta_initial, peak_incidence_ti
     # full_ode             = ifelse( (x[1]/x[2] > max_reproduction_num), 0.5, 
     #                               sir_qois(x[1], x[2], s0, i0, (1-s0-i0), times = 0:40) )
     
-    full_ode             = sir_qois(x[1], x[2], s0, i0, (1-s0-i0), times = 0:40)
+    full_ode             = sir_qois(x[1], x[2], s0, i0, (1-s0-i0), times = 0:50)
+    
+    if(x[1]<=0 | x[2] <= 0) return(1e3)
     
     # return_vector        = ifelse( (((s0+i0) - s0*exp(-alpha*tao) - beta*tao)<=0) , 1e3, 
     #                                return_vector)
@@ -287,9 +285,10 @@ ode_approx             = function(alpha_initial, beta_initial, peak_incidence_ti
   }
   xx               = optim(par = c(alpha_initial, beta_initial), fn = full_ode_solve_fctn) # , lb = c(0,0), ub = c(Inf,Inf))
   # xx               = fmincon(x0 = c(alpha_initial, beta_initial), fn = full_ode_solve_fctn, lb = c(0,0), ub = c(Inf,Inf))
+  # xx = fminunc(x0 = c(alpha_initial, beta_initial), fn = full_ode_solve_fctn)
   calculated_alpha = xx$par[1]
   calculated_beta  = xx$par[2]
-
+  
   return(list(alpha = calculated_alpha, beta = calculated_beta))
 }
 
