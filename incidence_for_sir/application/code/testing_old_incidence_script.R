@@ -3,6 +3,7 @@
 ## Recreating figs and code from Osthus et. al. 2010 AoAS paper
 ## "Forecasting Seasonal Influenza With A State-Space SIR Model"
 
+## load libraries
 library(rjags)
 library(runjags)
 library(ggplot2)
@@ -17,6 +18,8 @@ setwd(this.path::here())
 ## define paths
 datapath <- paste0(this.path::here(), "/../data/")
 jagspath <- paste0(this.path::here(), "/")
+
+set.seed(13)
 
 ## load ILI and surveillance data
 dfili <- read.csv(paste0(datapath,"EW08-2020_nat.csv"))
@@ -36,88 +39,33 @@ qplot(epi_time, iliplus, data=subset(df, epi_time <= 35 & epi_season %in% c(2002
   scale_x_continuous(breaks = seq(0,100,5))
 
 ## focus on 2010, national wILI (Fig 6 of Osthus et. al. AoAS)
-forecast_year = 2010
-final_epi_time = 35
-df_forecast_year <- subset(df, epi_season == forecast_year & epi_time <= final_epi_time)
-df_forecast_year <- df_forecast_year[order(df_forecast_year$epi_time),]
+df2010 <- subset(df, epi_season == 2010 & epi_time <= 35)
+df2010 <- df2010[order(df2010$epi_time),]
 
 ## Reproduce Fig 6 
-qplot(epi_time, iliplus, data=df_forecast_year, geom=c("line","point"), group=epi_season)+
+qplot(epi_time, iliplus, data=df2010, geom=c("line","point"), group=epi_season)+
   ylab("Proportion Infectious")+
   xlab("t")
 
 
 ###################################
 ## Prepare JAGS
-
 ## Equation 6.7
 params_eq6.7 <- c(1.62, 7084.10)
 
 ## Equation 6.10
-# The mean and Sigma here should be a truncated normal fit on PIT and PIV points prior to the date
-valid_flu_years = c(2002:2008, 2010:2013)
-valid_flu_years = valid_flu_years[valid_flu_years < forecast_year]
-# Gather PIT and PIV
-qoi_df = NULL
-for(flu_year in valid_flu_years){
-  df_tmp = subset(df, epi_season == flu_year & epi_time <= final_epi_time)
-  df_tmp = df_tmp[order(df_tmp$epi_time),]
-  qplot(epi_time, iliplus, data=df_tmp, geom=c("line","point"), group=epi_season)+
-    ylab("Proportion Infectious")+
-    xlab("t")
-  idx_of_max = which.max(df_tmp$iliplus)
-  qoi_df = rbind(qoi_df, 
-                 data.frame(PIV = df_tmp$iliplus[idx_of_max],
-                            PIT = df_tmp$epi_time[idx_of_max],
-                            year = flu_year)
-  )
-}
-data_mat <- as.matrix(qoi_df[, c("PIV", "PIT")])
-lower <- c(0.001, 1)
-upper <- c(1, 35)
-
-# Log-likelihood function
-neg_log_lik <- function(par) {
-  mu <- par[1:2]
-  L <- matrix(c(par[3], 0, par[4], par[5]), nrow = 2)  # lower-triangular
-  Sigma <- L %*% t(L)
-  
-  # sum of -log densities
-  -sum(dtmvnorm(
-    x = data_mat,
-    mean = mu,
-    sigma = Sigma,
-    lower = lower,
-    upper = upper,
-    log = TRUE
-  ))
-}
-mu_init <- colMeans(data_mat)
-sd1 <- sd(data_mat[,1])
-sd2 <- sd(data_mat[,2])
-chol_init <- chol(matrix(c(sd1^2, 0, 0, sd2^2), 2, 2))
-
-par_init <- c(mu_init, chol_init[1,1], chol_init[2,1], chol_init[2,2])
-
-# Optimize
-fit <- optim(
-  par = par_init,
-  fn = neg_log_lik,
-  method = "BFGS",
-  control = list(maxit = 1000)
-)
-
-# Extract results
-mu_est <- fit$par[1:2]
-L_est <- matrix(c(fit$par[3], 0, fit$par[4], fit$par[5]), nrow = 2)
-Sigma_est <- L_est %*% t(L_est)
-
-mean_eq6.10 <- mu_est
-Sigma_eq6.10 <- Sigma_est
-samples_df = data.frame(rtmvnorm(1000, mean = mean_eq6.10, sigma = Sigma_eq6.10, lower = lower, upper = upper))
-colnames(samples_df) = c("PIV", "PIT")
-ggplot(samples_df, aes(x = PIT, y = PIV)) + geom_point(color = 'grey', size = 3) + 
-  geom_point(data = qoi_df, aes(x = PIT, y = PIV), size = 5) + theme_bw()
+mean_eq6.10 <- c(0.0144, 17.9)
+Sigma_eq6.10 <- matrix(c(0.000036, -0.0187, -0.0187, 16.09), nrow=2)
+# 
+# ## Make grid for g^-1(.) in equation 6.12
+# # Murph note: if you update this grid at all, you must also update the scaling
+# # factors inside of JAGS.
+# inputgrid <- expand.grid(S0  = 0.9,
+#                          I0  = seq(0,.05,length.out = 100),
+#                          PIV = seq(0,.1,length.out = 100),
+#                          PIT = seq(1,35,length.out = 100))
+# # inputgrid <- subset(inputgrid, PIV >= I0) # I know this is ugly, but I'm removing this atm.
+# inputgrid <- subset(inputgrid, select=c("S0","I0","PIV","PIT"))
 
 #####################
 # Murph notes: It's here that my methods will update things, I believe.
@@ -141,9 +89,9 @@ for(file_name in list.files("grid_logs")){
 #########################################
 ## Fit Model in JAGS
 
+## the observed time series
 length_of_time_series <- 22
-myy <- df_forecast_year[df_forecast_year$epi_time %in% 1:length_of_time_series,]$iliplus
-
+myy <- df2010[df2010$epi_time %in% 1:length_of_time_series,]$iliplus
 
 ## construct data to be passed into JAGS
 jags_data <- list(y = myy,
@@ -197,8 +145,8 @@ ggplot()+
   geom_ribbon(aes(x=time, ymin=lower, ymax=upper), data=subset(postdrawsply, type == "ypred"),fill=I("lightgrey"))+
   geom_line(aes(x=theta_time, y=avg), data=subset(postdrawsply, type == "theta"))+
   geom_line(aes(x=time, y=avg), data=subset(postdrawsply, type == "ypred"))+
-  geom_point(aes(x=1:35, y=df_forecast_year[df_forecast_year$epi_time %in% 1:35,]$iliplus), color=I("black"))+
+  geom_point(aes(x=1:35, y=df2010[df2010$epi_time %in% 1:35,]$iliplus), color=I("black"))+
   ylab("Proportion Infectious")+
   xlab("t")
-  
+
 
