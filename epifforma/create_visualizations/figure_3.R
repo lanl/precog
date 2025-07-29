@@ -203,6 +203,29 @@ pdf(file = paste0(my_path,'/figure3.pdf'), width = 8, height = 16)
 p00
 dev.off()
 
+# Rank stats
+xx1 = SUBSET %>% subset(model=='epifforma') %>%
+  pull(mae_rank) 
+xx2 = SUBSET %>% subset(model=='epifforma') %>%
+  pull(rmse_rank) 
+mean(c(xx1,xx2))
+xx1 = SUBSET %>% subset(model=='equal_wt') %>%
+  pull(mae_rank) 
+xx2 = SUBSET %>% subset(model=='equal_wt') %>%
+  pull(rmse_rank) 
+mean(c(xx1,xx2))
+SUBSET %>% subset(model=='epifforma') %>%
+  pull(mae_rank) %>%
+  mean(na.rm=T)
+SUBSET %>% subset(model=='epifforma') %>%
+  pull(rmse_rank) %>%
+  mean(na.rm=T)
+SUBSET %>% subset(model=='equal_wt') %>%
+  pull(mae_rank) %>%
+  mean(na.rm=T)
+SUBSET %>% subset(model=='equal_wt') %>%
+  pull(rmse_rank) %>%
+  mean(na.rm=T)
 
 RANKS_STACKED = rbind(data.frame(do.call('rbind',RANKS),model = 'Epifforma'),
                       data.frame(do.call('rbind',RANKS_EQUAL_WT),model = 'Equal Weight'))

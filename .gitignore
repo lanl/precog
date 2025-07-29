@@ -1,2 +1,20 @@
-epifforma/evaluate_model/evaluation/*
-epifforma/evaluate_probabilistic/evaluation/*
+# Ignore everything in these evaluation dirs
+epifforma/evaluate_model/evaluation/
+epifforma/evaluate_probabilistic/evaluate_model/evaluation/
+epifforma/evaluate_probabilistic/evaluation/
+
+# Ignore raw data
+epifforma/raw_data/
+
+# Ignore specific visualization outputs
+epifforma/create_visualizations/stuff_for_castro/
+
+# Ignore Mac system file
+epifforma/**/.DS_Store
+
+# Optional: Ignore all PDFs in visualizations
+epifforma/create_visualizations/*.pdf
+
+# Optional: Ignore all RDS files project-wide
+*.RDS
+

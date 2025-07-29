@@ -130,7 +130,7 @@ SUBSET = RESULTS_STACKED[RESULTS_STACKED$fit_type == 'multi_error',]
 SUBSET = SUBSET %>% dplyr::group_by(disease) %>% dplyr::mutate(mae_ratio = mae/mae[which(model=='equal_wt')])
 SUBSET = SUBSET %>% dplyr::group_by(disease) %>% dplyr::mutate(rmse_ratio = rmse/rmse[which(model=='equal_wt')])
 SUBSET = SUBSET[,c(2,21,22,23)] 
-SUBSET_melted = melt(SUBSET, id = c(1,2))
+SUBSET_melted = reshape2::melt(SUBSET, id = c(1,2))
 SUBSET_melted = SUBSET_melted[complete.cases(SUBSET_melted),]
 SUBSET_melted = SUBSET_melted[which(SUBSET_melted$model!='equal_wt'),]
 SUBSET_melted$model = factor(SUBSET_melted$model, levels = c('epifforma', 'rw', 'theta', 'arima', 'gam', 'gam2mirror', 'meanfcst', 'mirror', 'moa', 'moa_deriv'))
@@ -141,7 +141,7 @@ p2 = ggplot(SUBSET_melted)+
   #geom_boxplot(aes(y=value, x = model, fill = variable), alpha=.5, data = SUBSET_melted[SUBSET_melted$model == 'equal_wt',], color = 'black', size = 1.1)+
   geom_boxplot(aes(y=value, x = model, fill = variable), alpha=.5, data = SUBSET_melted[SUBSET_melted$model == 'epifforma',], color = 'black', size = 1.1)+ 
   theme(legend.position = 'top',axis.text=element_text(size=15),
-        axis.title=element_text(size=18,face="bold"), plot.title = element_text(size=22),
+        axis.title=element_text(size=18), plot.title = element_text(size=22),
         legend.title=element_text(size=18), 
         legend.text=element_text(size=15))
 boxplot_figure = p2 + geom_hline(yintercept = 1) + scale_y_continuous(trans='log10')
@@ -305,3 +305,6 @@ plotlist  <- list(a=boxplot_figure, e = p1, g = p2, h = p3)
 # pdf(file = paste0(my_path,'/figure2.pdf'), width = 16, height = 10)
 wrap_plots(plotlist, design = layoutplot)
 # dev.off()
+
+
+boxplot_figure + coord_flip()
