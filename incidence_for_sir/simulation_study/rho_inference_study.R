@@ -1,0 +1,173 @@
+# Simulated data example
+## Author: Alexander C. Murph
+library(ggplot2)
+library(deSolve)
+library(reshape2)
+library(gridExtra)
+library(ggExtra)
+library(grid)
+library(ggpubr)
+library(mgcv)
+library(utils)
+library(latex2exp)
+library(pracma)
+library(this.path)
+theme_set(theme_bw())
+setwd(this.path::here())
+source("incidence_to_sir_helpers.R")
+set.seed(13)
+
+dispersion_term = 100
+num_of_sims = 100
+N           = 10000
+s0          = .999
+alpha_initial                = 0.9456773
+beta_initial                 = 0.744415
+
+optim_method = "Nelder-Mead"
+
+simulation_data = NULL
+pb <- txtProgressBar(1, num_of_sims, style=3)
+for(sim_iter in 1:num_of_sims){
+  setTxtProgressBar(pb, sim_iter)
+  
+  ########### Create Simulated Data
+  peak_height = runif(1, min = 0.005, max = 0.035)
+  peak_time   = sample(5:30, size = 1)
+  i0         = peak_height / 200
+  r0         = 1 - i0 - s0
+  
+  minimize_function     = function(x){ (1 - peak_height - (1+log(s0*x))/x)**2 }
+  rho_of_max_prevalence = optim(0.5, minimize_function, method = "Brent", lower = 1, upper = 100)$par
+  tao_peak              = log(rho_of_max_prevalence*s0) / rho_of_max_prevalence
+  temp_integrand        = function(x){reparmeterized_time_integrand_sans_alpha(x, s0, i0, rho_of_max_prevalence)}
+  peak_time_sans_beta   = integrate(temp_integrand, 0, tao_peak)$value
+  
+  lit_beta   = peak_time_sans_beta / peak_time
+  lit_lambda = lit_beta * rho_of_max_prevalence
+  
+  dave_beta  = lit_lambda
+  dave_gamma = lit_beta
+  
+  true_beta = dave_beta
+  true_gamma = dave_gamma
+  
+  ## run an SIR model
+  df1         = sir(beta = dave_beta, gamma = dave_gamma, S0 = s0, I0 = i0, R0 = r0, times = 0:50)
+  
+  df1_temp = melt(df1, id.vars = 'time')
+  df1_temp = subset(df1_temp, subset=(variable == 'I')|(variable == 'incidence'))
+  
+  point = subset(df1_temp, subset=(variable == 'incidence'))$value
+  point[is.na(point)] = 0
+  times = 0:50
+  df1_points = matrix(rnbinom(length(point),mu = (point*N), size = dispersion_term),byrow = T) / N
+  points_data = data.frame(time = times, value = df1_points, variable = rep('incidence', times = length(times)))
+  
+
+  
+  ########### Apply a smoother to simulated data, estimate the PIV and PIT.
+  observed_data <- points_data
+  observed_data_smoothed <- gam(value~ s(time,k=round(nrow(observed_data)/2)),data=observed_data)$fitted.values
+  
+  observed_peak_value = max(observed_data_smoothed)
+  observed_peak_time = which.max(observed_data_smoothed)
+  
+  ########### Estimate parameters treating data as prevalence.
+  peak_height <- observed_peak_value
+  peak_time <- observed_peak_time
+  minimize_function     = function(x){ ((s0+i0) - peak_height - 1/x - log(s0*x)/x )**2 }
+  rho_of_max_prevalence = optim(1.2, minimize_function, method = "Brent", lower = 1, upper = 100)$par
+  
+  tao_peak_times_alpha       = log(rho_of_max_prevalence*s0)
+  temp_integrand             = function(x){reparmeterized_time_integrand_sans_alpha(x, s0, i0, rho_of_max_prevalence)}
+  peak_time_times_alpha      = integrate(temp_integrand, 0, tao_peak_times_alpha)$value
+  lit_beta                   = peak_time_times_alpha / (peak_time*rho_of_max_prevalence)
+  lit_lambda                 = lit_beta * rho_of_max_prevalence
+  calculated_dave_beta_prev  = lit_lambda
+  calculated_dave_gamma_prev = lit_beta
+  
+  
+  ########### Estimate parameters treating data as incidence.
+  observed_peak_incidence <- observed_peak_value
+  observed_incidence_peak_time <- observed_peak_time
+  
+  # temp_fn            = function(x){(fn1_ode(x[1], x[2], observed_incidence_peak_time, observed_peak_incidence, s0, i0) +
+  #                                     fn2_ode(x[1], x[2], observed_incidence_peak_time, observed_peak_incidence, s0, i0)) }
+  
+  temp_fn          = function(x){(fn1(x[1], x[2], observed_incidence_peak_time, observed_peak_incidence, s0, i0) + 
+                                    fn2(x[1], x[2], observed_incidence_peak_time, observed_peak_incidence, s0, i0)) }
+
+  xx                    = optim(c(alpha_initial, beta_initial), temp_fn, method = optim_method)
+
+  calculated_dave_beta_inc   = xx$par[1]
+  calculated_dave_gamma_inc    = xx$par[2]
+  
+  
+  ### Now let's graph the SIR curve from these parameters and compare it to the initial time and height of the
+  
+  ########### Record and repeat.
+  temp_df = data.frame(true_beta = true_beta,
+                       true_gamma = true_gamma,
+                       calculated_dave_beta_prev = calculated_dave_beta_prev,
+                       calculated_dave_gamma_prev = calculated_dave_gamma_prev,
+                       calculated_dave_beta_inc = calculated_dave_beta_inc,
+                       calculated_dave_gamma_inc = calculated_dave_gamma_inc)
+  simulation_data = rbind(simulation_data, temp_df)
+  
+  # Look at what is going on here:
+  df1                      = sir(beta = calculated_dave_beta_prev, gamma = calculated_dave_gamma_prev, S0 = s0, I0 = i0, R0 = r0, times = 0:50)
+  temp_incidences          = df1$incidence
+  temp_incidences[1]       = 0
+  max_incidence_time_prev       = which.max(temp_incidences) - 1
+  max_incidence_value_prev      = max(temp_incidences)
+  
+  df1                      = sir(beta = calculated_dave_beta_inc, gamma = calculated_dave_gamma_inc, S0 = s0, I0 = i0, R0 = r0, times = 0:50)
+  temp_incidences          = df1$incidence
+  temp_incidences[1]       = 0
+  max_incidence_time_inc       = which.max(temp_incidences) - 1
+  max_incidence_value_inc     = max(temp_incidences)
+  
+}
+
+
+########### Analyze Simulation Data.
+mae_of_prev_beta = abs(simulation_data$true_beta - simulation_data$calculated_dave_beta_prev)
+mae_of_prev_gamma = abs(simulation_data$true_gamma - simulation_data$calculated_dave_gamma_prev)
+mae_of_prev_rho = abs(simulation_data$true_beta/simulation_data$true_gamma - 
+                        simulation_data$calculated_dave_beta_prev/simulation_data$calculated_dave_gamma_prev)
+
+mae_of_inc_beta = abs(simulation_data$true_beta - simulation_data$calculated_dave_beta_inc)
+mae_of_inc_gamma = abs(simulation_data$true_gamma - simulation_data$calculated_dave_gamma_inc)
+mae_of_inc_rho = abs(simulation_data$true_beta/simulation_data$true_gamma - 
+                        simulation_data$calculated_dave_beta_inc/simulation_data$calculated_dave_gamma_inc)
+
+graph_data = data.frame(mae = c(mae_of_prev_beta, mae_of_prev_gamma, mae_of_prev_rho,
+                                mae_of_inc_beta, mae_of_inc_gamma, mae_of_inc_rho),
+                        specification = c(rep('prevalence', times = 3*nrow(simulation_data)),
+                                          rep('incidence', times = 3*nrow(simulation_data))),
+                        parameter = rep(rep(c('beta', 'gamma', 'rho'), each = nrow(simulation_data)), times = 2) 
+                        )
+
+graph_data <- subset(graph_data, subset = (parameter=='rho')) #|(parameter=='gamma')
+ggplot(graph_data, aes(x = as.factor(parameter), y = mae, fill = specification)) + 
+  geom_boxplot() + coord_flip() + scale_x_discrete(labels = TeX(c('gamma' = r"($\gamma$)", 
+                                                                  'rho' = r"($\rho$)"))) +
+  scale_fill_manual(labels = c('incidence'='As Incidence',
+                               'prevalence'='As Prevalence'), values = c('grey', 'white')) + xlab('Parameter') + ylab('MAE') + 
+  guides(fill=guide_legend(title="Data Specification"))+ 
+  theme(axis.text=element_text(size=15), axis.title = element_text(size = 15),
+        title = element_text(size=15),strip.text.x = element_text(size = 15),strip.text.y = element_text(size = 15)) + 
+  theme(axis.text=element_text(size=18), axis.title = element_text(size = 18), plot.title = element_text(size = 18)) + 
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1)) +
+  theme(panel.spacing = unit(0, "cm"),
+        plot.margin = margin(0, 0, 0, 0, "cm"), 
+        plot.caption = element_blank()) + theme(legend.text=element_text(size=15)) #+ ylim(0,2)
+
+
+
+
+
+
+
+

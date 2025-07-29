@@ -25,15 +25,20 @@ theme_set(theme_bw())
 set.seed(13)
 
 flu_seasons = c(2014) #, 2014, 2014
-lengths = c(11)
+lengths = c(8:12)
 final_epi_time = 35
 
-for(graphic_idx in 1:length(flu_seasons)){
-  # Set Flu Season
-  flu_season = flu_seasons[graphic_idx]
-  # Set forecast horizon
+graphic_idx = 1
+# Set Flu Season
+flu_season = flu_seasons[graphic_idx]
+# Set forecast horizon
+
+
+PIV_list = list()
+PIT_list = list()
+
+for(length_idx in 1:length(lengths)){
   length_of_time_series = lengths[graphic_idx]
-  
   ## define paths
   ## Note: to recreate this experiment, get the data from Osthus et al 2017 and
   ## place this data in a directory located at the path below.
@@ -170,7 +175,6 @@ for(graphic_idx in 1:length(flu_seasons)){
   results_incidence <- run.jags(model = paste0(jagspath,"dbssm_jags_incidence.txt"),
                                 data = jags_data,
                                 monitor = c("ypred","theta","beta","gamma"),
-                                # monitor = c("beta","gamma", "z1", "z2", "theta_i0"),
                                 n.chains = nchains,
                                 burnin = 12500,
                                 sample = nsamples,
@@ -207,146 +211,99 @@ for(graphic_idx in 1:length(flu_seasons)){
   postdrawsply_incidence            <- ddply(postdraws_incidence,.(time, type),summarise,lower = quantile(value,probs=.025), avg = mean(value), upper = quantile(value,probs=.975))
   postdrawsply_incidence$theta_time <- postdrawsply_incidence$time - 1
   
-  
-  ##########################################################################
-  ##########################################################################
-  
-  # Do the stochastic thing from Hickman 2015
-  subset_df = df %>% 
-    subset((epi_season %in% valid_flu_years) & (epi_time %in% c(1:final_epi_time))) %>%
-    as_tibble()
-  history_df = matrix(0, nrow = final_epi_time, ncol = length(valid_flu_years))
-  for(season_idx in 1:length(valid_flu_years)){
-    tmp_df = subset_df[which(subset_df$epi_season == valid_flu_years[season_idx]),]
-    tmp_df = tmp_df[order(tmp_df$epi_time),]
-    history_df[,season_idx] = tmp_df$iliplus
+  # Use posterior draws to get PIT and PIV draws.
+  dbssm_pivs = c()
+  dbssm_pits = c()
+  for(id_idx in unique(postdraws_incidence$id)){
+    tmp_df = postdraws_incidence %>% subset(id == id_idx)
+    PIV = max(tmp_df$value)
+    PIT = tmp_df$theta_time[which.max(tmp_df$value)]
+    dbssm_pivs = c(dbssm_pivs, PIV)
+    dbssm_pits = c(dbssm_pits, PIT)
   }
-  sds_of_epi_weeks = apply(history_df, 1, sd)
-  means_of_epi_weeks = apply(history_df, 1, mean)
-  
-  stochastic_timeseries = rmvnorm(1000, mean = means_of_epi_weeks, sigma = diag(sds_of_epi_weeks))
-  PIV_of_stochastic_model = apply(stochastic_timeseries, 1, max)
-  PIT_of_stochastic_model = apply(stochastic_timeseries, 1, which.max)
-  
-  # True PIT & PIV
-  tmp_df = df[which(df$epi_season == flu_seasons[graphic_idx]),]
+  PIV_list[[length_idx]] = dbssm_pivs
+  PIT_list[[length_idx]] = dbssm_pits
+}
+##########################################################################
+##########################################################################
+
+# Do the stochastic thing from Hickman 2015
+subset_df = df %>% 
+  subset((epi_season %in% valid_flu_years) & (epi_time %in% c(1:final_epi_time))) %>%
+  as_tibble()
+history_df = matrix(0, nrow = final_epi_time, ncol = length(valid_flu_years))
+for(season_idx in 1:length(valid_flu_years)){
+  tmp_df = subset_df[which(subset_df$epi_season == valid_flu_years[season_idx]),]
   tmp_df = tmp_df[order(tmp_df$epi_time),]
-  true_PIV = max(tmp_df$iliplus)
-  true_PIT = which.max(tmp_df$iliplus)
-  
-  ######################################################################
-  ## plot a version of Fig 6
-  xx1 = subset(postdrawsply_incidence, type == "ypred")$upper
-  max_y = max(xx1, xx2, df_forecast_year[df_forecast_year$epi_time %in% 1:35,]$iliplus)
-  
-  
-  ##########################################################################
-  ##########################################################################å
-  
-  # save the plots
-  both_plots <- list(prevalence_pred_plot, incidence_pred_plot)
-  grid.arrange(both_plots[[1]], both_plots[[2]],
-               layout_matrix = matrix(c(1,2), byrow = TRUE, ncol = 1))
-  saveRDS(both_plots, file = paste0("../figures/", flu_season, "_", length_of_time_series, ".rds"))
+  history_df[,season_idx] = tmp_df$iliplus
+}
+sds_of_epi_weeks = apply(history_df, 1, sd)
+means_of_epi_weeks = apply(history_df, 1, mean)
+
+stochastic_timeseries = rmvnorm(5000, mean = means_of_epi_weeks, sigma = diag(sds_of_epi_weeks))
+PIV_of_stochastic_model = apply(stochastic_timeseries, 1, max)
+PIT_of_stochastic_model = apply(stochastic_timeseries, 1, which.max)
+
+# True PIT & PIV
+tmp_df = df[which(df$epi_season == flu_seasons[graphic_idx]),]
+tmp_df = tmp_df[order(tmp_df$epi_time),]
+true_PIV = max(tmp_df$iliplus)
+true_PIT = which.max(tmp_df$iliplus)
+
+######################################################################
+## Show the PIV, PIT distributions
+PIV_df = data.frame(PIV = PIV_of_stochastic_model, Model = rep("Hickman", times = length(PIV_of_stochastic_model)) )
+for(length_idx in 1:length(lengths)){
+  PIV_df = rbind(PIV_df,
+                  data.frame(PIV = PIV_list[[length_idx]], Model = rep(paste0("DBSSM, Horizon = ", 
+                                                                              lengths[length_idx]), 
+                                                                              times = length(PIV_of_stochastic_model) )
+                  ))
+}
+PIT_df = data.frame(PIT = PIT_of_stochastic_model, Model = rep("Hickman", times = length(PIV_of_stochastic_model)) )
+for(length_idx in 1:length(lengths)){
+  PIT_df = rbind(PIT_df,
+                 data.frame(PIT = PIT_list[[length_idx]], Model = rep(paste0("DBSSM, Horizon = ", 
+                                                                             lengths[length_idx]), 
+                                                                             times = length(PIV_of_stochastic_model) )
+                 ))
 }
 
-###########
-# # Let's compare the dave_beta, dave_gamma values drawn via each method.
-# rho_data                = data.frame(variable = rep('rho', times = nrow(incidence_betas)), 
-#                                      value = incidence_betas[c(4)]/incidence_gammas[c(4)])
-# incidence_data          = rbind(incidence_gammas[c(3,4)],incidence_betas[c(3,4)],rho_data)
-# incidence_data$approach = rep('incidence', times = nrow(incidence_data))
-# 
-# rho_data                 = data.frame(variable = rep('rho', times = nrow(prevalence_betas)), 
-#                                       value = prevalence_betas[c(4)]/prevalence_gammas[c(4)])
-# prevalence_data          = rbind(prevalence_gammas[c(3,4)],prevalence_betas[c(3,4)], rho_data)
-# prevalence_data$approach = rep('prevalence', times = nrow(prevalence_data))
-# 
-# graph_data = rbind(incidence_data, prevalence_data)
-# graph_data$variable = as.factor(graph_data$variable)
-# 
-# ggplot(graph_data, aes(x = variable, y = value, fill = approach)) + 
-#   geom_boxplot() + scale_fill_manual(values=c("#999999", "#FFFFFF")) + 
-#   scale_x_discrete(labels = TeX(c('beta' = r"($\beta$)", 
-#                                   'gamma' = r"($\gamma$)", 
-#                                   'rho' = r"($\rho)")) )+ 
-#   labs(fill="Approach")+ 
-#   theme(axis.text=element_text(size=20), axis.title = element_text(size = 20),
-#         legend.title=element_text(size=20), 
-#         legend.text=element_text(size=15)) + 
-#   ylab("")+
-#   xlab("Parameter")
-# 
-# graph_data %>%
-#   subset(variable == 'gamma' & approach == 'incidence') %>%
-#   pull(value) %>%
-#   median()
-# graph_data %>%
-#   subset(variable == 'gamma' & approach == 'prevalence') %>%
-#   pull(value) %>%
-#   median()
-# 
-# 
-# graph_data %>%
-#   subset(variable == 'beta' & approach == 'incidence') %>%
-#   pull(value) %>%
-#   median()
-# graph_data %>%
-#   subset(variable == 'beta' & approach == 'prevalence') %>%
-#   pull(value) %>%
-#   median()
-# 
-# 
-# graph_data %>%
-#   subset(variable == 'rho' & approach == 'incidence') %>%
-#   pull(value) %>%
-#   median()
-# graph_data %>%
-#   subset(variable == 'rho' & approach == 'prevalence') %>%
-#   pull(value) %>%
-#   median()
+p1 = PIV_df %>%
+  mutate(Model = factor(Model, levels = c("Hickman", "DBSSM, Horizon = 4",
+                                          "DBSSM, Horizon = 5",
+                                          "DBSSM, Horizon = 6",
+                                          "DBSSM, Horizon = 7",
+                                          "DBSSM, Horizon = 8",
+                                          "DBSSM, Horizon = 9",
+                                          "DBSSM, Horizon = 10"))) %>%
+  ggplot(aes(x = PIV, fill = Model)) +
+  geom_density(alpha = 0.7) + 
+  geom_vline(xintercept = true_PIV) + 
+  xlim(0,0.2)+ 
+  theme(axis.text=element_text(size=18), axis.title = element_text(size = 18), plot.title = element_text(size = 18)) + 
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1))
+p1
 
+p2 = PIT_df %>%
+  mutate(Model = factor(Model, levels = c("Hickman", "DBSSM, Horizon = 4",
+                                          "DBSSM, Horizon = 5",
+                                          "DBSSM, Horizon = 6",
+                                          "DBSSM, Horizon = 7",
+                                          "DBSSM, Horizon = 8",
+                                          "DBSSM, Horizon = 9",
+                                          "DBSSM, Horizon = 10"))) %>%
+  ggplot(aes(x = PIT, fill = Model)) +
+  geom_histogram(alpha = 0.7, color = 'black', position = 'stack') + 
+  geom_vline(xintercept = true_PIT) + 
+  theme(axis.text=element_text(size=18), axis.title = element_text(size = 18), plot.title = element_text(size = 18)) + 
+  theme(axis.text.x = element_text(angle = 0, vjust = 0.5, hjust=1))
+p2
+##########################################################################
+##########################################################################å
 
-#### Compile all graphics into single graphics.
-# Iterate through each flu season
-for (season in unique(flu_seasons)) {
-  plot_list <- list()  # To store all plots for this flu season
-  
-  # For each length of time series, load the plots and store them
-  for (length_ts in 1:2) {
-    season_tmp = season
-    shift = 0
-    if(season == 2014) shift = 2
-    length_ts = lengths[length_ts + shift]
-    rds_path <- paste0("../figures/", season, "_", length_ts, ".rds")
-    
-    if (file.exists(rds_path)) {
-      both_plots <- readRDS(rds_path)
-      
-      # Append both plots to the list
-      plot_list <- c(plot_list, both_plots)
-    } else {
-      warning(paste("Missing file:", rds_path))
-    }
-  }
-  
-  # Create output PNG
-  png_filename <- paste0("../figures/", season, "_stacked.png")
-  png(png_filename, width = 1200, height = 700)
-  
-  # Number of plots and desired columns
-  num_plots <- length(plot_list)
-  n_cols <- 2
-  n_rows <- ceiling(num_plots / n_cols)
-  
-  # Generate layout matrix that fills by column
-  layout_matrix <- matrix(1:(n_cols * n_rows), nrow = n_rows, ncol = n_cols, byrow = FALSE)
-  
-  # Trim matrix to actual number of plots (in case it's over)
-  layout_matrix[layout_matrix > num_plots] <- NA
-  
-  # Use layout_matrix to fill by column
-  do.call(grid.arrange, c(plot_list, list(layout_matrix = layout_matrix)))
-  
-  dev.off()
-}
+# save the plots
+both_plots <- list(p1, p2)
+grid.arrange(both_plots[[1]], both_plots[[2]],
+             layout_matrix = matrix(c(1,2), byrow = TRUE, ncol = 1))
+saveRDS(both_plots, file = paste0("../figures/pivpitplots.rds"))
