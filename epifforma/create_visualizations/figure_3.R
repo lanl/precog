@@ -132,65 +132,75 @@ SUBSET$model <- factor(SUBSET$model, levels = c(
   'epifforma', 'equal_wt', 'gam2mirror', 'mirror', 'moa_deriv', 
   'theta', 'gam', 'meanfcst', 'moa', 'rw', 'arima'
 ))
-custom_colors <- c(
-  "#1f77b4",  # epifforma
-  "#6baed6",  # gam2mirror
-  "#ff7f0e",  # mirror
-  "#2ca02c",  # moa_deriv
-  "#d62728",  # theta
-  "#9467bd", # equal_wt
-  "#8c564b",  # gam
-  "#e377c2",  # meanfcst
-  "#FFD700",  # moa
-  "#008080",  # rw
-  "#7FFF00"   # (extra color if needed)
+model_cols <- c(
+  epifforma  = "#1f77b4",
+  gam2mirror = "#6baed6",
+  mirror     = "#ff7f0e",
+  moa_deriv  = "#2ca02c",
+  theta      = "#d62728",
+  equal_wt   = "#9467bd",
+  gam        = "#8c564b",
+  meanfcst   = "#e377c2",
+  moa        = "#FFD700",
+  rw         = "#008080",
+  arima      = "#7FFF00"
 )
 
-# ggplot code
+## --- MAE rank heatmap (p2) ---
 p2 <- ggplot(SUBSET) +
-  geom_tile(aes(y = disease, x = mae_rank, color = model, fill = model)) +
-  geom_tile(aes(y = disease, x = mae_rank, fill = model), 
-            color = 'black', 
-            data = SUBSET[SUBSET$model == 'epifforma',], linewidth = 2) +
+  geom_tile(aes(y = disease, x = mae_rank, fill = model), color = "black") +
+  geom_tile(aes(y = disease, x = mae_rank, fill = model),
+            data = subset(SUBSET, model == "epifforma"),
+            color = "black", linewidth = 2) +
   theme_classic() +
-  xlab('MAE Rank') +
-  ylab('Disease') +
-  # labs(title = 'MAE Rank') +
-  scale_fill_manual('Model', values = custom_colors[1:11]) +
-  scale_color_manual(values = rep("black", length(levels(SUBSET$model)))) +
-  scale_x_continuous(expand = c(0,0), breaks = 1:length(unique(SUBSET$model))) +
+  xlab("MAE Rank") + ylab("Disease") +
+  scale_fill_manual(
+    name   = "Models",
+    values = model_cols,
+    breaks = present_models,
+    limits = present_models,
+    drop   = FALSE
+  ) +
+  scale_x_continuous(expand = c(0,0), breaks = 1:n_models) +
   scale_y_discrete(breaks = DISEASES, labels = DISEASE_LABELS) +
-  theme(legend.position = 'none') +
-  guides(fill = guide_legend(ncol = 6))+ theme(
-    legend.text = element_text(size = 12),  # Increase legend text size
-    axis.title.x = element_text(size = 14),  # Increase x-axis title size
-    axis.title.y = element_text(size = 16)  # Increase x-axis title size
-  )+ theme(
-    axis.text.x = element_text(angle = 90, size = 14, hjust = 0.5, vjust = 0.5),
-    axis.text.y = element_text(size = 12, hjust = 0.5, vjust = 0.5)
-  )+coord_flip()
+  theme(legend.position = "none") +
+  guides(fill = guide_legend(ncol = 6)) +
+  theme(
+    legend.text = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 16),
+    axis.text.x  = element_text(angle = 90, size = 14, hjust = 0.5, vjust = 0.5),
+    axis.text.y  = element_text(size = 12, hjust = 0.5, vjust = 0.5)
+  ) +
+  coord_flip()
+
+## --- RMSE rank heatmap (p1) ---
 p1 <- ggplot(SUBSET) +
-  geom_tile(aes(y = disease, x = rmse_rank, color = model, fill = model)) +
+  geom_tile(aes(y = disease, x = rmse_rank, fill = model), color = "black") +
   geom_tile(aes(y = disease, x = rmse_rank, fill = model),
-            color = 'black', 
-            data = SUBSET[SUBSET$model == 'epifforma',], linewidth = 2) +
+            data = subset(SUBSET, model == "epifforma"),
+            color = "black", linewidth = 2) +
   theme_classic() +
-  xlab('RMSE Rank') +
-  ylab('Disease') +
-  # labs(title = 'RMSE Rank') +
-  scale_fill_manual('Model', values = custom_colors) +
-  scale_color_manual(values = rep("black", length(levels(SUBSET$model)))) +
-  scale_x_continuous(expand = c(0,0), breaks = 1:length(unique(SUBSET$model))) +
+  xlab("RMSE Rank") + ylab("Disease") +
+  scale_fill_manual(
+    name   = "Models",
+    values = model_cols,
+    breaks = present_models,
+    limits = present_models,
+    drop   = FALSE
+  ) +
+  scale_x_continuous(expand = c(0,0), breaks = 1:n_models) +
   scale_y_discrete(breaks = DISEASES, labels = DISEASE_LABELS) +
-  theme(legend.position = 'top') +
-  guides(fill = guide_legend(ncol = 6), color = 'none')+ theme(
-    legend.text = element_text(size = 12),  # Increase legend text size
-    axis.title.x = element_text(size = 14),  # Increase x-axis title size
-    axis.title.y = element_text(size = 16)  # Increase x-axis title size
-  )+ theme(
-    axis.text.x = element_text(angle = 90, size = 14, hjust = 0.5, vjust = 0.5),
-    axis.text.y = element_text(size = 12, hjust = 0.5, vjust = 0.5)
-  )+coord_flip()
+  theme(legend.position = "top") +
+  guides(fill = guide_legend(ncol = 6)) +
+  theme(
+    legend.text = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 16),
+    axis.text.x  = element_text(angle = 90, size = 14, hjust = 0.5, vjust = 0.5),
+    axis.text.y  = element_text(size = 12, hjust = 0.5, vjust = 0.5)
+  ) +
+  coord_flip()
 legend = cowplot::get_plot_component(p1, 'guide-box-top', return_all = TRUE)
 p1 = p1+theme(legend.position = "none")
 # p1 = p1 + theme(axis.text.y = element_blank())

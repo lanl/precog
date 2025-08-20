@@ -106,45 +106,92 @@ components_sub = components_long[components_long$geography == geography &
                                    components_long$disease == disease & 
                                    components_long$last_obs_time == last_obs_time,]
 
-p1 = ggplot(results_sub[results_sub$model != 'epifforma',])+
-  geom_vline(aes(xintercept = as.Date(dates)),data = results_sub[results_sub$x==(max(results_sub$x)- max(results_sub$h)) & results_sub$model != 'epifforma',], linetype = 2, color = 'gray')+
-  geom_line(aes(x=as.Date(dates),y=truth))+
-  geom_point(aes(x=as.Date(dates),y=truth))+
-  geom_line(aes(x=as.Date(dates), y = fcst, group = model),data = results_sub[results_sub$h>0 & results_sub$model != 'epifforma',],color = 'black', linewidth = 1.1)+
-  geom_line(aes(x=as.Date(dates), y = fcst, group = model, color = model),data = results_sub[results_sub$h>0 & results_sub$model != 'epifforma',], linewidth = 2)+
-  geom_line(aes(x=as.Date(dates), y = fcst, group = model),data = results_sub[results_sub$h>0 & results_sub$model == 'epifforma',], linewidth =2, linetype = 3, color = 'black')+
-  theme_classic()+
-  theme(legend.position = c(0.1,0.7))+
-  xlab('Time')+
-  ylab('Cases')+
-  labs(title = paste0('Location: ',results_sub$geography[1]))+
-  scale_color_brewer('Models',palette = 'Spectral', limits = sort(unique(results_sub$model[!(results_sub$model %in% c('obs','epifforma'))]))) + 
+# 1) Name the colors by model
+model_cols <- c(
+  epifforma  = "#1f77b4",
+  gam2mirror = "#6baed6",
+  mirror     = "#ff7f0e",
+  moa_deriv  = "#2ca02c",
+  theta      = "#d62728",
+  equal_wt   = "#9467bd",
+  gam        = "#8c564b",
+  meanfcst   = "#e377c2",
+  moa        = "#FFD700",
+  rw         = "#008080",
+  arima      = "#7FFF00"
+)
+
+# Which models to show in the legend (exclude obs/epifforma)
+present_models <- sort(intersect(names(model_cols),
+                                 unique(results_sub$model[!(results_sub$model %in% c("obs","epifforma"))])
+))
+
+# 2) Your plot, swapping the scale:
+p1 <- ggplot(results_sub[results_sub$model != "epifforma",]) +
+  geom_vline(aes(xintercept = as.Date(dates)),
+             data = results_sub[results_sub$x==(max(results_sub$x)- max(results_sub$h)) &
+                                  results_sub$model != "epifforma",],
+             linetype = 2, color = "gray") +
+  geom_line(aes(x = as.Date(dates), y = truth)) +
+  geom_point(aes(x = as.Date(dates), y = truth)) +
+  geom_line(aes(x = as.Date(dates), y = fcst, group = model),
+            data = results_sub[results_sub$h>0 & results_sub$model != "epifforma",],
+            color = "black", linewidth = 1.1) +
+  geom_line(aes(x = as.Date(dates), y = fcst, group = model, color = model),
+            data = results_sub[results_sub$h>0 & results_sub$model != "epifforma",],
+            linewidth = 2) +
+  geom_line(aes(x = as.Date(dates), y = fcst, group = model),
+            data = results_sub[results_sub$h>0 & results_sub$model == "epifforma",],
+            linewidth = 2, linetype = 3, color = "black") +
+  theme_classic() +
+  theme(legend.position = c(0.1, 0.7)) +
+  xlab("Time") + ylab("Cases") +
+  labs(title = paste0("Location: ", results_sub$geography[1])) +
+  scale_color_manual(name = "Models",
+                     values = model_cols,
+                     breaks = present_models,  # order & show only present models
+                     limits = present_models,
+                     drop = TRUE) +
   xlim(as.Date("2020-06-15"), NA) +
-  theme(axis.text=element_text(size=15), axis.title = element_text(size = 15),
-        title = element_text(size=15),legend.text = element_text(size = 15)) +
-  theme(panel.spacing = unit(0, "cm"),
-        plot.margin = margin(0, 0, 0, 0, "cm"), 
-        plot.caption = element_blank()) 
+  theme(axis.text = element_text(size = 15),
+        axis.title = element_text(size = 15),
+        title = element_text(size = 15),
+        legend.text = element_text(size = 15),
+        panel.spacing = unit(0, "cm"),
+        plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.caption = element_blank())
+
 
 ### Light GBM Forecast Weights
-p3 = ggplot(components_sub)+
-  geom_bar(aes(x=factor(h),y=weights,fill = model), position = 'stack', stat = 'identity')+
-  theme_classic()+
-  scale_y_continuous(expand=c(0,0))+
-  xlab('Forecast Horizon')+
-  ylab('Average Weight')+
-  labs(title = 'LightGBM Forecast Weights')+
-  scale_fill_brewer('Models',palette = 'Spectral')+
-  theme(legend.position = 'top')+ 
-  theme(axis.text=element_text(size=15), axis.title = element_text(size = 15),
-        title = element_text(size=15),legend.text = element_text(size = 15)) +
+present_models_fill <- sort(intersect(names(model_cols), unique(components_sub$model)))
+
+p3 <- ggplot(components_sub) +
+  geom_bar(aes(x = factor(h), y = weights, fill = model),
+           position = "stack", stat = "identity") +
+  theme_classic() +
+  scale_y_continuous(expand = c(0, 0)) +
+  xlab("Forecast Horizon") +
+  ylab("Average Weight") +
+  labs(title = "LightGBM Forecast Weights") +
+  scale_fill_manual(
+    name   = "Models",
+    values = model_cols,
+    breaks = present_models_fill,
+    limits = present_models_fill,
+    drop   = TRUE
+  ) +
+  theme(legend.position = "top",
+        axis.text = element_text(size = 15),
+        axis.title = element_text(size = 15),
+        title = element_text(size = 15),
+        legend.text = element_text(size = 15)) +
   theme(panel.spacing = unit(0, "cm"),
-        plot.margin = margin(0, 0, 0, 0, "cm"), 
-        plot.caption = element_blank()) 
+        plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.caption = element_blank())
 
 lst_p = list(p1, p3)
-# pdf(file = paste0(my_path,'/figure1.pdf'), width = 16, height = 10)
+pdf(file = paste0(my_path,'/figure1.pdf'), width = 16, height = 10)
 grid.arrange(lst_p[[1]], lst_p[[2]],
              layout_matrix = matrix(c(1, 2),
                                     byrow = TRUE, nrow = 2, ncol = 1))
-# dev.off()
+dev.off()
