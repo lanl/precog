@@ -139,7 +139,7 @@ p2 = ggplot(SUBSET_melted)+
   # coord_cartesian(ylim = c(1,3))+
   theme_classic() + 
   #geom_boxplot(aes(y=value, x = model, fill = variable), alpha=.5, data = SUBSET_melted[SUBSET_melted$model == 'equal_wt',], color = 'black', size = 1.1)+
-  geom_boxplot(aes(y=value, x = model, fill = variable), alpha=.5, data = SUBSET_melted[SUBSET_melted$model == 'epifforma',], color = 'black', size = 1.1)+ 
+  # geom_boxplot(aes(y=value, x = model, fill = variable), alpha=.5, data = SUBSET_melted[SUBSET_melted$model == 'epifforma',], color = 'black', size = 1.1)+ 
   theme(legend.position = 'top',axis.text=element_text(size=15),
         axis.title=element_text(size=18), plot.title = element_text(size=22),
         legend.title=element_text(size=18), 
@@ -149,7 +149,10 @@ boxplot_figure = boxplot_figure +  scale_fill_discrete(type = c('#A3D5D3', '#ECD
                                                        name = 'Metric',
                                                        labels = c('mae_ratio' = "Relative MAE", 
                                                                   'rmse_ratio' = 'Relative RMSE'),
-                                                       breaks = c('mae_ratio', 'rmse_ratio'))
+                                                       breaks = c('mae_ratio', 'rmse_ratio')) +
+  theme(
+    axis.text.x = element_text(angle = -90, vjust = 1, hjust = 0)
+  )
 
 
 
@@ -302,12 +305,16 @@ eeeeeeeeeeegggggggggggghhhhhhhhhhhh
 
 plotlist  <- list(a=boxplot_figure, e = p1, g = p2, h = p3)
 
-png(file = paste0(my_path,'/figure2.png'),
-    width = 7, height = 4, units = "in",  # physical size
-    res = 600,                             # 300–600 (or 1200) for print
-    type = "cairo", antialias = "subpixel")
-wrap_plots(plotlist, design = layoutplot)
-dev.off()
+ggsave(
+  filename = "figure2.png",
+  plot = boxplot_figure,
+  path = my_path,
+  width = 7, height = 4, units = "in",
+  dpi = 600,
+  device = "png",
+  type = "cairo",
+  antialias = "subpixel"
+)
 
 
-boxplot_figure #+ coord_flip()
+# boxplot_figure #+ coord_flip()
