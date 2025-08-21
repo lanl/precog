@@ -302,9 +302,12 @@ eeeeeeeeeeegggggggggggghhhhhhhhhhhh
 
 plotlist  <- list(a=boxplot_figure, e = p1, g = p2, h = p3)
 
-# pdf(file = paste0(my_path,'/figure2.pdf'), width = 16, height = 10)
+png(file = paste0(my_path,'/figure2.png'),
+    width = 7, height = 4, units = "in",  # physical size
+    res = 600,                             # 300–600 (or 1200) for print
+    type = "cairo", antialias = "subpixel")
 wrap_plots(plotlist, design = layoutplot)
-# dev.off()
+dev.off()
 
 
-boxplot_figure + coord_flip()
+boxplot_figure #+ coord_flip()

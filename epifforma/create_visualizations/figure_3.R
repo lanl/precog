@@ -146,6 +146,10 @@ model_cols <- c(
   arima      = "#7FFF00"
 )
 
+present_models <- if (is.factor(SUBSET$model)) levels(SUBSET$model) else sort(unique(SUBSET$model))
+present_models <- intersect(names(model_cols), present_models)
+n_models <- length(present_models)
+
 ## --- MAE rank heatmap (p2) ---
 p2 <- ggplot(SUBSET) +
   geom_tile(aes(y = disease, x = mae_rank, fill = model), color = "black") +
@@ -205,11 +209,14 @@ legend = cowplot::get_plot_component(p1, 'guide-box-top', return_all = TRUE)
 p1 = p1+theme(legend.position = "none")
 # p1 = p1 + theme(axis.text.y = element_blank())
 # p2 = p2 + theme(axis.text.x = element_blank())
-p0 = cowplot::plot_grid(p2,p1,ncol = 1, nrow = 2, rel_widths = c(1.4,1))
-p00 = cowplot::plot_grid(legend,p0,ncol = 1, nrow = 2, rel_heights = c(0.15,2))
+p0 = cowplot::plot_grid(p2,p1,ncol = 2, nrow = 1)
+p00 = cowplot::plot_grid(legend,p0,ncol = 1, nrow = 2, rel_heights = c(0.25,2))
 p00
 
-pdf(file = paste0(my_path,'/figure3.pdf'), width = 8, height = 16)
+png(file = paste0(my_path,'/figure3.png'),
+    width = 7, height = 4, units = "in",  # physical size
+    res = 600,                             # 300–600 (or 1200) for print
+    type = "cairo", antialias = "subpixel")
 p00
 dev.off()
 
