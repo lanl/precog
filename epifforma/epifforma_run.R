@@ -42,6 +42,10 @@ source(paste0(training_path,'/../SLURMarray.r'))
 ######################################################################
 
 
+if(!file.exists(paste0(synthetic_path,"synthetic_moa.RDS"))){
+	paste0(synthetic_path,,"make_synthetic_training_data.R")
+}
+
 ### Create Embedding Matrices for sMOA ### 
 if(!file.exists(paste0(training_path,"embed_mat/embed_mat_y.csv"))){
   h = 4
