@@ -1,4 +1,0 @@
-# In data/.gitignore
-# Ignore everything in this folder, except this file
-*
-!.gitignore
