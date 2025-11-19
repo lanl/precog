@@ -144,7 +144,11 @@ p1 <- ggplot(results_sub[results_sub$model != "epifforma",]) +
             data = results_sub[results_sub$h>0 & results_sub$model == "epifforma",],
             linewidth = 2, linetype = 3, color = "black") +
   theme_classic() +
-  theme(legend.position = c(0.1, 0.7)) +
+  theme(legend.position = "top",
+        axis.text = element_text(size = 15),
+        axis.title = element_text(size = 15),
+        title = element_text(size = 15),
+        legend.text = element_text(size = 15)) +
   xlab("Time") + ylab("Cases") +
   labs(title = paste0("Location: ", results_sub$geography[1])) +
   scale_color_manual(name = "Models",
@@ -189,12 +193,23 @@ p3 <- ggplot(components_sub) +
         plot.margin = margin(0, 0, 0, 0, "cm"),
         plot.caption = element_blank())
 
-lst_p = list(p1, p3)
-png(file = paste0(my_path,'/figure1.png'),
-    width = 7, height = 4, units = "in",  # physical size
-    res = 600,                             # 300–600 (or 1200) for print
-    type = "cairo", antialias = "subpixel")
-grid.arrange(lst_p[[1]], lst_p[[2]],
-             layout_matrix = matrix(c(1, 2),
-                                    byrow = TRUE, nrow = 1, ncol = 2))
-dev.off()
+lst_p = list(p1,p3)
+combined_plot <- plot_grid(
+  lst_p[[1]], lst_p[[2]],
+  labels = c("(a)", "(b)"),
+  label_size = 20,          # make labels larger
+  label_fontface = "bold",
+  ncol = 2
+)
+
+# Save using ggsave
+scale = 2.2
+ggsave(
+  filename = paste0(my_path, "/figure1.png"),
+  plot = combined_plot,
+  width = 7*scale,
+  height = 3*scale,
+  units = "in",
+  dpi = 600,
+  type = "cairo"
+)
