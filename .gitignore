@@ -1,10 +1,3 @@
-# Ignore everything in these evaluation dirs
-epifforma/evaluate_model/evaluation/
-epifforma/evaluate_probabilistic/evaluate_model/evaluation/
-epifforma/evaluate_probabilistic/evaluation/
-
-# Ignore raw data
-epifforma/raw_data/*
 
 # Ignore specific visualization outputs
 epifforma/create_visualizations/stuff_for_castro/
