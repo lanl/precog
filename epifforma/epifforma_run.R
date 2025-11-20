@@ -79,7 +79,9 @@ source(paste0(training_path,'/../SLURMarray.r'))
 ######################################################################
 
 
-if(!file.exists(paste0(synthetic_path,"synthetic_moa.RDS"))){
+if(!file.exists(paste0(synthetic_path,"synthetic_moa.RDS")) | 
+   !file.exists(paste0(synthetic_path,"synthetic_uq.RDS")) | 
+   !file.exists(paste0(synthetic_path,"synthetic.RDS"))){
   setwd(paste0(synthetic_path,"../code/"))
 	source(paste0("make_synthetic_training_data.R"))
   setwd(this.path::here()) 

@@ -103,7 +103,7 @@ setDefaultCluster(cl)
 registerDoParallel(cl)
 print(Sys.time())
 sim_ts <- foreach(i=1:N, #added extra 300 to compensate for extra seasonality sims
-                  .errorhandling = "pass",
+                  # .errorhandling = "pass",
                   .verbose = F)%dopar%{
                     curve_type <- types_of_curves[rep(c(1:length(types_of_curves)), each = 20000)][i]
                     templist = gen_curve(curve_type)
