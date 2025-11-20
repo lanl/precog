@@ -95,10 +95,10 @@ registerDoParallel(cl)
 
 print(Sys.time())
 train_data <- foreach(i=1:num_to_run, #added extra 300 to compensate for extra seasonality sims
-                      .errorhandling = "pass",
+                      # .errorhandling = "pass",
                       .verbose = T)%dopar%{
                         
-                        source("epi_functions.R")
+                        source(here::here("epifforma", "process_data", "epi_functions.R"))
                         
                         foutput_se <- NULL
                         coutput <- NULL

@@ -9,7 +9,7 @@
 # Combine all required packages (deduplicated)
 required_packages <- unique(c(
   "tsfeatures", "forecast", "randomForest", "data.table",
-  "deSolve", "optparse",
+  "deSolve", "optparse", "here",
   "ranger", "lightgbm", "e1071", "deepgp", "FNN",
   "reshape2", "plyr", "collapse",
   "ggplot2", "LearnBayes", "LaplacesDemon", "parallel", "doParallel",
