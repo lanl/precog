@@ -45,18 +45,14 @@ library(plotly)
 library(GGally)
 theme_set(theme_bw())
 
-library(this.path)
-my_path = this.path::here()
-setwd(my_path)
-
 ## define paths
-savetrainpath <- my_path
-syntheticpath <- paste0(my_path, '../raw_data/synthetic/output/') 
-figsavepath <- paste0(savetrainpath,"figs/")
-savemodelpath <- paste0(my_path, 'features2weights/')
+savetrainpath <- here::here("epifforma", "process_data")
+syntheticpath <- here::here("epifforma", "raw_data", "synthetic", "output") #paste0(my_path, '../raw_data/synthetic/output/') 
+figsavepath <- here::here("epifforma", "process_data", "figs") #paste0(savetrainpath,"figs/")
+savemodelpath <- here::here("epifforma", "process_data", "features2weights") #paste0(my_path, 'features2weights/')
 
 ## source in function
-source("epi_functions.R")
+source(here::here("epifforma", "process_data", "epi_functions.R")) #source("epi_functions.R")
 
 #### set up computer for parallelization
 ## define number of cores
@@ -73,17 +69,17 @@ sockettype <- "PSOCK"
 ##############################################################
 
 ## synthetic time series data for training
-synthetic <- readRDS(paste0(syntheticpath,"synthetic.RDS"))
+synthetic <- readRDS(here::here("epifforma", "raw_data", "synthetic", "output", "synthetic.RDS")) #readRDS(paste0(syntheticpath,"synthetic.RDS"))
 
 ## forecast horizon
 h = 4
 
 ### Read in embedding matrices
-embed_mat_X <- data.table::fread(file=paste0(savetrainpath,"embed_mat/embed_mat_X.csv"))
-embed_mat_y <- data.table::fread(file=paste0(savetrainpath,"embed_mat/embed_mat_y.csv"))
+embed_mat_X <- data.table::fread(file=paste0(savetrainpath,"/embed_mat/embed_mat_X.csv"))
+embed_mat_y <- data.table::fread(file=paste0(savetrainpath,"/embed_mat/embed_mat_y.csv"))
 
-embed_mat_X_deriv <- data.table::fread(file=paste0(savetrainpath,"embed_mat/embed_mat_X_deriv.csv"))
-embed_mat_y_deriv <- data.table::fread(file=paste0(savetrainpath,"embed_mat/embed_mat_y_deriv.csv"))
+embed_mat_X_deriv <- data.table::fread(file=paste0(savetrainpath,"/embed_mat/embed_mat_X_deriv.csv"))
+embed_mat_y_deriv <- data.table::fread(file=paste0(savetrainpath,"/embed_mat/embed_mat_y_deriv.csv"))
 
 gc()
 
@@ -124,8 +120,8 @@ train_data <- foreach(i=1:num_to_run, #added extra 300 to compensate for extra s
                           }
                           print(j)
                         }
-                        fwrite(foutput_se, file = paste0(savetrainpath,"training_data_packets/features_se_",replicate_num,'_',i,"_",Sys.time(),".csv"))
-                        fwrite(coutput, file = paste0(savetrainpath,"training_data_packets/components_",replicate_num,'_',i,"_",Sys.time(),".csv"))
+                        fwrite(foutput_se, file = paste0(savetrainpath,"/training_data_packets/features_se_",replicate_num,'_',i,"_",Sys.time(),".csv"))
+                        fwrite(coutput, file = paste0(savetrainpath,"/training_data_packets/components_",replicate_num,'_',i,"_",Sys.time(),".csv"))
                         
                         x <- 1
                         x
