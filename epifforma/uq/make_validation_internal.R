@@ -44,14 +44,12 @@ library(plotly)
 library(GGally)
 theme_set(theme_bw())
 
-my_path = './uq/'
-library(this.path)
-my_path = this.path::here()
+my_path = here::here("epifforma", "uq") #'./uq/'
 
 ## define paths
 savevalidpath <- my_path
-savetrainpath <- paste0(my_path, '../process_data/')
-syntheticpath <- paste0(my_path, '../raw_data/synthetic/output/') 
+savetrainpath <- paste0(my_path, '/../process_data/')
+syntheticpath <- paste0(my_path, '/../raw_data/synthetic/output/') 
 
 ## source in function
 source(paste0(savetrainpath,"epi_functions.R"))
@@ -127,9 +125,9 @@ train_data <- foreach(i=1:num_to_run, #added extra 300 to compensate for extra s
                           }
                           print(j)
                         }
-                        fwrite(foutput_se, file = paste0(savevalidpath,"validation_data_packets/features_se_",replicate_num,'_',i,"_",Sys.time(),".csv"))
-                        fwrite(coutput, file = paste0(savevalidpath,"validation_data_packets/components_",replicate_num,'_',i,"_",Sys.time(),".csv"))
-                        fwrite(ioutput, file = paste0(savevalidpath,"validation_data_packets/intervals_",replicate_num,'_',i,"_",Sys.time(),".csv"))
+                        fwrite(foutput_se, file = paste0(savevalidpath,"/validation_data_packets/features_se_",replicate_num,'_',i,"_",Sys.time(),".csv"))
+                        fwrite(coutput, file = paste0(savevalidpath,"/validation_data_packets/components_",replicate_num,'_',i,"_",Sys.time(),".csv"))
+                        fwrite(ioutput, file = paste0(savevalidpath,"/validation_data_packets/intervals_",replicate_num,'_',i,"_",Sys.time(),".csv"))
                         
                         x <- 1
                         x
