@@ -47,15 +47,15 @@ theme_set(theme_bw())
 
 
 ## define paths
-my_path = this.path::here()
-setwd(my_path)
+my_path = here::here("epifforma", "fit_model") #this.path::here()
+# setwd(my_path)
 savetrainpath <- paste0(my_path, '/../process_data/')
 syntheticpath <- paste0(my_path, '/../raw_data/synthetic/output/') #EDITED 3/25/24
 figsavepath <- paste0(savetrainpath,"figs/")
 savemodelpath <- paste0(my_path, '/features2weights/') 
 
 ## source in function
-source(paste0("../process_data/epi_functions.R"))
+source(paste0(my_path, "/../process_data/epi_functions.R"))
 
 #### set up computer for parallelization
 ## define number of cores
