@@ -6,9 +6,46 @@
 
 ### This function runs the entire epiFFORMA pipeline starting after the synthetic data library generation. 
 ### See ./raw_data for implementation of synthetic data generation. 
+# Combine all required packages (deduplicated)
+required_packages <- unique(c(
+  "tsfeatures", "forecast", "randomForest", "data.table",
+  "deSolve",
+  "ranger", "lightgbm", "e1071", "deepgp", "FNN",
+  "reshape2", "plyr", "collapse",
+  "ggplot2", "LearnBayes", "LaplacesDemon", "parallel", "doParallel",
+  "this.path", "gridExtra", "lubridate", "grid", "plotly", 
+  "GGally", "viridis", "ggrepel", "dplyr"
+))
 
-library(this.path)
+# Identify missing packages
+installed_packages <- rownames(installed.packages())
+missing_packages <- setdiff(required_packages, installed_packages)
+
+# Install missing packages
+if (length(missing_packages) > 0) {
+  message("Installing missing packages: ", paste(missing_packages, collapse = ", "))
+  install.packages(missing_packages, dependencies = TRUE)
+}
+
+# Load all packages
+invisible(lapply(required_packages, library, character.only = TRUE))
 setwd(this.path::here()) 
+
+# List of required packages
+required_packages <- c(
+  "tsfeatures", "forecast", "randomForest", "data.table",
+  "ranger", "lightgbm", "e1071", "deepgp", "FNN",
+  "reshape2", "plyr", "collapse"
+)
+
+# Install any missing packages
+installed_packages <- rownames(installed.packages())
+missing_packages <- setdiff(required_packages, installed_packages)
+
+if (length(missing_packages) > 0) {
+  message("Installing missing packages: ", paste(missing_packages, collapse = ", "))
+  install.packages(missing_packages, dependencies = TRUE)
+}
 
 #################################
 ### Step 0: Define File Paths ###
@@ -43,7 +80,9 @@ source(paste0(training_path,'/../SLURMarray.r'))
 
 
 if(!file.exists(paste0(synthetic_path,"synthetic_moa.RDS"))){
-	paste0(synthetic_path,"make_synthetic_training_data.R")
+  setwd(paste0(synthetic_path,"../code/"))
+	source(paste0("make_synthetic_training_data.R"))
+  setwd(this.path::here()) 
 }
 
 ### Create Embedding Matrices for sMOA ### 

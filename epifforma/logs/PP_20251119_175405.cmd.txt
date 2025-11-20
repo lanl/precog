@@ -1,0 +1,1 @@
+Rscript --vanilla ./process_data/make_data_internal.R --replicate_num=1 --num_to_run=300

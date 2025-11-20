@@ -19,7 +19,7 @@ my_path = this.path::here()
 setwd(my_path)
 
 ## set path
-savepath <- "./output/"
+savepath <- "../output/"
 
 ## define number of cores
 ncores <- floor(.5*detectCores())
@@ -28,7 +28,7 @@ ncores <- floor(.5*detectCores())
 sockettype <- "PSOCK"
 
 ## functions for making synthetic data
-source(paste0('./code/',"synthetic_functions.R"))
+source(paste0('../code/',"synthetic_functions.R"))
 
 
 types_of_curves <- c("sir_rollercoaster", "sir_rollercoaster_wiggle", 'seasonal')
@@ -130,16 +130,16 @@ TS1 = sim_ts[[which(TYPES == 'sir_rollercoaster')[1]]]$ts
 TS2 = sim_ts[[which(TYPES == 'sir_rollercoaster_wiggle')[1]]]$ts
 TS3 = sim_ts[[which(TYPES == 'seasonal')[4]]]$ts
 
-plot(TS1)
-lines(TS1)
-
-
-plot(TS2)
-lines(TS2)
-
-
-plot(TS3)
-lines(TS3)
+# plot(TS1)
+# lines(TS1)
+# 
+# 
+# plot(TS2)
+# lines(TS2)
+# 
+# 
+# plot(TS3)
+# lines(TS3)
 
 
 

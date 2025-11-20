@@ -8,6 +8,7 @@ library(plyr)
 library(data.table)
 library(LearnBayes)
 library(LaplacesDemon)
+library(deSolve)
 theme_set(theme_bw())
 
 ## set proxies

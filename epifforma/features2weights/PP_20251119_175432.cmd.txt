@@ -1,0 +1,1 @@
+Rscript --vanilla ./fit_model/fit_lightgbm_darwin_internal.R --fit_type=order --fit_num=6 --param_type=multierror
