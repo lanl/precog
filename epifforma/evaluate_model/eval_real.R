@@ -46,16 +46,14 @@ library(grid)
 ## define socket type
 sockettype <- "PSOCK"
 
-library(this.path)
-my_path = this.path::here()
-setwd(my_path)
+my_path = here::here("epifforma", "evaluate_model")
 
 ## define paths
 codepath <- paste0(my_path,"/../process_data/")
 f2wpath <- paste0(my_path,"/../fit_model/features2weights/")
 savepath <- paste0(my_path,"/evaluation/")
-savetrainpath =  './process_data/'
-outputname <- eval_key
+savetrainpath =  '/../process_data/'
+outputname <- paste0(my_path,"/../process_data/")
 
 ## define forecast horizon
 h = 4
