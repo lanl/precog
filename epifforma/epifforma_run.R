@@ -153,7 +153,7 @@ system(runSlurm)
 
 ### Train 7 Replicates ###
 for(i in 1:7){
-  cmdLines <- paste0("Rscript --vanilla ",model_path,"fit_lightgbm_darwin_internal.R",
+  cmdLines <- paste0("Rscript --vanilla ",model_path,"fit_lightgbm_internal.R",
                      " --fit_type=order",
                      " --fit_num=",i,
                      " --param_type=multierror")
