@@ -9,4 +9,4 @@
 
 # Load software and activate environment (I loaded the modules into this env already):
 module add R/4.1.2
-R CMD BATCH "--no-save" calibrate_lightgbm_multierrorgit ad.R ./logfiles/grid_logs_$SLURM_ARRAY_TASK_ID.Rout
+R CMD BATCH "--no-save" calibrate_lightgbm_multierror.R ./logfiles/grid_logs_$SLURM_ARRAY_TASK_ID.Rout
