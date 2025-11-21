@@ -116,55 +116,55 @@ if(fit_type == 'order'){ #class = model ORDER (lowest = 1, highest = 7)
 
 
 
-  input = subset(train_data, select=setdiff(names(train_data),c("ts_length","ts_id")))
-  df <- na.omit(input)
-  df$class <- as.factor(df$class)
+input = subset(train_data, select=setdiff(names(train_data),c("ts_length","ts_id")))
+df <- na.omit(input)
+df$class <- as.factor(df$class)
   
-  
-  if(param_type == 'multilogloss'){
-    FILENAME = gsub('.RDS','_multilogloss.RDS',FILENAME)
-    calibrated_params = read.csv(paste("best_params/best_param_", fit_num, ".csv", sep = ""))
-    ## define parameters for LightGBM model
-    params = list(objective = "multiclass",
-                      metric = c("multi_logloss"),
-                      num_class = length(unique(df$class)),
-                      num_leaves = calibrated_params[which(calibrated_params$X=='num_leaves'),2],
-                      learning_rate = calibrated_params[which(calibrated_params$X=='learning_rate'),2],
-                      feature_fraction = calibrated_params[which(calibrated_params$X=='feature_fraction'),2],
-                      max_depth = calibrated_params[which(calibrated_params$X=='max_depth'),2],
-                      verbose = -1)
-  }else if(param_type == 'multierror'){
-    FILENAME = gsub('.RDS','_multierror.RDS',FILENAME)
-    calibrated_params = read.csv(paste("best_params_for_multierror/best_param_", fit_num, ".csv", sep = ""))
-    ## define parameters for LightGBM model
-    params = list(objective = "multiclass",
-                  metric = c("multi_error"),
-                  num_class = length(unique(df$class)),
-                  num_leaves = calibrated_params[which(calibrated_params$X=='num_leaves'),2],
-                  learning_rate = calibrated_params[which(calibrated_params$X=='learning_rate'),2],
-                  feature_fraction = calibrated_params[which(calibrated_params$X=='feature_fraction'),2],
-                  max_depth = calibrated_params[which(calibrated_params$X=='max_depth'),2],
-                  verbose = -1)
-  }else{
-    stop('Invalid param_type')
-  }
-  
-  ## divide df into train and validate
-  df_train_ids <- sample(1:nrow(df), calibrated_params[which(calibrated_params$X=='prop_holdout'),2]*nrow(df), replace=F)
-  df_train <- df[df_train_ids,]
-  df_valid_id <- setdiff(1:nrow(df),df_train_ids)
-  df_valid <- df[df_valid_id,]
-  
-  ## convert the data to LightGBM dataset format: training data
-  lgbm_train <- lightgbm::lgb.Dataset(data = as.matrix(subset(df_train, select=setdiff(names(df_train),c("class","class_wt")))),
-                                          label = as.integer(df_train$class)-1,
-                                          weight = df_train$class_wt)
-  
-  ## convert the data to LightGBM dataset format: validation data
-  lgbm_valid <- lightgbm::lgb.Dataset(data = as.matrix(subset(df_valid, select=setdiff(names(df_valid),c("class","class_wt")))),
-                                          label = as.integer(df_valid$class)-1,
-                                          weight = df_valid$class_wt,
-                                          reference = lgbm_train)
+
+if(param_type == 'multilogloss'){
+  FILENAME = gsub('.RDS','_multilogloss.RDS',FILENAME)
+  calibrated_params = read.csv(paste(my_path, "/best_params/best_param_", fit_num, ".csv", sep = ""))
+  ## define parameters for LightGBM model
+  params = list(objective = "multiclass",
+                    metric = c("multi_logloss"),
+                    num_class = length(unique(df$class)),
+                    num_leaves = calibrated_params[which(calibrated_params$X=='num_leaves'),2],
+                    learning_rate = calibrated_params[which(calibrated_params$X=='learning_rate'),2],
+                    feature_fraction = calibrated_params[which(calibrated_params$X=='feature_fraction'),2],
+                    max_depth = calibrated_params[which(calibrated_params$X=='max_depth'),2],
+                    verbose = -1)
+}else if(param_type == 'multierror'){
+  FILENAME = gsub('.RDS','_multierror.RDS',FILENAME)
+  calibrated_params = read.csv(paste(my_path,"/best_params_for_multierror/best_param_", fit_num, ".csv", sep = ""))
+  ## define parameters for LightGBM model
+  params = list(objective = "multiclass",
+                metric = c("multi_error"),
+                num_class = length(unique(df$class)),
+                num_leaves = calibrated_params[which(calibrated_params$X=='num_leaves'),2],
+                learning_rate = calibrated_params[which(calibrated_params$X=='learning_rate'),2],
+                feature_fraction = calibrated_params[which(calibrated_params$X=='feature_fraction'),2],
+                max_depth = calibrated_params[which(calibrated_params$X=='max_depth'),2],
+                verbose = -1)
+}else{
+  stop('Invalid param_type')
+}
+
+## divide df into train and validate
+df_train_ids <- sample(1:nrow(df), calibrated_params[which(calibrated_params$X=='prop_holdout'),2]*nrow(df), replace=F)
+df_train <- df[df_train_ids,]
+df_valid_id <- setdiff(1:nrow(df),df_train_ids)
+df_valid <- df[df_valid_id,]
+
+## convert the data to LightGBM dataset format: training data
+lgbm_train <- lightgbm::lgb.Dataset(data = as.matrix(subset(df_train, select=setdiff(names(df_train),c("class","class_wt")))),
+                                        label = as.integer(df_train$class)-1,
+                                        weight = df_train$class_wt)
+
+## convert the data to LightGBM dataset format: validation data
+lgbm_valid <- lightgbm::lgb.Dataset(data = as.matrix(subset(df_valid, select=setdiff(names(df_valid),c("class","class_wt")))),
+                                        label = as.integer(df_valid$class)-1,
+                                        weight = df_valid$class_wt,
+                                        reference = lgbm_train)
 
 
 ## train the LightGBM model

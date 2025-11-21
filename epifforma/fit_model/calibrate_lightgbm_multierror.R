@@ -49,15 +49,15 @@ print(paste("number of cores is", num_cores))
 
 ## define paths
 library(this.path)
-my_path = this.path::here()
-setwd(my_path)
+my_path = here::here("epifforma", "fit_model")
+# setwd(my_path)
 savetrainpath <- paste0(my_path, '/../process_data/')
 syntheticpath <- paste0(my_path, '/../raw_data/synthetic/output/') 
 figsavepath <- paste0(savetrainpath,"figs/")
 savemodelpath <- paste0(my_path, '/features2weights/') 
 
 ## source in function
-source(paste0("../process_data/epi_functions.R"))
+source(paste0(my_path, "/../process_data/epi_functions.R"))
 
 ## define socket type
 sockettype <- "PSOCK"
@@ -213,7 +213,7 @@ calibrate_lgbm_wt <- function(input){
 print("entering the calibrate lgbm protocol")
 optObj = calibrate_lgbm_wt(input = subset(train_data, select=setdiff(names(train_data),c("ts_length","ts_id"))))
 print(getBestPars(optObj))
-write.csv( unlist(getBestPars(optObj)) , file = paste('best_params_for_multierror/best_param_', fit_num, '.csv', sep = ""))
+write.csv( unlist(getBestPars(optObj)) , file = paste(my_path, '/best_params_for_multierror/best_param_', fit_num, '.csv', sep = ""))
 
 
 print("Note that no model is saved here!  Just updated the optimal parameters.")

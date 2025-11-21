@@ -158,7 +158,7 @@ for(i in 1:7){
                      " --fit_num=",i,
                      " --param_type=multierror")
   runSlurm <- slurmarray(cmdLines,sname="PP",stime="540",smem="5G",
-                         soutdir=paste0('./features2weights/'), sparallel = 0)
+                         soutdir=paste0('./logs/'), sparallel = 0)
   system(runSlurm)
 }
 
