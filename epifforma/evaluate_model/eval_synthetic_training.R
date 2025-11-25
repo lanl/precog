@@ -54,9 +54,8 @@ sockettype <- "PSOCK"
 
 
 ## define paths
-library(this.path)
-my_path = this.path::here()
-setwd(my_path)
+
+my_path = here::here("epifforma", "evaluate_model")
 savetrainpath <- paste0(my_path, '/../process_data/')
 syntheticpath <- paste0(my_path, '/../raw_data/synthetic/output/') 
 f2wpath <- paste0(my_path,"/../fit_model/features2weights/")
@@ -64,7 +63,7 @@ savepath <- paste0(my_path,"/evaluation/")
 outputname = 'synthetic_training'
 
 ## source in function
-source(paste0("../process_data/epi_functions.R"))
+source(paste0(my_path, "/../process_data/epi_functions.R"))
 
 
 ## define forecast horizon
