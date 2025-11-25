@@ -54,7 +54,6 @@ sockettype <- "PSOCK"
 
 
 ## define paths
-library(this.path)
 my_path = here::here("epifforma", "evaluate_model")#this.path::here()
 savetrainpath <- paste0(my_path, '/../process_data/')
 savevalidpath <- paste0(my_path, '/../uq/')
