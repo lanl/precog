@@ -517,7 +517,7 @@ setDefaultCluster(cl)
 registerDoParallel(cl)
 print(Sys.time())
 myoutput <- foreach(g = 1:length(testingids),
-                    .verbose = F)%dopar%{
+                    .verbose = F)%do%{
                       
                       ## load functions
                       source(paste0(codepath,"epi_functions.R"))
@@ -563,6 +563,7 @@ myoutput <- foreach(g = 1:length(testingids),
                         SUB = temp_pred$output_df[temp_pred$output_df$model != 'epifforma',]
                         SUB = SUB$output_df[SUB$output_df$model != 'mirror',]
                         SUB = SUB[!is.na(SUB$h),]
+                        print(head(SUB))
                         SUB = SUB %>% dplyr::group_by(last_obs_time, h, geography) %>% dplyr::mutate(fcst_mean = mean(fcst, na.rm=T))
                         SUB = SUB[!duplicated(paste0(SUB$last_obs_time, '_', SUB$h, '_', SUB$geography)),]
                         SUB$fcst = SUB$fcst_mean
