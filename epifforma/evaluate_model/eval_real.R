@@ -509,7 +509,7 @@ comb <- function(x, ...) {
   mapply(rbind,x,...,SIMPLIFY=FALSE)
 }
 
-
+print("GOT HERE")
 
 ## parallelize over time series, loop within time series
 cl <- parallel::makeCluster(spec = ncores,type = sockettype)
