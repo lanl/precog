@@ -517,7 +517,7 @@ setDefaultCluster(cl)
 registerDoParallel(cl)
 print(Sys.time())
 myoutput <- foreach(g = 1:length(testingids),
-                    .verbose = F)%do%{
+                    .verbose = F)%dopar%{
                       
                       ## load functions
                       source(paste0(codepath,"epi_functions.R"))
@@ -560,18 +560,18 @@ myoutput <- foreach(g = 1:length(testingids),
                         }
                         
                         # add equal_wt benchmark to epifforma
-                        print("----")
-                        print(head(temp_pred))
+                        # print("----")
+                        # print(head(temp_pred))
                         SUB = temp_pred$output_df[temp_pred$output_df$model != 'epifforma',]
-                        print("====")
-                        print(head(SUB))
+                        # print("====")
+                        # print(head(SUB))
                         SUB = SUB[SUB$model != 'mirror',]
-                        print("-=-=-=-")
-                        print(head(SUB))
+                        # print("-=-=-=-")
+                        # print(head(SUB))
                         SUB = SUB[!is.na(SUB$h),]
-                        print("00000000000")
-                        print(head(SUB))
-                        print("----")
+                        # print("00000000000")
+                        # print(head(SUB))
+                        # print("----")
                         SUB = SUB %>% dplyr::group_by(last_obs_time, h, geography) %>% dplyr::mutate(fcst_mean = mean(fcst, na.rm=T))
                         SUB = SUB[!duplicated(paste0(SUB$last_obs_time, '_', SUB$h, '_', SUB$geography)),]
                         SUB$fcst = SUB$fcst_mean
