@@ -565,7 +565,7 @@ myoutput <- foreach(g = 1:length(testingids),
                         SUB = temp_pred$output_df[temp_pred$output_df$model != 'epifforma',]
                         print("====")
                         print(head(SUB))
-                        SUB = SUB$output_df[SUB$output_df$model != 'mirror',]
+                        SUB = SUB[SUB$model != 'mirror',]
                         print("-=-=-=-")
                         print(head(SUB))
                         SUB = SUB[!is.na(SUB$h),]
