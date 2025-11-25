@@ -187,12 +187,12 @@ saveRDS(mod_wt, file = paste0(model_path,'features2weights/',"fitted_lgb_models_
 ### Get predictions for synthetic training and test data ###
 cmdLines <- paste0("Rscript --vanilla ",eval_path,"eval_synthetic_training.R",
                    " --eval_key=synthetic_training", " --eval_type=order", " --param_type=multierror")
-runSlurm <- slurmarray(cmdLines,sname="PP",stime="540",smem="5G", soutdir=paste0('./evaluation/'), sparallel = 0)
+runSlurm <- slurmarray(cmdLines,sname="PP",stime="540",smem="5G", soutdir=paste0('./logs/'), sparallel = 0)
 system(runSlurm)
 
 cmdLines <- paste0("Rscript --vanilla ",eval_path,"eval_synthetic_test.R",
                    " --eval_key=synthetic_test", " --eval_type=order",  " --param_type=multierror")
-runSlurm <- slurmarray(cmdLines,sname="PP",stime="540",smem="5G", soutdir=paste0('./evaluation/'), sparallel = 0)
+runSlurm <- slurmarray(cmdLines,sname="PP",stime="540",smem="5G", soutdir=paste0('./logs/'), sparallel = 0)
 system(runSlurm)
 
 
@@ -208,13 +208,13 @@ for(i in 1:length(EVAL_RUNS)){
                        " --eval_key=", EVAL_RUNS[i], " --eval_type=order", " --param_type=multierror")
     extraoptions = c('--qos=long')
     runSlurm <- slurmarray(cmdLines,sname="PP",stime="2500",smem="5G",
-                           soutdir=paste0('./evaluation/'), sparallel = 0,
+                           soutdir=paste0('./logs/'), sparallel = 0,
                            extraOption = extraoptions)
   }else{
     cmdLines <- paste0("Rscript --vanilla ",eval_path,"eval_real.R",
                        " --eval_key=", EVAL_RUNS[i], " --eval_type=order", " --param_type=multierror")
     runSlurm <- slurmarray(cmdLines,sname="PP",stime="540",smem="5G",
-                           soutdir=paste0('./evaluation/'), sparallel = 0)
+                           soutdir=paste0('./logs/'), sparallel = 0)
   }
   system(runSlurm)
 }
