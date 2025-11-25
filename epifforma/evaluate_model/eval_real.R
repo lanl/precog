@@ -81,7 +81,7 @@ if(eval_type == 'order'){
 
 ### Read in embedding matrices
 embed_mat_X <- data.table::fread(file=paste0(savetrainpath,"/embed_mat/embed_mat_X.csv"))
-embed_mat_y <- data.table::fread(file=paste0(savetrainpath,"embed_mat/embed_mat_y.csv"))
+embed_mat_y <- data.table::fread(file=paste0(savetrainpath,"/embed_mat/embed_mat_y.csv"))
 
 embed_mat_X_deriv <- data.table::fread(file=paste0(savetrainpath,"/embed_mat/embed_mat_X_deriv.csv"))
 embed_mat_y_deriv <- data.table::fread(file=paste0(savetrainpath,"/embed_mat/embed_mat_y_deriv.csv"))
