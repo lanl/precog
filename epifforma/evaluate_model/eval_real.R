@@ -563,8 +563,13 @@ myoutput <- foreach(g = 1:length(testingids),
                         print("----")
                         print(head(temp_pred))
                         SUB = temp_pred$output_df[temp_pred$output_df$model != 'epifforma',]
+                        print("====")
+                        print(head(SUB))
                         SUB = SUB$output_df[SUB$output_df$model != 'mirror',]
+                        print("-=-=-=-")
+                        print(head(SUB))
                         SUB = SUB[!is.na(SUB$h),]
+                        print("00000000000")
                         print(head(SUB))
                         print("----")
                         SUB = SUB %>% dplyr::group_by(last_obs_time, h, geography) %>% dplyr::mutate(fcst_mean = mean(fcst, na.rm=T))
