@@ -13,13 +13,10 @@ library(doParallel)
 
 theme_set(theme_bw())
 
-
-library(this.path)
-my_path = this.path::here()
-setwd(my_path)
+my_path = here::here("epifforma", "raw_data", "synthetic", "code")
 
 ## set path
-savepath <- "../output/"
+savepath <- here::here("epifforma", "raw_data", "synthetic", "output")#"../output/"
 
 ## define number of cores
 ncores <- floor(.5*detectCores())
@@ -28,7 +25,7 @@ ncores <- floor(.5*detectCores())
 sockettype <- "PSOCK"
 
 ## functions for making synthetic data
-source(paste0('../code/',"synthetic_functions.R"))
+source(paste0(here::here("epifforma", "raw_data", "synthetic", "code"),"/synthetic_functions.R"))
 
 
 types_of_curves <- c("sir_rollercoaster", "sir_rollercoaster_wiggle", 'seasonal')
@@ -54,7 +51,7 @@ print(Sys.time())
 A = lapply(sim_ts,function(x){ length(x)})
 unique(A)
 sim_ts = sim_ts[A > 2]
-saveRDS(sim_ts, file=paste0(savepath,"synthetic.RDS"))
+saveRDS(sim_ts, file=paste0(savepath,"/synthetic.RDS"))
 
 # A = lapply(sim_ts,function(x){ sum(is.nan(x$ts))})
 # unique(A)
@@ -88,7 +85,7 @@ print(Sys.time())
 A = lapply(sim_ts,function(x){ length(x)})
 unique(A)
 sim_ts = sim_ts[A > 2]
-saveRDS(sim_ts, file=paste0(savepath,"synthetic_moa.RDS"))
+saveRDS(sim_ts, file=paste0(savepath,"/synthetic_moa.RDS"))
 
 
 
@@ -114,7 +111,7 @@ print(Sys.time())
 A = lapply(sim_ts,function(x){ length(x)})
 unique(A)
 sim_ts = sim_ts[A > 2]
-saveRDS(sim_ts, file=paste0(savepath,"synthetic_uq.RDS"))
+saveRDS(sim_ts, file=paste0(savepath,"/synthetic_uq.RDS"))
 
 
 
@@ -122,7 +119,7 @@ saveRDS(sim_ts, file=paste0(savepath,"synthetic_uq.RDS"))
 #####################
 ### Plot Examples ###
 #####################
-sim_ts = readRDS(paste0(savepath,"synthetic.RDS"))
+sim_ts = readRDS(paste0(savepath,"/synthetic.RDS"))
 
 TYPES = unlist(lapply(sim_ts,function(ll){return(ll$ts_disease)})) 
 
