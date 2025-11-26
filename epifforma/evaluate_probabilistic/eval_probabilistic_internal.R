@@ -30,8 +30,6 @@ print(paste0(eval_type, ' : ', eval_key))
 ######################
 ### Body of Script ###
 ######################
-
-
 ## load libraries
 library(data.table)
 library(plyr)
@@ -44,19 +42,16 @@ library(grid)
 
 ## define socket type
 sockettype <- "PSOCK"
-
-library(this.path)
-my_path = this.path::here()
-setwd(my_path)
+my_path = here::here("epifforma", "uq") # this.path::here()
 
 ## define paths
-my_path = './uq'
-setwd(my_path)
+# my_path = './uq'
+# setwd(my_path)
 savepath <- paste0(my_path,"/../evaluate_model/evaluation/")
 savepath_new <- paste0(my_path,"/../evaluate_probabilistic/evaluation/")
 syntheticpath <- paste0(my_path, '/../raw_data/synthetic/output/') 
 savemodelpath <- paste0(my_path, '/features2weights/') 
-savetrainpath =  './process_data/'
+savetrainpath =  '/../process_data/'
 
 if(!dir.exists(savemodelpath)){dir.create(savemodelpath)}
 outputname <- eval_key

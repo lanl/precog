@@ -14,7 +14,7 @@ required_packages <- unique(c(
   "reshape2", "plyr", "collapse",
   "ggplot2", "LearnBayes", "LaplacesDemon", "parallel", "doParallel",
   "this.path", "gridExtra", "lubridate", "grid", "plotly", 
-  "GGally", "viridis", "ggrepel", "dplyr"
+  "GGally", "viridis", "ggrepel", "dplyr", "plyr"
 ))
 
 # Identify missing packages
