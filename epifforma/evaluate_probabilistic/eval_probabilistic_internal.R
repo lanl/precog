@@ -42,7 +42,7 @@ library(grid)
 
 ## define socket type
 sockettype <- "PSOCK"
-my_path = here::here("epifforma", "uq") # this.path::here()
+my_path = here::here("epifforma", "evaluate_probabilistic") # this.path::here()
 
 ## define paths
 # my_path = './uq'
