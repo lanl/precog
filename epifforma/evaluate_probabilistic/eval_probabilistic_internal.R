@@ -60,7 +60,7 @@ outputname <- eval_key
 h = 4
 
 
-
+print('about to get file names')
 ## get .RDS file names
 output_list = readRDS(paste0(savepath, outputname, '_', eval_type, '_multierror.RDS'))
 results = output_list['plot_df']$plot_df
@@ -99,11 +99,12 @@ features_wide = merge(features_wide, weights_wide[,c('weight_sd','disease','geog
 rm(list=c('components_wide', 'weights_wide','output_list'))
 
 
-
+print("loaded features wide")
 ##########################################
 ### Get Component Predictive Intervals ###
 ##########################################
 
+print("about to enter parallel loop")
 if(!file.exists(paste0(savepath_new,'intervals_',outputname,'_',eval_type,".RDS"))){
 ncores = 10
 TO_RUN = results_arima[!duplicated(paste0(results_arima$disease,'_',results_arima$geography)),c('disease', 'geography')]
@@ -142,7 +143,7 @@ saveRDS(intervaloutput, file = paste0(savepath_new,'intervals_',outputname,'_',e
 }
 
 
-
+print("exiting parallel loop")
 
 
 
@@ -194,7 +195,7 @@ input$pred_interval_equalwt[input$pred_interval_equalwt>(2*TRUNC*input$fcst_equa
 input$pred_interval_equalwt = pmax(1e-9,input$pred_interval_equalwt) 
 
 
-
+print("about to evaluate.")
 
 ################
 ### Evaluate ###
@@ -245,7 +246,7 @@ results$wis_interval_equalwt = (1/1.5)*(0.5*abs(results$fcst_equalwt-results$tru
 results_long = rbind(data.frame(type = 'Epifforma (Interval)',             wis = results$wis_interval_epifforma,  width = results$width_interval_epifforma, coverage = results$covers_interval_epifforma, lower = results$fcst_interval_epifforma_0.025, upper = results$fcst_interval_epifforma_0.975, results[,c('geography', 'disease','last_obs_time', 'h','truth')], fcst = results$fcst_epifforma),
                      data.frame(type = 'Equalwt (Interval)',               wis = results$wis_interval_equalwt,   width = results$width_interval_equalwt, coverage = results$covers_interval_equalwt, lower = results$fcst_interval_equalwt_0.025, upper = results$fcst_interval_equalwt_0.975, results[,c('geography', 'disease','last_obs_time', 'h','truth')], fcst = results$fcst_equalwt))
 
-library(plyr)
+
 accuracydf <- ddply(results_long,.(type),summarise,
                     n = length(width),
                     median_width_scaled = median((width/fcst)[fcst>0],na.rm=T),
