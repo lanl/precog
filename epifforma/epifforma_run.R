@@ -260,13 +260,13 @@ for(i in 1:length(EVAL_RUNS)){
                        " --eval_key=", EVAL_RUNS[i], " --eval_type=order")
     extraoptions = c('--qos=long')
     runSlurm <- slurmarray(cmdLines,sname="PP",stime="2500",smem="5G",
-                           soutdir=paste0('./evaluation/'), sparallel = 0,
+                           soutdir=paste0('./logs/'), sparallel = 0,
                            extraOption = extraoptions)
   }else{
     cmdLines <- paste0("Rscript --vanilla ",evalprob_path,"eval_probabilistic_internal.R",
                        " --eval_key=", EVAL_RUNS[i], " --eval_type=order")
     runSlurm <- slurmarray(cmdLines,sname="PP",stime="540",smem="5G",
-                           soutdir=paste0('./evaluation/'), sparallel = 0)
+                           soutdir=paste0('./logs/'), sparallel = 0)
   }
   system(runSlurm)
 }
@@ -283,5 +283,4 @@ for(i in 1:length(EVAL_RUNS)){
 source('./create_visualizations/figure_1.R')
 source('./create_visualizations/figure_2.R')
 source('./create_visualizations/figure_3.R')
-source('./create_visualizations/figure_4.R')
 
