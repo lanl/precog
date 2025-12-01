@@ -607,10 +607,10 @@ make_components <- function(info_packet, h){
   rm('dist_to_test')
   
   ## make persistence model
-  ret_mat$rw <- pmax(0,forecast::forecast(rwf(ts_smooth, drift = F), h = h)$mean)
+  ret_mat$rw <- pmax(0,forecast::forecast(forecast::rwf(ts_smooth, drift = F), h = h)$mean)
   
   ## make theta
-  ret_mat$theta <- pmax(0, forecast::forecast(thetaf(ts), h = h)$mean)
+  ret_mat$theta <- pmax(0, forecast::forecast(forecast::thetaf(ts), h = h)$mean)
   
   ## make mean 
   if(info_packet$ts_time_cadence == 'weekly'){
@@ -632,7 +632,7 @@ make_components <- function(info_packet, h){
   ret_mat$gam2mirror<- gam_wt*ret_mat$gam + (1-gam_wt)*ret_mat$mirror
   
   # ## arima 
-  ret_mat$arima <- pmax(0,forecast::forecast(auto.arima(ts_smooth),h=h)$mean)
+  ret_mat$arima <- pmax(0,forecast::forecast(forecast::auto.arima(ts_smooth),h=h)$mean)
 
   ## reformat ret_mat
   ret_mat <- subset(ret_mat, select=setdiff(names(ret_mat),"h"))
