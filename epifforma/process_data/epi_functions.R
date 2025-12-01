@@ -233,7 +233,7 @@ handle_outliers <- function(info_packet){
   ts = info_packet$ts
   if(max(ts[-length(ts)]) > 0){
     ### Initial Outlier Screening
-    out = tsoutliers(ts, lambda = NULL, iterate = 5)
+    out = forecast::tsoutliers(ts, lambda = NULL, iterate = 5)
     inds = out$index
     if(length(inds)>1){
       not_outlier = inds[apply(cbind(inds),1,FUN = function(x,inds){min(abs(x-inds[inds!=x]))},inds= inds)==1]

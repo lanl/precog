@@ -294,7 +294,7 @@ dir.create(directory_name)
 sockettype <- "PSOCK"
 
 ## Uncomment this to work with a simple example (one run).
-parfctn(3)
+# parfctn(3)
 
 cl <- parallel::makeCluster(spec = ncores,type = sockettype) #, outfile=""
 setDefaultCluster(cl)
