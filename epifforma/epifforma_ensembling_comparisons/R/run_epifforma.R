@@ -116,28 +116,43 @@ parfctn = function(x){
   # Set up for all the other ensemble weighting techinques
   num_components = 9
   T_max = length(fcast_dates_to_match)
-  ewa    <- make_ewa_ensemble(num_components, eta = 0.05)
-  rls    <- make_rls_ensemble(num_components, lambda = 0.99, delta = 1e3)
-  ridge  <- make_ridge_rls_ensemble(num_components, tau = 1.0, delta = 1.0)
-  kalman <- make_kalman_ensemble(num_components, Q_scale = 1e-4, R = 1.0)
-  roll   <- make_rolling_reg_ensemble(num_components, window = 40, lambda = 0.1)
+  
+  ewa = list()
+  rls = list()
+  ridge = list()
+  kalman = list()
+  roll = list()
+  
+  for(horizon_num in 1:h){
+    ewa[[horizon_num]]    <- make_ewa_ensemble(num_components, eta = 0.05)
+    rls[[horizon_num]]    <- make_rls_ensemble(num_components, lambda = 0.99, delta = 1e3)
+    ridge[[horizon_num]]  <- make_ridge_rls_ensemble(num_components, tau = 1.0, delta = 1.0)
+    kalman[[horizon_num]] <- make_kalman_ensemble(num_components, Q_scale = 1e-4, R = 1.0)
+    roll[[horizon_num]]   <- make_rolling_reg_ensemble(num_components, window = 40, lambda = 0.1)
+  }
+  
+  # ewa    <- make_ewa_ensemble(num_components, eta = 0.05)
+  # rls    <- make_rls_ensemble(num_components, lambda = 0.99, delta = 1e3)
+  # ridge  <- make_ridge_rls_ensemble(num_components, tau = 1.0, delta = 1.0)
+  # kalman <- make_kalman_ensemble(num_components, Q_scale = 1e-4, R = 1.0)
+  # roll   <- make_rolling_reg_ensemble(num_components, window = 40, lambda = 0.1)
   
   # Storage for weights and predictions
-  ewa_w    <- matrix(NA_real_, nrow = T_max, ncol = num_components)
-  rls_w    <- matrix(NA_real_, nrow = T_max, ncol = num_components)
-  ridge_w  <- matrix(NA_real_, nrow = T_max, ncol = num_components)
-  kalman_w <- matrix(NA_real_, nrow = T_max, ncol = num_components)
-  roll_w   <- matrix(NA_real_, nrow = T_max, ncol = num_components)
-  epifforma_w   <- matrix(NA_real_, nrow = T_max, ncol = num_components)
-  eq_w   <- matrix(1/9, nrow = T_max, ncol = num_components)
+  ewa_w    <- array(NA_real_, dim = c( T_max, num_components, h) )
+  rls_w    <- array(NA_real_, dim = c( T_max, num_components, h))
+  ridge_w  <- array(NA_real_, dim = c( T_max, num_components, h))
+  kalman_w <- array(NA_real_, dim = c( T_max, num_components, h))
+  roll_w   <- array(NA_real_, dim = c( T_max, num_components, h))
+  epifforma_w   <- array(NA_real_, dim = c( T_max, num_components, h))
+  eq_w   <- array(1/9, dim = c( T_max, num_components, h))
   
-  ewa_pred    <- rep(NA_real_, T_max)
-  rls_pred    <- rep(NA_real_, T_max)
-  ridge_pred  <- rep(NA_real_, T_max)
-  kalman_pred <- rep(NA_real_, T_max)
-  roll_pred   <- rep(NA_real_, T_max)
-  epifforma_pred   <- rep(NA_real_, T_max)
-  eqw_pred   <- rep(NA_real_, T_max)
+  ewa_pred    <- matrix(NA_real_, T_max, h)
+  rls_pred    <- matrix(NA_real_, T_max, h)
+  ridge_pred  <- matrix(NA_real_, T_max, h)
+  kalman_pred <- matrix(NA_real_, T_max, h)
+  roll_pred   <- matrix(NA_real_, T_max, h)
+  epifforma_pred   <- matrix(NA_real_, T_max, h)
+  eqw_pred   <- matrix(NA_real_, T_max, h)
   
   true_values = c()
   
@@ -223,42 +238,43 @@ parfctn = function(x){
     }
     fcst_df <- data.frame(h = 1:4,epifforma = rowSums(pred_wts*components_reordered))
     
-    x_t <- components_reordered[1, ]
-    y_t <- data_till_now_smoothed[length(data_till_now_smoothed)]
-    true_values = c(true_values, y_t)
-    t = fcast_date_idx
-    
-    # 0. Grab epifforma stuff
-    epifforma_pred[t] <- fcst_df[1,2]
-    epifforma_w[t, ] <- pred_wts[1,]
-    
-    # 1. EWA
-    ewa_pred[t] <- sum(ewa$weights * x_t)
-    ewa <- update_ewa_ensemble(ewa, x_t, y_t)
-    ewa_w[t, ] <- ewa$weights
-    
-    # 2. RLS
-    rls_pred[t] <- sum(rls$w * x_t)
-    rls <- update_rls_ensemble(rls, x_t, y_t)
-    rls_w[t, ] <- rls$w
-    
-    # 3. Ridge RLS
-    ridge_pred[t] <- sum(ridge$w * x_t)
-    ridge <- update_ridge_rls_ensemble(ridge, x_t, y_t)
-    ridge_w[t, ] <- ridge$w
-    
-    # 5. Kalman
-    kalman_pred[t] <- sum(kalman$w * x_t)
-    kalman <- update_kalman_ensemble(kalman, x_t, y_t)
-    kalman_w[t, ] <- kalman$w
-    
-    # 6. Rolling window regression
-    roll_pred[t] <- sum(roll$w * x_t)
-    roll <- update_rolling_reg_ensemble(roll, x_t, y_t)
-    roll_w[t, ] <- roll$w
-    
-    eqw_pred[t] = mean(x_t)
-    
+    for(horizon_num in 1:h){
+      x_t <- components_reordered[horizon_num, ]
+      y_t <- data_future[horizon_num]
+      true_values = c(true_values, y_t)
+      t = fcast_date_idx
+      
+      # 0. Grab epifforma stuff
+      epifforma_pred[t, horizon_num] <- fcst_df[horizon_num,2]
+      epifforma_w[t, , horizon_num] <- pred_wts[horizon_num,]
+      
+      # 1. EWA
+      ewa_pred[t,horizon_num] <- sum(ewa[[horizon_num]]$weights * x_t)
+      ewa[[horizon_num]] <- update_ewa_ensemble(ewa[[horizon_num]], x_t, y_t)
+      ewa_w[t, ,horizon_num] <- ewa[[horizon_num]]$weights
+      
+      # 2. RLS
+      rls_pred[t, horizon_num] <- sum(rls[[horizon_num]]$w * x_t)
+      rls[[horizon_num]] <- update_rls_ensemble(rls[[horizon_num]], x_t, y_t)
+      rls_w[t, , horizon_num] <- rls[[horizon_num]]$w
+      
+      # 3. Ridge RLS
+      ridge_pred[t, horizon_num] <- sum(ridge[[horizon_num]]$w * x_t)
+      ridge[[horizon_num]] <- update_ridge_rls_ensemble(ridge[[horizon_num]], x_t, y_t)
+      ridge_w[t, , horizon_num] <- ridge[[horizon_num]]$w
+      
+      # 5. Kalman
+      kalman_pred[t, horizon_num] <- sum(kalman[[horizon_num]]$w * x_t)
+      kalman[[horizon_num]] <- update_kalman_ensemble(kalman[[horizon_num]], x_t, y_t)
+      kalman_w[t, , horizon_num] <- kalman[[horizon_num]]$w
+      
+      # 6. Rolling window regression
+      roll_pred[t, horizon_num] <- sum(roll[[horizon_num]]$w * x_t)
+      roll[[horizon_num]] <- update_rolling_reg_ensemble(roll[[horizon_num]], x_t, y_t)
+      roll_w[t, ,horizon_num] <- roll[[horizon_num]]$w
+      
+      eqw_pred[t, horizon_num] = mean(x_t)
+    }
   }
   
   #### create the data frame and return
@@ -307,6 +323,8 @@ sim_ts <- foreach(i=1:50,
 stopCluster(cl)
 
 
+
+curr_state = "North Carolina"
 load(paste0(state_coverage_location, "/", curr_state, "weights_list.RData"))
 load(paste0(state_coverage_location, "/", curr_state, "preds_list.RData"))
 load(paste0(state_coverage_location, "/", curr_state, "true_values.RData"))
@@ -325,50 +343,42 @@ mae_over_time <- function(pred, truth) {
 
 truth <- true_values
 
-mae_list <- list()
-
+# 1. Compute cumulative / rolling-average MAE for each ensemble
+cum_mae_list <- list()
+preds_list$ewa = NULL
 for (nm in names(preds_list)) {
-  mae_list[[nm]] <- mae_over_time(preds_list[[nm]], truth)
+  pred <- preds_list[[nm]]
+  abs_err <- abs(pred - truth)
+  
+  # cumulative mean MAE up to each time t
+  cum_mae <- cumsum(abs_err) / seq_along(abs_err)
+  
+  cum_mae_list[[nm]] <- cum_mae
 }
 
-###############################################
-# PLOT 1: Truth vs several ensemble predictions
-###############################################
+# 2. Plot: cumulative MAE over time for all ensembles
+cols <- c("red", "blue", "darkgreen", "purple", "orange",
+          "brown", "gray40", "deeppink", "darkcyan", "goldenrod")
 
-plot(truth, type = "l", lwd = 2, col = "black",
-     main = paste0(curr_state, ": Truth vs Ensemble Predictions"),
-     xlab = "Time", ylab = "Value")
+# Initialize plot with first method
+methods <- names(cum_mae_list)
 
-cols <- c("red", "blue", "darkgreen", "purple", "orange", "brown", "gray40", "black")
+plot(cum_mae_list[[methods[1]]],
+     type = "l", lwd = 2, col = cols[1],
+     ylim = range(unlist(cum_mae_list)),
+     xlab = "Time",
+     ylab = "Cumulative MAE",
+     main = paste0(curr_state, ": Cumulative (Rolling Average) MAE"))
 
-i <- 1
-for (nm in names(preds_list)) {
-  lines(preds_list[[nm]], col = cols[i], lwd = 1.5)
-  i <- i + 1
-}
-
-legend("topleft",
-       legend = c("Truth", names(preds_list)),
-       col = c("black", cols[1:length(preds_list)]),
-       lwd = c(2, rep(1.5, length(preds_list))),
-       bty = "n")
-
-###############################################
-# PLOT 2: MAE over time for each ensemble
-###############################################
-
-plot(mae_list[[1]], type = "l", lwd = 2, col = cols[1],
-     ylim = range(unlist(mae_list)),
-     main = paste0(curr_state, ": MAE Over Time"),
-     xlab = "Time", ylab = "Absolute Error")
-
-i <- 1
-for (nm in names(mae_list)) {
-  lines(mae_list[[nm]], col = cols[i], lwd = 2)
-  i <- i + 1
+# Add the rest
+if (length(methods) > 1) {
+  for (i in 2:length(methods)) {
+    lines(cum_mae_list[[methods[i]]], col = cols[i], lwd = 2)
+  }
 }
 
 legend("topright",
-       legend = names(mae_list),
-       col = cols[1:length(mae_list)],
-       lwd = 2, bty = "n")
+       legend = methods,
+       col = cols[seq_along(methods)],
+       lwd = 2,
+       bty = "n")
