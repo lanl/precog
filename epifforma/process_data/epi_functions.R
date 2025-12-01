@@ -607,10 +607,10 @@ make_components <- function(info_packet, h){
   rm('dist_to_test')
   
   ## make persistence model
-  ret_mat$rw <- pmax(0,forecast(rwf(ts_smooth, drift = F), h = h)$mean)
+  ret_mat$rw <- pmax(0,forecast::forecast(rwf(ts_smooth, drift = F), h = h)$mean)
   
   ## make theta
-  ret_mat$theta <- pmax(0, forecast(thetaf(ts), h = h)$mean)
+  ret_mat$theta <- pmax(0, forecast::forecast(thetaf(ts), h = h)$mean)
   
   ## make mean 
   if(info_packet$ts_time_cadence == 'weekly'){
@@ -632,7 +632,7 @@ make_components <- function(info_packet, h){
   ret_mat$gam2mirror<- gam_wt*ret_mat$gam + (1-gam_wt)*ret_mat$mirror
   
   # ## arima 
-  ret_mat$arima <- pmax(0,forecast(auto.arima(ts_smooth),h=h)$mean)
+  ret_mat$arima <- pmax(0,forecast::forecast(auto.arima(ts_smooth),h=h)$mean)
 
   ## reformat ret_mat
   ret_mat <- subset(ret_mat, select=setdiff(names(ret_mat),"h"))
@@ -682,7 +682,7 @@ make_component_intervals <- function(info_packet, h){
     ret_mat$theta = pmax(0,2*1.96*sd(smooth_df$y))
   }else{
     preds = theta_mod$fitted
-    res = forecast(theta_mod, h = h, bootstrap = T)
+    res = forecast::forecast(theta_mod, h = h, bootstrap = T)
     res$var = pmax(0,(((res$upper - res$lower)/(1.96*2))^2) - (theta_mod$model$sigma^2))
     res$se = pmax(0,sqrt(res$var))
     preds_forecast = res$mean
@@ -699,7 +699,7 @@ make_component_intervals <- function(info_packet, h){
     ret_mat$arima = pmax(0,2*1.96*sd(smooth_df$y))
   }else{
     preds = arima_mod$fitted
-    res = forecast(arima_mod, h = h, level = 95)
+    res = forecast::forecast(arima_mod, h = h, level = 95)
     res$var = pmax(0,(((res$upper - res$lower)/(1.96*2))^2) - (arima_mod$sigma2))
     res$se = pmax(0,sqrt(res$var))
     preds_forecast = res$mean
