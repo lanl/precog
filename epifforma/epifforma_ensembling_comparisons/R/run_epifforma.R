@@ -23,6 +23,12 @@ library(doParallel)
 library(grid)
 library(forecast)
 
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(patchwork)
+
 source(here::here("epifforma","epifforma_ensembling_comparisons", "R", "smoa_helpers.R"))
 code_path = here::here("epifforma","epifforma_ensembling_comparisons", "R")
 data_path = here::here("epifforma","epifforma_ensembling_comparisons", "data")
@@ -323,8 +329,8 @@ sim_ts <- foreach(i=1:50,
 stopCluster(cl)
 
 
-
-curr_state = "North Carolina"
+state_coverage_location = paste("data/", state_log_directory, sep = "")
+curr_state = "California"
 load(paste0(state_coverage_location, "/", curr_state, "weights_list.RData"))
 load(paste0(state_coverage_location, "/", curr_state, "preds_list.RData"))
 load(paste0(state_coverage_location, "/", curr_state, "true_values.RData"))
@@ -340,45 +346,59 @@ mae_over_time <- function(pred, truth) {
 ###############################################
 # Calculate MAE time series for all ensembles
 ###############################################
+preds_list$ewa <- NULL
+# preds_list$equal_wt <- NULL
 
-truth <- true_values
+plots <- vector("list", h)  # to store one ggplot per horizon
 
-# 1. Compute cumulative / rolling-average MAE for each ensemble
-cum_mae_list <- list()
-preds_list$ewa = NULL
-for (nm in names(preds_list)) {
-  pred <- preds_list[[nm]]
-  abs_err <- abs(pred - truth)
+for (horizon_num in 1:h) {
+  truth <- true_values[ seq(from = horizon_num, 
+                            to   = length(true_values), 
+                            by   = h) ]
   
-  # cumulative mean MAE up to each time t
-  cum_mae <- cumsum(abs_err) / seq_along(abs_err)
+  # 1. Compute cumulative / rolling-average MAE for each ensemble
+  cum_mae_list <- list()
+             # keep your original exclusion
   
-  cum_mae_list[[nm]] <- cum_mae
-}
-
-# 2. Plot: cumulative MAE over time for all ensembles
-cols <- c("red", "blue", "darkgreen", "purple", "orange",
-          "brown", "gray40", "deeppink", "darkcyan", "goldenrod")
-
-# Initialize plot with first method
-methods <- names(cum_mae_list)
-
-plot(cum_mae_list[[methods[1]]],
-     type = "l", lwd = 2, col = cols[1],
-     ylim = range(unlist(cum_mae_list)),
-     xlab = "Time",
-     ylab = "Cumulative MAE",
-     main = paste0(curr_state, ": Cumulative (Rolling Average) MAE"))
-
-# Add the rest
-if (length(methods) > 1) {
-  for (i in 2:length(methods)) {
-    lines(cum_mae_list[[methods[i]]], col = cols[i], lwd = 2)
+  for (nm in names(preds_list)) {
+    pred <- preds_list[[nm]][, horizon_num]
+    abs_err <- abs(pred - truth)
+    
+    # cumulative mean MAE up to each time t
+    cum_mae <- cumsum(abs_err) / seq_along(abs_err)
+    
+    cum_mae_list[[nm]] <- cum_mae
   }
+  
+  # 2. Turn cum_mae_list into a tidy data frame for ggplot
+  cum_mae_df <- imap_dfr(
+    cum_mae_list,
+    ~ data.frame(
+      time = seq_along(.x),
+      cum_mae = .x,
+      method = .y,
+      horizon = horizon_num
+    )
+  )
+  
+  # 3. Build the ggplot for this horizon
+  p <- ggplot(cum_mae_df, aes(x = time, y = cum_mae, color = method)) +
+    geom_line(linewidth = 1) +
+    labs(
+      x = "Time",
+      y = "Cumulative Average MAE",
+      title = paste0(curr_state, ": Cumulative (Rolling Average) MAE"),
+      subtitle = paste("Horizon", horizon_num)
+    ) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(face = "bold"),
+      legend.position = "top"
+    )
+  
+  plots[[horizon_num]] <- p
 }
 
-legend("topright",
-       legend = methods,
-       col = cols[seq_along(methods)],
-       lwd = 2,
-       bty = "n")
+# 4. Combine with patchwork in a 2x2 grid
+combined_plot <- wrap_plots(plots, ncol = 2)
+combined_plot
