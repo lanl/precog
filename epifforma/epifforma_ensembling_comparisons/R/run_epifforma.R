@@ -43,7 +43,7 @@ embed_mat_X_deriv <- data.table::fread(file=paste0(data_path,"/embed_mat/embed_m
 embed_mat_y_deriv <- data.table::fread(file=paste0(data_path,"/embed_mat/embed_mat_y_deriv.csv"))
 
 quantiles <- c(0.01, 0.025, seq(0.05, 0.95, by = 0.05), 0.975, 0.99)
-ncores <- 51
+ncores <- 11
 sim_idx <- 1
 h       <- 4
 
@@ -131,10 +131,10 @@ parfctn = function(x){
   
   for(horizon_num in 1:h){
     ewa[[horizon_num]]    <- make_ewa_ensemble(num_components, eta = 0.05)
-    rls[[horizon_num]]    <- make_rls_ensemble(num_components, lambda = 0.99, delta = 1e3)
-    ridge[[horizon_num]]  <- make_ridge_rls_ensemble(num_components, tau = 1.0, delta = 1.0)
+    rls[[horizon_num]]    <- make_rls_ensemble(num_components, lambda = 0.9, delta = 1e3)
+    ridge[[horizon_num]]  <- make_ridge_rls_ensemble(num_components, tau = 2.0, delta = 1.0)
     kalman[[horizon_num]] <- make_kalman_ensemble(num_components, Q_scale = 1e-4, R = 1.0)
-    roll[[horizon_num]]   <- make_rolling_reg_ensemble(num_components, window = 40, lambda = 0.1)
+    roll[[horizon_num]]   <- make_rolling_reg_ensemble(num_components, window = 20, lambda = 0.1)
   }
   
   # ewa    <- make_ewa_ensemble(num_components, eta = 0.05)
@@ -329,76 +329,4 @@ sim_ts <- foreach(i=1:50,
 stopCluster(cl)
 
 
-state_coverage_location = paste("data/", state_log_directory, sep = "")
-curr_state = "California"
-load(paste0(state_coverage_location, "/", curr_state, "weights_list.RData"))
-load(paste0(state_coverage_location, "/", curr_state, "preds_list.RData"))
-load(paste0(state_coverage_location, "/", curr_state, "true_values.RData"))
 
-###############################################
-# Helper: compute MAE over time
-###############################################
-
-mae_over_time <- function(pred, truth) {
-  abs(pred - truth)
-}
-
-###############################################
-# Calculate MAE time series for all ensembles
-###############################################
-preds_list$ewa <- NULL
-# preds_list$equal_wt <- NULL
-
-plots <- vector("list", h)  # to store one ggplot per horizon
-
-for (horizon_num in 1:h) {
-  truth <- true_values[ seq(from = horizon_num, 
-                            to   = length(true_values), 
-                            by   = h) ]
-  
-  # 1. Compute cumulative / rolling-average MAE for each ensemble
-  cum_mae_list <- list()
-             # keep your original exclusion
-  
-  for (nm in names(preds_list)) {
-    pred <- preds_list[[nm]][, horizon_num]
-    abs_err <- abs(pred - truth)
-    
-    # cumulative mean MAE up to each time t
-    cum_mae <- cumsum(abs_err) / seq_along(abs_err)
-    
-    cum_mae_list[[nm]] <- cum_mae
-  }
-  
-  # 2. Turn cum_mae_list into a tidy data frame for ggplot
-  cum_mae_df <- imap_dfr(
-    cum_mae_list,
-    ~ data.frame(
-      time = seq_along(.x),
-      cum_mae = .x,
-      method = .y,
-      horizon = horizon_num
-    )
-  )
-  
-  # 3. Build the ggplot for this horizon
-  p <- ggplot(cum_mae_df, aes(x = time, y = cum_mae, color = method)) +
-    geom_line(linewidth = 1) +
-    labs(
-      x = "Time",
-      y = "Cumulative Average MAE",
-      title = paste0(curr_state, ": Cumulative (Rolling Average) MAE"),
-      subtitle = paste("Horizon", horizon_num)
-    ) +
-    theme_minimal() +
-    theme(
-      plot.title = element_text(face = "bold"),
-      legend.position = "top"
-    )
-  
-  plots[[horizon_num]] <- p
-}
-
-# 4. Combine with patchwork in a 2x2 grid
-combined_plot <- wrap_plots(plots, ncol = 2)
-combined_plot
