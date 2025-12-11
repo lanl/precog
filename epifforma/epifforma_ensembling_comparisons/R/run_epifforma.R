@@ -43,7 +43,7 @@ embed_mat_X_deriv <- data.table::fread(file=paste0(data_path,"/embed_mat/embed_m
 embed_mat_y_deriv <- data.table::fread(file=paste0(data_path,"/embed_mat/embed_mat_y_deriv.csv"))
 
 quantiles <- c(0.01, 0.025, seq(0.05, 0.95, by = 0.05), 0.975, 0.99)
-ncores <- 11
+ncores <- 51
 sim_idx <- 1
 h       <- 4
 
