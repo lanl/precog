@@ -102,7 +102,7 @@ fcast_dates_to_match          <- fcast_dates_to_match[which(fcast_dates_to_match
 truth_as_of_tot_loc           <- truth_as_of_tot[truth_as_of_tot$location_name == location ,]
 
   
-state_coverage_location = paste("data/", state_log_directory, sep = "")
+state_coverage_location = paste(data_path, "/", state_log_directory, sep = "")
 curr_state = "California"
 load(paste0(state_coverage_location, "/", curr_state, "weights_list.RData"))
 load(paste0(state_coverage_location, "/", curr_state, "preds_list.RData"))
