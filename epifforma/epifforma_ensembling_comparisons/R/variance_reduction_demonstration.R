@@ -198,7 +198,7 @@ one_simulation <- function(
     rf      = mse_rf,
     glmnet  = mse_glmnet,
     equal   = mse_equal,
-    stacked = mse_stacked
+    weighted = mse_stacked
   )
 }
 
@@ -206,18 +206,6 @@ one_simulation <- function(
 ## 5. Run the full simulation
 ############################################################
 
-
-# results <- replicate(
-#   n_sims,
-#   one_simulation(
-#     n_rep        = 2000,
-#     n_orig_train = 100,
-#     n_orig_test  = 200,
-#     p            = 5,
-#     K_rep        = 5
-#   ),
-#   simplify = TRUE
-# )
 parfctn = function(n_sim){
   one_simulation(
     n_rep        = 2000,
@@ -262,20 +250,19 @@ cat("\nStandard deviation of MSEs:\n")
 print(apply(results, 2, sd))
 
 cat("\nProportion of simulations where transferred stacking beats equal-weights (MSE):\n")
-prop_better <- mean(results[, "stacked"] < results[, "equal"])
+prop_better <- mean(results[, "weighted"] < results[, "equal"])
 print(prop_better)
 
-cat("\nPaired t-test (stacked vs equal) on original test-set MSEs:\n")
-print(t.test(results[, "stacked"], results[, "equal"], paired = TRUE))
+cat("\nPaired t-test (weighted vs equal) on original test-set MSEs:\n")
+print(t.test(results[, "weighted"], results[, "equal"], paired = TRUE))
 
 ############################################################
 ## 7. Optional: visualization
 ############################################################
 
 boxplot(
-  results[, c("lm", "rf", "glmnet", "equal", "stacked")],
+  results[, c("lm", "glmnet", "equal", "rf", "weighted")],
   main = "MSE on 'real' timeseries across 200 simulations",
   ylab = "MSE", xlab = "Model",
   ylim = c(0,20)
 )
-abline(h = mean(results[, "stacked"]), lty = 2)

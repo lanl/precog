@@ -35,9 +35,12 @@ FILES = FILES[!grepl('synthetic',FILES)] ###added 1/16
 RESULTS = replicate(length(FILES),list(NULL))
 RANKS = replicate(length(FILES),list(NULL))
 RANKS_EQUAL_WT = replicate(length(FILES),list(NULL))
+FULL_WEIGHTS_LIST = NULL
 for(i in 1:length(FILES)){
 
   output_list = readRDS(paste0(savepath, FILES[i]))
+  FULL_WEIGHTS_LIST = rbind(FULL_WEIGHTS_LIST, output_list$weights)
+  
   
   ### Get Accuracy Table
   RESULTS[[i]] = data.frame(output_list['accuracy_table']$accuracy_table,
@@ -78,6 +81,9 @@ for(i in 1:length(FILES)){
   gc()
   print(paste0('Finished: ', i, ' of ', length(FILES)))
 }
+
+
+
 
 DISEASES = c('synthetic_training','synthetic_test',
              'us_covid_rollercoaster','global_covid_rollercoaster','us_ili_rollercoaster','dengue_rollercoaster',
