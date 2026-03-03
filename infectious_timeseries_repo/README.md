@@ -1,6 +1,7 @@
-Data Repository for "Tools for Analyzing Infectious Disease Sequence Data and Forecasting Public Health Outcomes"
+# Data Repository for "Tools for Analyzing Infectious Disease Sequence Data and Forecasting Public Health Outcomes"
 
-**Basic Information**
+### **Basic Information**
+
 This repository contains a collection infectious disease time series data obtained from a variety of publicly-available sources compiled as part of the Directed Research project entitled, "Merging Sequence Data with Epidemiological Forecasting to Predict Future Pandemics." This project began in Fiscal Year 2024 at Los Alamos National Lab under the Laboratory Directed Research and Development (LDRD) program. The project leads are:
 
 	•	Lauren Castro (PI) lcastro@lanl.gov;
@@ -11,19 +12,24 @@ The organized and cleaned data are provided in /_Organized_Lists. These lists ar
 
 Within each data source folder, we provide information about how we accessed the data and code we used to clean the data from each source. To facilitate modeling, observed weekly data were assigned to the nearest regular week or recast to follow an exactly weekly cycle (with zero-count weeks added as appropriate). This did not always align exactly with the actual reporting dates for the individual data streams. In general, see each data source’s README for information about data cleaning choices made and how the original reporting dates were recorded. Users wanting a more careful look at the reporting dates in the original data (for example, to harmonize these data with other data streams or to do detailed epidemiological studies) should dig into the data cleaning code or return to the original data source rather than use our processed data. The goal of this repository is to provide a database of infectious disease time series data to use for training and validating predictive models, and our data processing choices reflect this. 
 
-**How to Cite this Repository**
+### **How to Cite this Repository**
+
 All data in this repository are publicly available, but individual data sources may have additional limitations regarding citation, acceptable use cases/licensing, etc. We have done our best to summarize the information provided for each data stream in the individual data stream READMEs. Users wanting to use these data for commercial purposes should consult the links provided for the original data to verify acceptable use cases. Users of this repository should also cite this GitHub repository. 
 
-**Contact**
+### **Contact**
+
 This repository was compiled by researchers at Los Alamos National Laboratory to facilitate the development of time series forecast models. Questions may be directed to Lauren J Beesley at lvandervort@lanl.gov. 
 
-**Software Release**
+### **Software Release**
+
 This software has been approved for open source release and has been assigned O4726.
 
-**Copyright**
+### **Copyright**
+
 © 2024. Triad National Security, LLC. All rights reserved. This program was produced under U.S. Government contract 89233218CNA000001 for Los Alamos National Laboratory (LANL), which is operated by Triad National Security, LLC for the U.S. Department of Energy/National Nuclear Security Administration. All rights in the program are reserved by Triad National Security, LLC, and the U.S. Department of Energy/National Nuclear Security Administration. The Government is granted for itself and others acting on its behalf a nonexclusive, paid-up, irrevocable worldwide license in this material to reproduce, prepare derivative works, distribute copies to the public, perform publicly and display publicly, and to permit others to do so.
 
-**License**
+### **License**
+
 See individual data stream READMEs for dataset-specific licenses. 
 
 This code repository is distributed under the BSD-3 License:
