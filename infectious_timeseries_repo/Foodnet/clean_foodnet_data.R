@@ -1,0 +1,101 @@
+##########################
+##########################
+### Clean FoodNet Data ###
+##########################
+##########################
+
+
+library(MMWRweek)
+library(lubridate)
+library(ggplot2)
+library(plyr)
+library(lubridate)
+theme_set(theme_bw())
+
+
+datapath <- "./raw_data/" 
+savepath <- "../_Organized_Lists/"
+
+####################
+### Read in Data ###
+####################
+
+df <- readxl::read_excel(paste0(datapath,"FoodNet_TimeSeries_Data.xls"), sheet = 'Counts')
+
+VALS = names(df)
+VALS = VALS[!(VALS %in% c('year','moy','month'))]
+A = do.call('rbind',strsplit(VALS, '_'))
+
+df_long = data.frame(year = rep(df$year, length(A[,1])),
+                     moy = rep(df$moy, length(A[,1])),
+                     month = rep(df$month, length(A[,1])), 
+                     loc = rep(A[,1], each = length(unlist(df[,1]))),
+                     vector = rep(A[,2], each = length(unlist(df[,1]))),
+                     value = unlist(df[,VALS]))
+df_long$vector_long = NA
+df_long$vector_long[df_long$vector == 'campy'] = 'Campylobacteriosis'
+df_long$vector_long[df_long$vector == 'crypto'] = 'Cryptosporidiosis'
+df_long$vector_long[df_long$vector == 'cyclo'] = 'Cyclosporiasis'
+df_long$vector_long[df_long$vector == 'listeria'] = 'Listeriosis'
+df_long$vector_long[df_long$vector == 'salmon'] = 'Salmonellosis'
+df_long$vector_long[df_long$vector == 'shigella'] = 'Shigellosis'
+df_long$vector_long[df_long$vector == 'ecoli'] = 'Ecoli_Infection'
+df_long$vector_long[df_long$vector == 'vibrio'] = 'Vibriosis'
+df_long$vector_long[df_long$vector == 'yersin'] = 'Yersinia_Enterocolitica_Infection'
+
+df_long$value[df_long$value == '.'] = 0
+df_long$value = as.numeric(df_long$value)
+df_long$month_index = 12*as.numeric(df_long$year)+as.numeric(df_long$moy)
+
+
+##########################
+### Subset Time Series ###
+##########################
+
+library(dplyr)
+### Require at least 50 observations
+df_long = df_long %>% dplyr::group_by(loc, vector_long) %>% dplyr::mutate(num_nonzero = sum(value[!is.na(value) & value>0]))
+df_sub = df_long[df_long$num_nonzero > 50 ,]
+
+
+
+######################
+### Organize Lists ###
+######################
+
+DISEASES = unique(df_sub$vector_long)
+
+for(d in 1:length(DISEASES)){
+  SUB = df_sub[df_sub$vector_long == DISEASES[d],]
+  
+  data_list = list()
+  num = 0
+  LOCATIONS = unique(SUB$loc)
+  for(l in 1:length(LOCATIONS)){
+    SUBSUB = SUB[SUB$loc == LOCATIONS[l],]
+    SUBSUB = SUBSUB[order(SUBSUB$month),]
+    SUBSUB$value[is.na(SUBSUB$value)]=0
+    inds_to_include = min(which(SUBSUB$value>0)):max(which(SUBSUB$value>0))
+    if(nrow(SUBSUB)>= 10 & !is.na(var(SUBSUB$value, na.rm=T)) & var(SUBSUB$value, na.rm=T) > 0){
+      num <- num + 1
+      templist <- list(ts = pmax(0,SUBSUB$value)[inds_to_include],
+                       ts_dates = paste0(SUBSUB$year, '_', SUBSUB$moy)[inds_to_include],
+                       ts_dates_actual = paste0(SUBSUB$year, '_', SUBSUB$moy)[inds_to_include],
+                       ts_disease = DISEASES[d],
+                       ts_measurement_type = "incidence",
+                       ts_geography = trimws(LOCATIONS[l]),
+                       ts_first_time = min(SUBSUB$year[inds_to_include], na.rm=T),
+                       ts_last_time = max(SUBSUB$year[inds_to_include], na.rm=T),
+                       ts_time_cadence = "monthly",
+                       ts_scale = "counts")
+      data_list[[num]] <- templist
+    }
+  }
+  saveRDS(data_list, paste0(savepath,DISEASES[d],"_foodnet.RDS"))
+  
+}
+
+
+
+
+

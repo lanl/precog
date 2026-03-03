@@ -1,0 +1,172 @@
+#########################
+#########################
+### Clean US HHS Data ###
+#########################
+#########################
+
+library(MMWRweek)
+library(lubridate)
+library(ggplot2)
+library(plyr)
+theme_set(theme_bw())
+
+
+datapath <- "./raw_data/"
+savepath <- "../_Organized_Lists/"
+
+### Code from the Reich Lab here:https://github.com/reichlab/flusion/blob/main/data-raw/influenza-hhs/download-hhs.R
+#remotes::install_github('reichlab/covidData')
+library(covidData)
+library(dplyr)
+
+hosps <- covidData::load_data(
+  spatial_resolution = c("state", "national"),
+  temporal_resolution = "daily",
+  measure = "flu hospitalizations")
+hosps$date_orig = hosps$date
+hosps$date <- hosps$date + 1 #date modification due to reporting??? This was in the reichlab code
+
+# Store raw data pulled from covidData
+# write.csv(hosps, paste0(datapath, 'pulled_ushhs_data.csv'), quote = F, row.names = F)
+
+
+### Map locations
+loc = read.csv(paste0(datapath, 'locations.csv'), header = T)
+hosps = merge(hosps, data.frame(location = as.character(loc$location), location_name = loc$location_name), by = 'location')
+
+hosps_wk <- hosps %>%
+  dplyr::mutate(
+    sat_date = lubridate::ceiling_date(
+      lubridate::ymd(date), unit = "week") - 1
+  ) %>%
+  dplyr::group_by(location_name) %>%
+  # if the last week is not complete, drop all observations from the
+  # previous Saturday in that week
+  dplyr::filter(
+    if (max(date) < max(sat_date)) date <= max(sat_date) - 7 else TRUE
+  ) %>%
+  dplyr::ungroup() %>%
+  dplyr::select(-date) %>%
+  dplyr::rename(date = sat_date) %>%
+  dplyr::group_by(location_name, date) %>%
+  dplyr::summarize(inc = sum(inc, na.rm = FALSE), .groups = "drop")
+
+
+
+
+######################
+### Organize Lists ###
+######################
+
+
+create_weekly_dataframe <- function(x, y) {
+  seq_dates <- seq(x, y + 7, by = "week")
+  subset(data.frame(date = seq_dates), date <= y)
+}
+
+create_daily_dataframe <- function(x, y) {
+  seq_dates <- seq(x, y + 1, by = "day")
+  subset(data.frame(date = seq_dates), date <= y)
+}
+
+
+
+unqstate <- setdiff(sort(unique(hosps_wk$location_name)),"X")
+
+hosp_wk_training_data <- list()
+cnt <- 0
+for(i in 1:length(unqstate)){
+  print(i)
+  tempdf <- subset(hosps_wk, location_name == unqstate[i] & !is.na(inc))
+  tempdf <- tempdf[order(tempdf$date),]
+  
+  temp = create_weekly_dataframe(x=min(tempdf$date,na.rm=T), y=max(tempdf$date, na.rm=T))
+  tempdf$date_char = as.character(tempdf$date)
+  tempdf$date_char_orig = tempdf$date_char
+  tempdf$date_char = apply(cbind(tempdf$date_char), 1, FUN = function(x, temp){temp[which.min(abs(as.numeric(difftime(as.Date(temp), as.Date(x), units = 'days'))))]}, temp = as.character(temp$date))
+  
+  tempdf = merge(tempdf, data.frame(date_char = as.character(unique(temp$date)), week_index = c(1:length(unique(temp$date)))),
+                 by = 'date_char', all.x = T, all.y = T)
+  tempdf = tempdf[order(tempdf$week_index),]
+  
+  
+  ts = rep(0,max(tempdf$week_index) - min(tempdf$week_index) + 1)
+  ts[tempdf$week_index - min(tempdf$week_index)+1] = tempdf$inc
+  ts[is.na(ts)]=0
+  
+  ts_dates = rep(NA,max(tempdf$week_index) - min(tempdf$week_index) + 1)
+  ts_dates[tempdf$week_index - min(tempdf$week_index)+1] = as.character(tempdf$date_char)
+  
+  
+  if(nrow(tempdf)>= 10  & var(tempdf$inc, na.rm=T) > 0){
+    cnt <- cnt + 1
+    templist <- list(ts = ts,
+                     ts_dates = ts_dates,
+                     ts_dates_actual = ts_dates, 
+                     ts_disease = "influenza-like illness",
+                     ts_measurement_type = "hospitalizations",
+                     ts_geography = tempdf$location_name[1],
+                     ts_first_time = min(tempdf$date),
+                     ts_last_time = max(tempdf$date),
+                     ts_time_cadence = "weekly",
+                     ts_scale = "counts")
+    
+    hosp_wk_training_data[[cnt]] <- templist
+  }
+}
+
+
+hosp_daily_training_data <- list()
+cnt <- 0
+for(i in 1:length(unqstate)){
+  print(i)
+  tempdf <- subset(hosps, location_name == unqstate[i] & !is.na(inc))
+  tempdf <- tempdf[order(tempdf$date),]
+  
+  temp = create_daily_dataframe(x=min(tempdf$date,na.rm=T), y=max(tempdf$date, na.rm=T))
+  tempdf$date_char = as.character(tempdf$date)
+  tempdf$date_char_orig = tempdf$date_char
+  tempdf$date_char = apply(cbind(tempdf$date_char), 1, FUN = function(x, temp){temp[which.min(abs(as.numeric(difftime(as.Date(temp), as.Date(x), units = 'days'))))]}, temp = as.character(temp$date))
+  
+  tempdf = merge(tempdf, data.frame(date_char = as.character(unique(temp$date)), week_index = c(1:length(unique(temp$date)))),
+                 by = 'date_char', all.x = T, all.y = T)
+  tempdf = tempdf[order(tempdf$week_index),]
+  
+  ts = rep(0,max(tempdf$week_index) - min(tempdf$week_index) + 1)
+  ts[tempdf$week_index - min(tempdf$week_index)+1] = tempdf$inc
+  ts[is.na(ts)]=0
+  
+  ts_dates = rep(NA,max(tempdf$week_index) - min(tempdf$week_index) + 1)
+  ts_dates[tempdf$week_index - min(tempdf$week_index)+1] = as.character(tempdf$date_char)
+  
+  ts_dates_orig = rep(NA,max(tempdf$week_index) - min(tempdf$week_index) + 1)
+  ts_dates_orig[tempdf$week_index - min(tempdf$week_index)+1] = as.character(tempdf$date_orig)
+  
+  if(nrow(tempdf)>= 10  & var(tempdf$inc, na.rm=T) > 0){
+    cnt <- cnt + 1
+    templist <- list(ts = ts,
+                     ts_dates = ts_dates,
+                     ts_dates_actual = ts_dates_orig, 
+                     ts_disease = "influenza-like illness",
+                     ts_measurement_type = "hospitalizations",
+                     ts_geography = tempdf$location_name[1],
+                     ts_first_time = min(tempdf$date),
+                     ts_last_time = max(tempdf$date),
+                     ts_time_cadence = "daily",
+                     ts_scale = "counts")
+    
+    hosp_daily_training_data[[cnt]] <- templist
+  }
+}
+
+
+
+## concatenate all the lists
+us_flu_training_data <- c(hosp_wk_training_data,
+                          hosp_daily_training_data)
+
+## save the us ili training data
+saveRDS(us_flu_training_data, paste0(savepath,"Influenza_ushhs.RDS"))
+
+
+
