@@ -1,0 +1,5 @@
+load("/Users/dosthus/Documents/DR24_PreCog/projects/four_quadrants/quadrants_complete_2-11-26/trained_models_subsets/cfg_real_2500.rds")
+cfg_real_2500
+ddd <- loadRDS("/Users/dosthus/Documents/DR24_PreCog/projects/four_quadrants/quadrants_complete_2-11-26/trained_models_subsets/cfg_real_2500.rds")
+ddd <- readRDS("/Users/dosthus/Documents/DR24_PreCog/projects/four_quadrants/quadrants_complete_2-11-26/trained_models_subsets/cfg_real_2500.rds")
+ddd

@@ -213,10 +213,9 @@ p0 = cowplot::plot_grid(p2,p1,ncol = 2, nrow = 1)
 p00 = cowplot::plot_grid(legend,p0,ncol = 1, nrow = 2, rel_heights = c(0.25,2))
 p00
 
-png(file = paste0(my_path,'/figure3.png'),
-    width = 7, height = 4, units = "in",  # physical size
-    res = 600,                             # 300–600 (or 1200) for print
-    type = "cairo", antialias = "subpixel")
+scale = 2
+pdf(file = paste0(my_path,'/figure3.pdf'),
+    width = 7*scale, height = 4*scale)
 p00
 dev.off()
 
@@ -264,7 +263,7 @@ p1 = ggplot(RANKS_STACKED[RANKS_STACKED$type == 'MAE',])+
   theme(legend.position = 'top')+
   scale_color_discrete('Model')
 
-# pdf(file = paste0(my_path,'/supp_rank_densities.pdf'), width = 8, height = 5)
+pdf(file = paste0(my_path,'/supp_rank_densities.pdf'), width = 8, height = 5)
 p1
-# dev.off()
+dev.off()
 

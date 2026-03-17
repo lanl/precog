@@ -19,6 +19,7 @@ library(dplyr)
 library(this.path)
 library(patchwork)
 library(gridExtra)
+library(latex2exp)
 setwd(paste0(this.path::here(),"/../"))
 theme_set(theme_classic())
 

@@ -9,6 +9,7 @@ library(GGally)
 library(viridis)
 library(ggrepel)
 library(gridExtra)
+library(cowplot)
 theme_set(theme_classic())
 
 library(this.path)
@@ -205,11 +206,10 @@ combined_plot <- plot_grid(
 # Save using ggsave
 scale = 2.2
 ggsave(
-  filename = paste0(my_path, "/figure1.png"),
+  filename = paste0(my_path, "/figure1.pdf"),
   plot = combined_plot,
   width = 7*scale,
   height = 3*scale,
   units = "in",
-  dpi = 600,
-  type = "cairo"
+  dpi = 600
 )

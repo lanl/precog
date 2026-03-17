@@ -162,13 +162,12 @@ boxplot_figure = boxplot_figure +  scale_fill_discrete(type = c('#A3D5D3', '#ECD
   ylab("Relative Error Estimate") + xlab("Model")
 
 ggsave(
-  filename = "figure2.png",
+  filename = "figure2.pdf",
   plot = boxplot_figure,
   path = my_path,
   width = 7, height = 4, units = "in",
   dpi = 600,
   device = "png",
-  type = "cairo",
   antialias = "subpixel"
 )
 
