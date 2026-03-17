@@ -1,0 +1,157 @@
+# Leveraging Synthetic and Genetic Data to Improve Epidemic Forecasting  
+**Osthus et al.**
+
+## Overview
+This repository contains a series of R scripts in `/code` used to run the full analysis pipeline.  
+
+Scripts follow the naming convention `(number)_...` and should be run in numeric order.
+
+Below is a description of each script, including inputs and outputs.
+
+---
+
+## (0)_make_train_and_test_data.R
+**Description**
+- Formats the training and testing data
+
+**Inputs**
+- `~/data_raw/mutantigen/` (all files)
+- `~/data_raw/real_respiratory_data_complete.RDS`
+- `~/data_raw/dfreal_var_attr.RDS`
+
+**Outputs**
+- `~/data_clean/train_syn_tc.RDS`
+- `~/data_clean/train_syn_vac.RDS`
+- `~/data_clean/train_real.RDS`
+- `~/data_clean/test_covid.RDS`
+
+---
+
+## (1)_train_model.R
+**Description**
+- Trains transformer models for:
+  - `M(r,.)`
+  - `M(st,.)`
+  - `M(sv,.)`
+  - `M(a,.)`
+- ⚠️ This script takes many hours to run
+
+**Inputs**
+- `~/data_clean/train_syn_tc.RDS`
+- `~/data_clean/train_syn_vac.RDS`
+- `~/data_clean/train_real.RDS`
+
+**Outputs**
+- All files in `~/trained_models/`
+
+---
+
+## (2)_forecast_model.R
+**Description**
+- Uses trained models from `(1)_train_model.R` to generate forecasts on the COVID test set
+
+**Inputs**
+- `~/data_clean/test_covid.RDS`
+- `~/trained_models/` (all files)
+
+**Outputs**
+- `~/output/forecasts.csv`
+
+---
+
+## (3)_make_results_and_figs.R
+**Description**
+- Generates most figures in the paper
+
+**Inputs**
+- `~/data_clean/test_covid.RDS`
+- `~/output/forecasts.csv`
+- All config files in `~/output/`
+
+**Outputs**
+- Most `.eps` files in `~/figs/`
+
+---
+
+## (4)_perform_by_ts_trends.R
+**Description**
+- Produces analysis for Figure 16
+
+**Inputs**
+- `~/data_clean/test_covid.RDS`
+- `~/output/forecasts.csv`
+- `~/data_raw/ts_phases/` (all files)
+
+**Outputs**
+- `~/figs/phase_of_outbreak.eps`
+
+---
+
+## (5)_umap_analysis.R
+**Description**
+- Performs UMAP analysis and builds a classifier (Figure 13)
+
+**Inputs**
+- `~/trained_models/cfg_all.rds`
+- `~/data_clean/train_real.RDS`
+- `~/data_clean/train_syn_tc.RDS`
+- `~/data_clean/test_covid.RDS`
+
+**Outputs**
+- `~/figs/prob_syn_tc_by_data_types.eps`
+- `~/figs/prob_syn_tc_allstates.eps`
+
+---
+
+## (6)_show_mutantigen_stochasticity.R
+**Description**
+- Generates analysis for Figure S1
+
+**Inputs**
+- Selected files in `~/data_raw/mutantigen/out_XX.timeseries`
+
+**Outputs**
+- `~/figs/mutantigen_stochasticity.eps`
+
+---
+
+## (7a)_train_models_with_training_subsets.R
+**Description**
+- Trains models on subsets of training data (Figures 11 & 12)
+- ⚠️ This script takes many hours to run
+
+**Inputs**
+- `~/data_clean/train_syn_tc.RDS`
+- `~/data_clean/train_syn_vac.RDS`
+- `~/data_clean/train_real.RDS`
+
+**Outputs**
+- All files in `~/trained_models_subsets/`
+
+---
+
+## (7b)_forecast_model_with_training_subsets.R
+**Description**
+- Generates forecasts for subset-trained models (Figures 11 & 12)
+- ⚠️ This script takes over an hour to run
+
+**Inputs**
+- `~/data_clean/test_covid.RDS`
+- All files in `~/trained_models_subsets/`
+
+**Outputs**
+- `~/output/forecasts_model_subsets.csv`
+
+---
+
+## (7c)_make_results_and_figs_training_subsets.R
+**Description**
+- Produces analysis for Figures 11 and 12
+
+**Inputs**
+- `~/data_clean/test_covid.RDS`
+- `~/output/forecasts_model_subsets.csv`
+
+**Outputs**
+- `~/figs/training_subsets_paired_differences.eps`
+- `~/figs/training_subsets_metrics.eps`
