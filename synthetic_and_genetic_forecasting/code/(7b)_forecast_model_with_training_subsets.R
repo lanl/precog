@@ -22,9 +22,9 @@ suppressPackageStartupMessages({
 # ---------------------------
 # define paths
 # ---------------------------
-datapath <- paste0(here::here("synthetic_and_genetic_forecasting", "data_clean"), "/") #"/Users/dosthus/Documents/DR24_PreCog/projects/four_quadrants/quadrants_complete_2-11-26/data_clean/"
-modelpath <- paste0(here::here("synthetic_and_genetic_forecasting", "trained_models_subsets"), "/") #"/Users/dosthus/Documents/DR24_PreCog/projects/four_quadrants/quadrants_complete_2-11-26/trained_models_subsets/"
-savepath <- paste0(here::here("synthetic_and_genetic_forecasting", "output"), "/") #"/Users/dosthus/Documents/DR24_PreCog/projects/four_quadrants/quadrants_complete_2-11-26/output/"
+datapath <- paste0(here::here("synthetic_and_genetic_forecasting", "data_clean"), "/") 
+modelpath <- paste0(here::here("synthetic_and_genetic_forecasting", "trained_models_subsets"), "/") 
+savepath <- paste0(here::here("synthetic_and_genetic_forecasting", "output"), "/") 
 
 # ---------------------------
 # Read in test data
@@ -1038,11 +1038,18 @@ keep_cols <- intersect(keep_cols, names(fcst_output))
 
 fcst_output_q <- fcst_output[, ..keep_cols]
 
-dir.create(savepath, recursive = TRUE, showWarnings = FALSE)
-fwrite(
-  fcst_output_q,
-  file = file.path(savepath, "forecasts_model_subsets.csv"),
-  row.names = FALSE
-)
+## get model name
+fcst_output_q$just_model <- sub("_[0-9]+$", "", fcst_output_q$train_mod)
 
-message("Done: ", file.path(savepath, "forecasts_model_subsets.csv"))
+## save these by just_model
+dir.create(savepath, recursive = TRUE, showWarnings = FALSE)
+
+unq_just_model <- unique(fcst_output_q$just_model)
+for(i in 1:length(unq_just_model)){
+  fwrite(
+    subset(fcst_output_q, just_model == unq_just_model[i], select = setdiff(names(fcst_output_q),c("just_model",grep("var_",names(fcst_output_q), value=T)))),
+    file = paste0(savepath,"forecasts_model_subsets_",unq_just_model[i],".csv"),
+    row.names = FALSE)
+}
+
+

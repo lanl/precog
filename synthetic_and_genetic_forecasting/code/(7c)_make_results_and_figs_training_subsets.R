@@ -28,8 +28,12 @@ modelpath <- paste0(here::here("synthetic_and_genetic_forecasting", "trained_mod
 test_covid <- readRDS(paste0(datapath,"test_covid.RDS"))
 
 ## read in forecasts
-preds <- fread(file = paste0(fcstpath,"forecasts_model_subsets.csv"))
-
+lf <- list.files(fcstpath, pattern="_subsets_")
+preds <- NULL
+for(i in 1:length(lf)){
+  preds <- rbind(preds,
+                 fread(paste0(fcstpath,lf[i])))
+}
 
 # Compute the max cases per series_id
 max_cases_df <- data.table(rbindlist(lapply(test_covid, function(x){data.frame(series_id = x$series_id[1], max_cases = max(x$cases))})))
