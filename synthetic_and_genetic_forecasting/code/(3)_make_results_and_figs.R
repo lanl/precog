@@ -19,10 +19,10 @@ suppressPackageStartupMessages({
 theme_set(theme_bw())
 
 ## define paths
-fcstpath <- paste0(here::here("synthetic_and_genetic_forecasting", "output"), "/")  #"/Users/dosthus/Documents/DR24_PreCog/projects/four_quadrants/quadrants_complete_2-11-26/output/"
-figpath <- paste0(here::here("synthetic_and_genetic_forecasting", "figs"), "/")  #"/Users/dosthus/Documents/DR24_PreCog/projects/four_quadrants/quadrants_complete_2-11-26/figs/"
-datapath <- paste0(here::here("synthetic_and_genetic_forecasting", "data_clean"), "/") # "/Users/dosthus/Documents/DR24_PreCog/projects/four_quadrants/quadrants_complete_2-11-26/data_clean/"
-modelpath <- paste0(here::here("synthetic_and_genetic_forecasting", "trained_models"), "/")  #"/Users/dosthus/Documents/DR24_PreCog/projects/four_quadrants/quadrants_complete_2-11-26/trained_models/"
+modelpath <- paste0(here::here("synthetic_and_genetic_forecasting", "trained_models"), "/") 
+figpath <- paste0(here::here("synthetic_and_genetic_forecasting", "figs"), "/")  
+fcstpath <- paste0(here::here("synthetic_and_genetic_forecasting", "output"), "/") 
+datapath <- paste0(here::here("synthetic_and_genetic_forecasting", "data_clean"), "/")
 
 ## Read in test data
 test_covid <- readRDS(paste0(datapath,"test_covid.RDS"))
@@ -94,37 +94,37 @@ p1 <- qplot(date, cases, data = df_covid_melt, geom="line")+
   theme(plot.title = element_text(hjust = 0.5))
 
 p2 <- ggplot(data = df_covid_melt)+
-       geom_line(aes(x = date, y = value/cases, group = variant, color = variant))+
-       facet_wrap(~state, scale = "free", ncol = 1)+
-       theme(legend.position = "bottom")+
-       scale_color_manual(values = qualitative_hcl(12, palette = "Dark 3"))+
-       guides(color = guide_legend(title = NULL, override.aes = list(linewidth = 2), nrow = 1, byrow = TRUE))+
-       ylab("")+
-       xlab("")+
-       ggtitle("Variant Proportions")+
-       theme(plot.title = element_text(hjust = 0.5))
+  geom_line(aes(x = date, y = value/cases, group = variant, color = variant))+
+  facet_wrap(~state, scale = "free", ncol = 1)+
+  theme(legend.position = "bottom")+
+  scale_color_manual(values = qualitative_hcl(12, palette = "Dark 3"))+
+  guides(color = guide_legend(title = NULL, override.aes = list(linewidth = 2), nrow = 1, byrow = TRUE))+
+  ylab("")+
+  xlab("")+
+  ggtitle("Variant Proportions")+
+  theme(plot.title = element_text(hjust = 0.5))
 
 p3 <- ggplot(data = df_covid_melt)+
-        geom_line(aes(x = date, y = value, group = variant, color = variant), show.legend = F)+
-        facet_wrap(~state, scale = "free", ncol = 1)+
-        scale_y_sqrt(
-          labels = function(x) {
-            ifelse(abs(x) >= 1000,
-                   paste0(number(x / 1000, accuracy = 1), "k"),
-                   number(x))
-          }
-        )+
-        theme(legend.position = "right")+
-        scale_color_manual(values = qualitative_hcl(12, palette = "Dark 3"))+
-        guides(color = guide_legend(override.aes = list(linewidth = 2), ncol = 1, byrow = TRUE))+
-        ggtitle("Variant Attributable Cases")+
-        ylab("")+
-        xlab("")+
-        theme(plot.title = element_text(hjust = 0.5))
+  geom_line(aes(x = date, y = value, group = variant, color = variant), show.legend = F)+
+  facet_wrap(~state, scale = "free", ncol = 1)+
+  scale_y_sqrt(
+    labels = function(x) {
+      ifelse(abs(x) >= 1000,
+             paste0(number(x / 1000, accuracy = 1), "k"),
+             number(x))
+    }
+  )+
+  theme(legend.position = "right")+
+  scale_color_manual(values = qualitative_hcl(12, palette = "Dark 3"))+
+  guides(color = guide_legend(override.aes = list(linewidth = 2), ncol = 1, byrow = TRUE))+
+  ggtitle("Variant Attributable Cases")+
+  ylab("")+
+  xlab("")+
+  theme(plot.title = element_text(hjust = 0.5))
 
 setEPS() 
 postscript(paste0(figpath,"example_data.eps"),width = 11, height = 5)
-  (p1 | p2 | p3) +
+(p1 | p2 | p3) +
   plot_annotation(tag_levels = "a", tag_prefix = "(", tag_suffix = ")")
 dev.off()
 
@@ -494,7 +494,7 @@ df_overall <- subset(df_overall, model != "M(0)")
 ## plot it
 setEPS() 
 postscript(paste0(figpath,"bootstrap_comparison.eps"),width = 11, height = 5)
-  (ggplot(bs_comp, aes(x = type, y = rmae, fill = model)) +
+(ggplot(bs_comp, aes(x = type, y = rmae, fill = model)) +
     geom_boxplot(width = 0.8, show.legend=F, color = I("black")) +
     facet_grid(. ~ model, switch = "x", space = "free_x") +
     labs(x = NULL, fill = NULL) +
@@ -506,19 +506,19 @@ postscript(paste0(figpath,"bootstrap_comparison.eps"),width = 11, height = 5)
     geom_hline(aes(yintercept = 1), linetype = I(2))+
     geom_hline(aes(yintercept = rmae), data = df_overall, linetype = I(3), size=I(.5), color =I("white"))+
     scale_fill_manual(values = MODEL_COLORS, drop = FALSE)) /
-    
+  
   (ggplot(bs_comp, aes(x = type, y = rwis, fill = model)) +
-    geom_boxplot(width = 0.8, show.legend=F) +
-    facet_grid(. ~ model, switch = "x", space = "free_x") +
-    labs(x = NULL, fill = NULL) +
-    theme(
-      strip.placement = "outside",
-      strip.background = element_blank()
-    )+
-    ylab("rWIS")+
-    geom_hline(aes(yintercept = 1), linetype = I(2))+
-    geom_hline(aes(yintercept = rwis), data = df_overall, linetype = I(3), size=I(.5), color =I("white"))+
-    scale_fill_manual(values = MODEL_COLORS, drop = FALSE))
+     geom_boxplot(width = 0.8, show.legend=F) +
+     facet_grid(. ~ model, switch = "x", space = "free_x") +
+     labs(x = NULL, fill = NULL) +
+     theme(
+       strip.placement = "outside",
+       strip.background = element_blank()
+     )+
+     ylab("rWIS")+
+     geom_hline(aes(yintercept = 1), linetype = I(2))+
+     geom_hline(aes(yintercept = rwis), data = df_overall, linetype = I(3), size=I(.5), color =I("white"))+
+     scale_fill_manual(values = MODEL_COLORS, drop = FALSE))
 dev.off()
 
 
@@ -1063,12 +1063,12 @@ plot_running_rel_mae_base_only <- function(
 # plot
 setEPS() 
 postscript(paste0(figpath,"mae_running.eps"),width = 10, height = 3.5)
-  plot_running_rel_mae_base_only(preds, line_size = 1, eval_range = "all", metric = "mae")
+plot_running_rel_mae_base_only(preds, line_size = 1, eval_range = "all", metric = "mae")
 dev.off()
 
 setEPS() 
 postscript(paste0(figpath,"mae_std_running.eps"),width = 10, height = 3.5)
-  plot_running_rel_mae_base_only(preds, line_size = 1, eval_range = "all", metric = "mae_std")
+plot_running_rel_mae_base_only(preds, line_size = 1, eval_range = "all", metric = "mae_std")
 dev.off()
 
 
@@ -1076,12 +1076,12 @@ dev.off()
 # plot
 setEPS() 
 postscript(paste0(figpath,"mae_running_comp.eps"),width = 10, height = 3.5)
-  plot_running_rel_mae_base_only(subset(preds,plos_date == 1), line_size = 1,  eval_range = "comp", metric = "mae")
+plot_running_rel_mae_base_only(subset(preds,plos_date == 1), line_size = 1,  eval_range = "comp", metric = "mae")
 dev.off()
 
 setEPS() 
 postscript(paste0(figpath,"mae_std_running_comp.eps"),width = 10, height = 3.5)
-  plot_running_rel_mae_base_only(subset(preds,plos_date == 1), line_size = 1, eval_range = "comp", metric = "mae_std")
+plot_running_rel_mae_base_only(subset(preds,plos_date == 1), line_size = 1, eval_range = "comp", metric = "mae_std")
 dev.off()
 
 
@@ -1106,38 +1106,38 @@ wis_overall <- merge(wis_overall,
 # plot
 setEPS() 
 postscript(paste0(figpath,"wis_overall.eps"),width = 7, height = 4)
-  ggplot(wis_overall, aes(x = model, y = rwis, fill = model)) +
-    geom_col(width = 0.65, color = "black", alpha = 0.95) +
-    scale_fill_manual(values = MODEL_COLORS, drop = FALSE) +
-    scale_y_continuous("Relative WIS", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.1)) +
-    labs(x = "", title = "Relative WIS by Model") +
-    geom_text(aes(x = model, y = .8*rwis, label = round(rwis,3)))+
-    theme_bw(base_size = 12) +
-    geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.6, alpha = 0.8) +
-    theme(
-      plot.title = element_text(hjust = 0.5),
-      legend.position = "none",
-      panel.grid.minor = element_blank(),
-      plot.title.position = "plot",
-      axis.text.x = element_text(angle = 0, vjust = 0, hjust = .5, size = 12))
+ggplot(wis_overall, aes(x = model, y = rwis, fill = model)) +
+  geom_col(width = 0.65, color = "black", alpha = 0.95) +
+  scale_fill_manual(values = MODEL_COLORS, drop = FALSE) +
+  scale_y_continuous("Relative WIS", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.1)) +
+  labs(x = "", title = "Relative WIS by Model") +
+  geom_text(aes(x = model, y = .8*rwis, label = round(rwis,3)))+
+  theme_bw(base_size = 12) +
+  geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.6, alpha = 0.8) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    plot.title.position = "plot",
+    axis.text.x = element_text(angle = 0, vjust = 0, hjust = .5, size = 12))
 dev.off()
 
 setEPS() 
 postscript(paste0(figpath,"wis_std_overall.eps"),width = 7, height = 4)
-  ggplot(wis_overall, aes(x = model, y = rwis_std, fill = model)) +
-    geom_col(width = 0.65, color = "black", alpha = 0.95) +
-    scale_fill_manual(values = MODEL_COLORS, drop = FALSE) +
-    scale_y_continuous("Relative WIS", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.1)) +
-    labs(x = "", title = "Relative Standardized WIS by Model") +
-    geom_text(aes(x = model, y = .8*rwis_std, label = round(rwis_std,3)))+
-    theme_bw(base_size = 12) +
-    geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.6, alpha = 0.8) +
-    theme(
-      plot.title = element_text(hjust = 0.5),
-      legend.position = "none",
-      panel.grid.minor = element_blank(),
-      plot.title.position = "plot",
-      axis.text.x = element_text(angle = 0, vjust = 0, hjust = .5, size = 12))
+ggplot(wis_overall, aes(x = model, y = rwis_std, fill = model)) +
+  geom_col(width = 0.65, color = "black", alpha = 0.95) +
+  scale_fill_manual(values = MODEL_COLORS, drop = FALSE) +
+  scale_y_continuous("Relative WIS", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.1)) +
+  labs(x = "", title = "Relative Standardized WIS by Model") +
+  geom_text(aes(x = model, y = .8*rwis_std, label = round(rwis_std,3)))+
+  theme_bw(base_size = 12) +
+  geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.6, alpha = 0.8) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    plot.title.position = "plot",
+    axis.text.x = element_text(angle = 0, vjust = 0, hjust = .5, size = 12))
 dev.off()
 
 
@@ -1145,43 +1145,43 @@ dev.off()
 # plot
 setEPS() 
 postscript(paste0(figpath,"wis_overall_errorbar.eps"),width = 7, height = 4)
-  ggplot(wis_overall, aes(x = model, y = rwis, fill = model)) +
-    geom_col(width = 0.65, color = "black") +
-    scale_fill_manual(values = MODEL_COLORS, drop = FALSE) +
-    scale_y_continuous("Relative WIS", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.1)) +
-    labs(x = "", title = "Relative WIS by Model") +
-    geom_text(aes(x = model, y = .8*rwis, label = round(rwis,3)))+
-    theme_bw(base_size = 12) +
-    geom_errorbar(aes(ymin = rwis_q0_025, ymax = rwis_q0_975),
-                  width = 0.15, linewidth = 0.6, color = "black") +
-    geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.6) +
-    theme(
-      plot.title = element_text(hjust = 0.5),
-      legend.position = "none",
-      panel.grid.minor = element_blank(),
-      plot.title.position = "plot",
-      axis.text.x = element_text(angle = 0, vjust = 0, hjust = .5, size = 12))
+ggplot(wis_overall, aes(x = model, y = rwis, fill = model)) +
+  geom_col(width = 0.65, color = "black") +
+  scale_fill_manual(values = MODEL_COLORS, drop = FALSE) +
+  scale_y_continuous("Relative WIS", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.1)) +
+  labs(x = "", title = "Relative WIS by Model") +
+  geom_text(aes(x = model, y = .8*rwis, label = round(rwis,3)))+
+  theme_bw(base_size = 12) +
+  geom_errorbar(aes(ymin = rwis_q0_025, ymax = rwis_q0_975),
+                width = 0.15, linewidth = 0.6, color = "black") +
+  geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.6) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    plot.title.position = "plot",
+    axis.text.x = element_text(angle = 0, vjust = 0, hjust = .5, size = 12))
 dev.off()
 
 
 setEPS() 
 postscript(paste0(figpath,"wis_std_overall_errorbar.eps"),width = 7, height = 4)
-  ggplot(wis_overall, aes(x = model, y = rwis_std, fill = model)) +
-    geom_col(width = 0.65, color = "black", alpha = 0.95) +
-    scale_fill_manual(values = MODEL_COLORS, drop = FALSE) +
-    scale_y_continuous("Relative WIS", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.1)) +
-    labs(x = "", title = "Relative Standardized WIS by Model") +
-    geom_text(aes(x = model, y = .8*rwis_std, label = round(rwis_std,3)))+
-    theme_bw(base_size = 12) +
-    geom_errorbar(aes(ymin = rwis_std_q0_025, ymax = rwis_std_q0_975),
-                  width = 0.15, linewidth = 0.6, color = "black") +
-    geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.6, alpha = 0.8) +
-    theme(
-      plot.title = element_text(hjust = 0.5),
-      legend.position = "none",
-      panel.grid.minor = element_blank(),
-      plot.title.position = "plot",
-      axis.text.x = element_text(angle = 0, vjust = 0, hjust = .5, size = 12))
+ggplot(wis_overall, aes(x = model, y = rwis_std, fill = model)) +
+  geom_col(width = 0.65, color = "black", alpha = 0.95) +
+  scale_fill_manual(values = MODEL_COLORS, drop = FALSE) +
+  scale_y_continuous("Relative WIS", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.1)) +
+  labs(x = "", title = "Relative Standardized WIS by Model") +
+  geom_text(aes(x = model, y = .8*rwis_std, label = round(rwis_std,3)))+
+  theme_bw(base_size = 12) +
+  geom_errorbar(aes(ymin = rwis_std_q0_025, ymax = rwis_std_q0_975),
+                width = 0.15, linewidth = 0.6, color = "black") +
+  geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.6, alpha = 0.8) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    plot.title.position = "plot",
+    axis.text.x = element_text(angle = 0, vjust = 0, hjust = .5, size = 12))
 dev.off()
 
 ## comparison dates
@@ -1197,20 +1197,20 @@ wis_overall_comp
 # plot
 setEPS() 
 postscript(paste0(figpath,"wis_overall_comp.eps"),width = 7, height = 4)
-  ggplot(subset(wis_overall_comp, model != "M(0)"), aes(x = model, y = rwis, fill = model)) +
-    geom_col(width = 0.65, color = "black", alpha = 0.95) +
-    scale_fill_manual(values = MODEL_COLORS, drop = FALSE) +
-    scale_y_continuous("Relative WIS", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.1)) +
-    labs(x = "", title = paste0("Relative WIS by Model: ", min_plos_date," - ",max_plos_date)) +
-    theme_bw(base_size = 12) +
-    geom_text(aes(x = model, y = .8*rwis, label = round(rwis,3)))+
-    geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.6, alpha = 0.8) +
-    theme(
-      plot.title = element_text(hjust = 0.5),
-      legend.position = "none",
-      panel.grid.minor = element_blank(),
-      plot.title.position = "plot",
-      axis.text.x = element_text(angle = 0, vjust = 0, hjust = .5, size = 12))
+ggplot(subset(wis_overall_comp, model != "M(0)"), aes(x = model, y = rwis, fill = model)) +
+  geom_col(width = 0.65, color = "black", alpha = 0.95) +
+  scale_fill_manual(values = MODEL_COLORS, drop = FALSE) +
+  scale_y_continuous("Relative WIS", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.1)) +
+  labs(x = "", title = paste0("Relative WIS by Model: ", min_plos_date," - ",max_plos_date)) +
+  theme_bw(base_size = 12) +
+  geom_text(aes(x = model, y = .8*rwis, label = round(rwis,3)))+
+  geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.6, alpha = 0.8) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    plot.title.position = "plot",
+    axis.text.x = element_text(angle = 0, vjust = 0, hjust = .5, size = 12))
 dev.off()
 
 setEPS() 
@@ -1234,20 +1234,20 @@ dev.off()
 
 setEPS() 
 postscript(paste0(figpath,"wis_std_overall_comp.eps"),width = 7, height = 4)
-  ggplot(subset(wis_overall_comp, model != "M(0)"), aes(x = model, y = rwis_std, fill = model)) +
-    geom_col(width = 0.65, color = "black", alpha = 0.95) +
-    scale_fill_manual(values = MODEL_COLORS, drop = FALSE) +
-    scale_y_continuous("Relative WIS", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.1)) +
-    labs(x = "", title = paste0("Relative Standardized WIS by Model: ", min_plos_date," - ",max_plos_date)) +
-    theme_bw(base_size = 12) +
-    geom_text(aes(x = model, y = .8*rwis_std, label = round(rwis_std,3)))+
-    geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.6, alpha = 0.8) +
-    theme(
-      plot.title = element_text(hjust = 0.5),
-      legend.position = "none",
-      panel.grid.minor = element_blank(),
-      plot.title.position = "plot",
-      axis.text.x = element_text(angle = 0, vjust = 0, hjust = .5, size = 12))
+ggplot(subset(wis_overall_comp, model != "M(0)"), aes(x = model, y = rwis_std, fill = model)) +
+  geom_col(width = 0.65, color = "black", alpha = 0.95) +
+  scale_fill_manual(values = MODEL_COLORS, drop = FALSE) +
+  scale_y_continuous("Relative WIS", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.1)) +
+  labs(x = "", title = paste0("Relative Standardized WIS by Model: ", min_plos_date," - ",max_plos_date)) +
+  theme_bw(base_size = 12) +
+  geom_text(aes(x = model, y = .8*rwis_std, label = round(rwis_std,3)))+
+  geom_hline(yintercept = 1, linetype = "dashed", linewidth = 0.6, alpha = 0.8) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    plot.title.position = "plot",
+    axis.text.x = element_text(angle = 0, vjust = 0, hjust = .5, size = 12))
 dev.off()
 
 
@@ -1267,19 +1267,19 @@ wis_horizon
 # plot
 setEPS() 
 postscript(paste0(figpath,"wis_horizon.eps"),width = 7, height = 4)
-  ggplot(wis_horizon, aes(x = step_ahead, y = rwis, color = model, group = model)) +
-    geom_line(size=I(2)) +
-    # geom_point(size=I(4), color=I("black"), shape=I(21), aes(fill = model)) +
-    scale_color_manual(values = MODEL_COLORS, drop = FALSE, name="") +
-    scale_fill_manual(values = MODEL_COLORS, drop = FALSE, name="") +
-    scale_y_continuous("Relative WIS", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.05)) +
-    labs(x = "Horizon", title = "Relative WIS by Model") +
-    theme_bw(base_size = 12) +
-    theme(
-      plot.title = element_text(hjust = 0.5),
-      panel.grid.minor = element_blank(),
-      plot.title.position = "plot",
-      axis.text.x = element_text(angle = 0, hjust = .5, size = 12))
+ggplot(wis_horizon, aes(x = step_ahead, y = rwis, color = model, group = model)) +
+  geom_line(size=I(2)) +
+  # geom_point(size=I(4), color=I("black"), shape=I(21), aes(fill = model)) +
+  scale_color_manual(values = MODEL_COLORS, drop = FALSE, name="") +
+  scale_fill_manual(values = MODEL_COLORS, drop = FALSE, name="") +
+  scale_y_continuous("Relative WIS", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.05)) +
+  labs(x = "Horizon", title = "Relative WIS by Model") +
+  theme_bw(base_size = 12) +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    panel.grid.minor = element_blank(),
+    plot.title.position = "plot",
+    axis.text.x = element_text(angle = 0, hjust = .5, size = 12))
 dev.off()
 
 setEPS() 
@@ -1461,24 +1461,24 @@ dev.off()
 # plot
 setEPS() 
 postscript(paste0(figpath,"wis_running.eps"),width = 10, height = 3.5)
-  plot_running_rel_mae_base_only(preds, line_size = 1, eval_range = "all", metric = "wis", wis_col = "wis")
+plot_running_rel_mae_base_only(preds, line_size = 1, eval_range = "all", metric = "wis", wis_col = "wis")
 dev.off()
 
 setEPS() 
 postscript(paste0(figpath,"wis_std_running.eps"),width = 10, height = 3.5)
-  plot_running_rel_mae_base_only(preds, line_size = 1, eval_range = "all", metric = "wis_std", wis_col = "wis_std")
+plot_running_rel_mae_base_only(preds, line_size = 1, eval_range = "all", metric = "wis_std", wis_col = "wis_std")
 dev.off()
 
 # --------------------------------------------
 # plot
 setEPS() 
 postscript(paste0(figpath,"wis_running_comp.eps"),width = 10, height = 3.5)
-  plot_running_rel_mae_base_only(subset(preds,plos_date == 1), line_size = 1, eval_range = "comp", metric = "wis")
+plot_running_rel_mae_base_only(subset(preds,plos_date == 1), line_size = 1, eval_range = "comp", metric = "wis")
 dev.off()
 
 setEPS() 
 postscript(paste0(figpath,"wis_std_running_comp.eps"),width = 10, height = 3.5)
-  plot_running_rel_mae_base_only(subset(preds,plos_date == 1), line_size = 1, eval_range = "comp", metric = "wis_std", wis_col = "wis_std")
+plot_running_rel_mae_base_only(subset(preds,plos_date == 1), line_size = 1, eval_range = "comp", metric = "wis_std", wis_col = "wis_std")
 dev.off()
 
 
@@ -1551,7 +1551,7 @@ pcomperror <- ggplot(cov_overall_melt, aes(x = model, y = value, fill = model)) 
 
 setEPS() 
 postscript(paste0(figpath,"coverage_overall_errorbar.eps"),width = 9.5, height = 4)
-  pcomperror
+pcomperror
 dev.off()
 
 
@@ -1587,7 +1587,7 @@ pcompcov <- ggplot(subset(cov_overall_melt_comp, model != "M(0)" & nom_cov == 0.
 
 setEPS() 
 postscript(paste0(figpath,"coverage_overall_comp.eps"),width = 6, height = 4.25)
-  pcompcov
+pcompcov
 dev.off()
 
 
@@ -1597,7 +1597,7 @@ dev.off()
 # plot coverage comparison
 setEPS() 
 postscript(paste0(figpath,"wis_and_coverage_overall_comp.eps"),width = 12, height = 4.25)
-  (ggplot(subset(wis_overall_comp, model != "M(0)"), aes(x = model, y = rwis, fill = model)) +
+(ggplot(subset(wis_overall_comp, model != "M(0)"), aes(x = model, y = rwis, fill = model)) +
     geom_col(width = 0.65, color = "black") +
     scale_fill_manual(values = MODEL_COLORS, drop = FALSE) +
     scale_y_continuous("Relative WIS", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.1),limits=c(0,max(1,max(wis_overall_comp$rwis)))) +
@@ -1633,7 +1633,7 @@ postscript(paste0(figpath,"coverage_horizon.eps"),width = 9.5, height = 4)
 ggplot(cov_horizon_melt, aes(x = step_ahead, y = value, color = model, group=model)) +
   facet_wrap(~nom_cov)+
   geom_line(size=I(1.5)) +
-  geom_hline(aes(yintercept = nom_cov), linetype = "dashed", linewidth = 0.6, alpha = 0.8) +
+  geom_hline(aes(yintercept = nom_cov), linetype = "dashed", linewidth = 0.6) +
   scale_color_manual(values = MODEL_COLORS, drop = FALSE, name="") +
   scale_fill_manual(values = MODEL_COLORS, drop = FALSE, name="") +
   scale_y_continuous("Coverage", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.1), limits = c(0,1)) +
@@ -1664,7 +1664,7 @@ postscript(paste0(figpath,"coverage_horizon_comp.eps"),width = 12, height = 4.5)
 ggplot(cov_horizon_melt_comp, aes(x = step_ahead, y = value, color = model, group=model)) +
   facet_wrap(~nom_cov)+
   geom_line(size=I(1.5)) +
-  geom_hline(aes(yintercept = nom_cov), linetype = "dashed", linewidth = 0.6, alpha = 0.8) +
+  geom_hline(aes(yintercept = nom_cov), linetype = "dashed", linewidth = 0.6) +
   scale_color_manual(values = MODEL_COLORS, drop = FALSE, name="") +
   scale_fill_manual(values = MODEL_COLORS, drop = FALSE, name="") +
   scale_y_continuous("Coverage", labels = number_format(accuracy = 0.01), breaks = seq(0,10,.1), limits=c(0,1)) +
@@ -2110,7 +2110,7 @@ panel_forecast_plot <- function(dat, preds, last_date, state, history_window = 0
     }
     
     if(myalpha == 0){mae_txt = ""}
-      
+    
     ggplot() +
       geom_line(
         data = hist_dt,
@@ -2522,13 +2522,13 @@ panel_forecast_plot_5wk_grid <- function(
 
 setEPS()
 postscript(paste0(figpath,"visualize_fcsts_nm.eps"),width = 10, height = 9)
-  panel_forecast_plot_5wk_grid(dat = test_covid, 
-                               preds = preds, 
-                               last_date = max(unique(preds$ref_date)[unique(preds$ref_date) < ymd("2022-12-24")]),
-                               state = "unitedstates_newmexico",
-                               sqrt_y = T,
-                               step_weeks = 6,
-                               layout_2col = T)
+panel_forecast_plot_5wk_grid(dat = test_covid, 
+                             preds = preds, 
+                             last_date = max(unique(preds$ref_date)[unique(preds$ref_date) < ymd("2022-12-24")]),
+                             state = "unitedstates_newmexico",
+                             sqrt_y = T,
+                             step_weeks = 6,
+                             layout_2col = T)
 dev.off()
 
 
