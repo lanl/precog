@@ -26,15 +26,15 @@ library(ggExtra)
 library(latex2exp)
 library(RColorBrewer)
 
-dir = "./reporting-delay-pub/"
+dir = "./precog/reporting-delay/"
 
 ##############################
 ### Read in data and clean ###
 ##############################
 
 ### GISAID data for data section figure ###
-merged_df <- read.csv(paste0(dir, "reporting_delay_data.csv")) %>%
-  select(-X) %>%
+merged_df <- fread(paste0(dir, "reporting_delay_data.csv")) %>%
+  select(-V1) %>% 
   rename(Date = "collection_date",
          Location = "Admin0") %>%
   mutate(Year = year(Date)) %>%
@@ -42,13 +42,13 @@ merged_df <- read.csv(paste0(dir, "reporting_delay_data.csv")) %>%
   mutate(Location = factor(Location, levels = c("Brazil", "Denmark", "United States", "Global")))
 
 ### metric results for all locations ###
-all_locations <- read.csv(file = paste0(dir, "all_cramer_results.csv")) %>%
+all_locations <- fread(paste0(dir, "all_cramer_results.csv")) %>%
   mutate(Date = as.Date(Date)) %>%
   filter(Date < as.Date("2023-01-01"),
          Date >= as.Date("2020-11-01")) %>%
   mutate(error_code = ifelse(is.na(error_code), "0", error_code)) %>%
   filter(error_code != "All samples are of the same variant") %>%
-  select(-c(X, error_code)) %>%
+  select(-c(V1, error_code)) %>%
   arrange(Date) %>%
   mutate(L1 = L1/2,
          L2 = L2/sqrt(2),
@@ -71,11 +71,11 @@ load(file = paste0(dir, "all_sim_results.RData")) # this is metric_comb
 
 
 ### results for emerging variant time series ###
-emerge_join <- read.csv(file = paste0(dir, "emerging_variant_ts.csv")) %>%
+emerge_join <- fread(paste0(dir, "emerging_variant_ts.csv")) %>%
   mutate(Date = as.Date(collection_date)) %>%
   rename(Location = Admin0,
          delay_days = delay_bin) %>%
-  select(-c(X, collection_date)) %>%
+  select(-c(V1, collection_date)) %>%
   left_join(metric_comb)
   
 ####################

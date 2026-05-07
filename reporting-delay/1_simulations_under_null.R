@@ -16,7 +16,7 @@ library(tidyr)
 ### load and clean data ###
 ###########################
 
-dir = "./reporting-delay-pub/"
+dir = "./precog/reporting-delay/"
 
 ### Read in data ###
 
@@ -195,9 +195,10 @@ metric_comb <- inner_join(df_mod, pvalues_mod) %>%
                           labels = c("< 0.05", "> 0.05"),
                           right = F),
          n_cat = cut(n,
-                     breaks = c(0, 10, 100, 1000, 10000, Inf),
-                     labels = c("(0, 10]", "(10, 100]", "(100, 1k]", "(1k, 10k]",
-                                "> 10k")),
+                     breaks = c(2, 10, 100, 1000, 10000, Inf),
+                     labels = c("[0, 10]", "(10, 100]", "(100, 1k]", "(1k, 10k]",
+                                "> 10k"),
+                     include.lowest = T),
          omega_cat = cut(omega, 
                          breaks = seq(0, 100, 10), 
                          labels = c("(0, 10]", "(10, 20]", "(20, 30]", "(30, 40]",

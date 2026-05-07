@@ -12,11 +12,11 @@ library(lubridate)
 library(data.table)
 library(tidyr)
 
-dir = "./reporting-delay-pub/"
+dir = "./precog/reporting-delay/"
 
 ### Read in data ###
-merged_df <- read.csv(paste0(dir, "reporting_delay_data.csv")) %>%
-  select(-X)
+merged_df <- fread(paste0(dir, "reporting_delay_data.csv")) %>%
+  select(-V1)
 
 ##################################
 ###### Functions for running ##### 
@@ -31,7 +31,7 @@ get_AGG <- function(df, collect_date_int, delay_bin){
   after_delay <- paste0("(", delay_bin, ",Inf]")
   
   collect_date_int_range <- seq(collect_date_int - 6, collect_date_int, by = "days")
-  df <- df %>% filter(collection_date_int %in% collect_date_int_range) %>%
+  df <- df %>% filter(as.Date(collection_date_int) %in% collect_date_int_range) %>%
     mutate(submission_date = collect_date_int + delay_days,
            delay_days_cat = ifelse(submission_date <= max_submission_date,
                                    during_delay,
@@ -219,7 +219,7 @@ save_cramer <- function(loc, delay_val = 30){
 ############################
 
 ### for all countries and delay periods ###
-loc_vec <- c("Global", unique(COUNTRY$Admin0))
+loc_vec <- unique(merged_df$Admin0)
 full_results <- data.frame()
 
 for(i in c(7, 14, 21, 30)){

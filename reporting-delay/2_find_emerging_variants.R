@@ -13,7 +13,7 @@ library(data.table)
 library(tidyr)
 library(dplyr) 
 
-dir = "./reporting-delay-pub/"
+dir = "./precog/reporting-delay/"
 
 ##############################
 ### Read in data and clean ###
@@ -21,7 +21,8 @@ dir = "./reporting-delay-pub/"
 
 merged_df <- read.csv(paste0(dir, "reporting_delay_data.csv")) %>%
   select(-X) %>%
-  mutate(submission_date = collection_date + delay_days) %>%
+  mutate(collection_date = as.Date(collection_date),
+         submission_date = collection_date + delay_days) %>%
   filter(counts > 0, year(collection_date) < 2023)
 
 ############################
