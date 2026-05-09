@@ -1,0 +1,90 @@
+
+# This contains all the parameters used in the model.
+# These values correspond to those used in Koelle & Rasmussen (eLife, 2015)
+# Leaving an entry out is fine, the value will remain at its default.
+
+                                            # simulation parameters
+burnin: 0                                   # days to wait before logging output 
+endDay: 3650                               # number of days to simulate (was 14600)
+
+printStep: 7
+tipSamplingStartDay: 56
+tipSamplingEndDay: 3630
+tipSamplingRate: 1
+tipSamplesPerDeme: 10000
+# tipSamplingStartDay: 2000					# day to start sampling for tree (wait a little while or will get basal multifurfaction at t = 0)
+# tipSamplingEndDay: 3450                    # day to stop sampling for tree (was 14200)
+# tipSamplingRate: 0.00125                     # store X samples per deme per day
+# tipSamplesPerDeme: 600                     # cap number of samples per deme
+tipSamplingProportional: true               # whether to sample proportional to prevalence (if multiple demes)
+treeProportion: 0.01                         # proportion of tips to use in tree reconstruction
+diversitySamplingCount: 1000                # how many samples to draw to calculate diversity, netau and serial interval
+netauWindow: 100                            # window in days to calculate Ne*tau
+repeatSim: false                             # repeat simulation until endDay is reached?
+immunityReconstruction: false               # whether to print immunity reconstruction to out.immunity
+memoryProfiling: false                      # requires -javaagent:classmexer.jar to run (not recommended)
+yearsFromMK: 1.0                            # how many years to consider present when calculating MK (I never used this)
+pcaSamples: false                           # whether to rotate and flip virus tree (I never used this)
+detailedOutput: false                       # whether to output out.hosts and out.viruses files enabling checkpointing
+restartFromCheckpoint: false                # whether to load population from out.hosts
+hostImmuneHistorySampleCount: 10000           # number of host immune histories to sample when computing mean host immunity in populations
+fitSampleCount: 100                         # number of viral fitness samples to collect
+printFitSamplesStep: 1000                   # print out viral fitness samples every X days
+
+                                            # metapopulation parameters
+demeCount: 1                                # number of demes
+demeNames: ["tropics"]                      # deme names
+initialNs: [40000000]                         # inital deme population sizes
+    
+                                            # host parameters   
+birthRate: 0.000091                         # in births per individual per day, 1/30 years = 0.000091
+deathRate: 0.000091                         # in deaths per individual per day, 1/30 years = 0.000091
+swapDemography: true                        # whether to keep overall population size constant
+
+                                            # epidemiological parameters    
+initialI: 7406                               # in individuals
+initialDeme: 1                              # index of deme where infection starts, 1..n
+initialPrR: 0.5088                            # proportion with prior immunity to initial strain
+beta: 0.5627                                  # in contacts per individual per day
+nu: 0.25                                     # in recoveries per individual per day
+betweenDemePro: 0.0000                      # relative to within-deme beta
+externalMigration: 200.0                     # as number of additional infections in force of infection
+
+                                            # transcendental parameters
+transcendental: false                        # whether to include a general recovered class
+immunityLoss: 0.0                           # in R->S per individual per day
+initialPrT: 0.0                             # initial faction in general recovered class
+
+backgroundImmunity: false                    # everyone in population starts with some immunity to current strain (not recommended)
+backgroundDistance: 0.2                    # distance of background immunity from initial strain (not recommended)
+        
+                                            # seasonal parameters           
+demeBaselines: [1.]                         # baseline of seasonality
+demeAmplitudes: [0.0]                       # amplitude of seasonality
+demeOffsets: [0.]                           # seasonal offset relative to the year
+    
+                                            # phenotype parameters  
+phenotypeSpace: "mutLoad"                   # options include: geometric, geometric3d, geometric10d, mutLoad
+lambda: 0.10                                # per genome per transmission deleterious mutation rate
+mutCost: 0.008                              # deleterious mutation fitness cost
+probLethal: 0.0                             # probability a mutation is lethal
+epsilon: 0.16                               # beneficial mutation rate (has to scale with pop size)
+epsilonSlope: 0.0                           # dependence of epsilon on mean load (not recommended)
+
+lambdaAntigenic: 0.00075                    # per transmission antigenic mutation rate
+meanAntigenicSize: 0.012				    # mean size of antigenic mutations (should be 0.02 for flu)
+antigenicGammaShape: 2.0					# if == 1.0; then draws from exponential, else from gamma with this shape param
+thresholdAntigenicSize: 0.012				# below threshold size, new mutations are ignored
+antigenicEvoStartDay: 0                     # can delay the start of antigenic mutations 
+cleanUpDistance: 0.2                        # Antigenic strains further than this distance from all current strains will be removed (no longer used)
+
+demoNoiseScaler: 0.0                       # rescale demographic noise to effective size of pop (no longer used)
+
+# Unused for my sims:
+muPhenotype: 0.0                            # in mutations per individual per day
+smithConversion: 0.1                        # multiplier to distance to give cross-immunity
+homologousImmunity: 0.95                    # immunity raised to antigenically identical virus
+initialTraitA: -6.                          # value in dimension 1 for initial host immunity
+meanStep: 0.3                               # mean mutation size
+sdStep: 0.3                                 # standard deviation of mutation size
+mut2D: false                                # whether to mutate in a full 360 degree arc

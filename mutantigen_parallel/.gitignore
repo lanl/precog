@@ -1,0 +1,14 @@
+outfiles/*
+outfiles
+logfiles/*
+SLURMOUT/*
+hs_errs/*
+time_logfiles/*
+input_files/*
+outfiles_old/*
+outfiles_archive/*
+emma_features/*
+data_post_processing/*
+*.png
+data_post_processing/count_files/*
+lhs_samples.csv

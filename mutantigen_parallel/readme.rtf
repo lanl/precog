@@ -1,0 +1,45 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1347\cocoasubrtf570
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww24160\viewh13920\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\f0\fs28 \cf0 \
+Input file:\
+\
+There is one main control file, 'parameters_load.yml', that contains all the simulation parameters. The annotation describes what each parameter is or does. \
+\
+*********\
+Running:\
+\
+From the command line, you can run the code like this:\
+\
+>java -Xmx 2G  -jar Antigen.jar\
+\
+Make sure you are in the Antigen directory though or Java will not be able to find the 'parameters_load.yml' input file.\
+\
+The -Xmx argument tells Java how much memory to allocate before you launch the program. For population sizes of 40 million and running the sims with 40 years of antigenic evolution, I was using 48G of memory.\
+\
+*************\
+Output:\
+\
+All the output is written to files beginning with 'out.':\
+\
+out.antigenicDistance	<-- contains the antigenic distance matrix for all antigenic types in the tree\
+out.antigenicSamples	<-- the number of samples belonging to each antigenic type over time which is used to reconstruct the time series of antigenic dynamics\
+out.branches	<-- info about the branches in the tree (not used by me)\
+our.mrcaSeries	<-- contains the time of the MRCA in the tree over time\
+out.mutationSeries	<-- contains the population mutation load distribution over time\
+out.simmapAntigenic	<-- the SimMap tree with annotation for the antigenic type of the lineages in the tree\
+out.simmapLoad	<-- the SimMap tree with annotation for the mutational load of the lineages in the tree\
+out.summary	<-- summary of simulation (not used by me)\
+out.timeseries	<-- time series of the population dynamics\
+out.tips	<-- info about the tips in the tree (not used by me)\
+out.trees	<-- the tree in newick format\
+out.trunkAntigenicShifts	<-- the sizes of the antigenic transitions occurring along the trunk 
+\fs24 \
+\
+\
+\
+\
+}

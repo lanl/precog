@@ -1,0 +1,9 @@
+<ivy-module version="2.0">
+    <info organisation="com.example" module="myproject" revision="1.0"/>
+
+    <dependencies>
+        <!-- Add the ParallelColt library -->
+        <dependency org="net.sourceforge.parallelcolt" name="parallelcolt" rev="0.11.4"/>
+    </dependencies>
+</ivy-module>
+
