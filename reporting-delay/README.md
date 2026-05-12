@@ -7,7 +7,7 @@ Code for Experiment in Publication “A method to quantify infectious disease va
 
 ## 🔬 Data
 
-The data used in the experiments are located on [Zenodo]() (link will be added once LA-UR is received). The file should be named `reporting_delay_data.csv` and saved to this directory. This dataset contains dates of sequence collection, location of sequence collection, sequence pangolineage, number of days between sample collection and sequence submission, and number of sequences. The SARS-CoV-2 sequences are publically accessible on [GISAID](https://weekly.chinacdc.cn/en/article/doi/10.46234/ccdcw2021.255) and part of [EPI_SET_250929ge](https://doi.org/10.55876/gis8.250929ge).
+The data used in the experiments are located on [Zenodo](https://doi.org/10.5281/zenodo.20128960). The file should be named `reporting_delay_data.csv` and saved to this directory. This dataset contains dates of sequence collection, location of sequence collection, sequence pangolineage, number of days between sample collection and sequence submission, and number of sequences. The SARS-CoV-2 sequences are publically accessible on [GISAID](https://weekly.chinacdc.cn/en/article/doi/10.46234/ccdcw2021.255) and part of [EPI_SET_250929ge](https://doi.org/10.55876/gis8.250929ge).
 
 ---
 
