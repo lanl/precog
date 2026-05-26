@@ -8,6 +8,18 @@ Accurate forecasting of infectious diseases drives modern public health interven
     
 This strategy builds upon the FFORMA model from the M4 forecasting competition to harness epidemiological dynamics through synthetic data.  We demonstrate that epiFFORMA performs better than a naive, equal-weighting strategy when forecasting outbreaks of COVID-19, Diphtheria, ILI, Dengue, Measles, Mumps, Polio, Rubella, Smallpox, and Chikungunya.  We further show that epiFFORMA on average performs better than the individual component models in the ensemble.
 
+## Updates
+
+## Updates
+
+The final published version of the associated manuscript did not include a visualization of the weighted interval score (WIS). To provide additional context for model performance evaluation, we include an updated version of Figure 3 here containing a visualization of WIS results.
+
+[View full-resolution PDF](create_visualizations/figure3_wWIS.pdf)
+
+![Figure 3 with WIS visualization](create_visualizations/figure3_wWIS.JPEG)
+
+This supplements the corresponding figure presented in the manuscript and provides a more detailed representation of ensemble forecasting performance under the WIS metric.
+
 ## System requirements
 
 The code is supported on all operating systems for which the requisite downloads (see below) are possible. The example code was tested on a MacBook Pro running macOS Sonoma 14.7.1, using R version 4.2.0.
