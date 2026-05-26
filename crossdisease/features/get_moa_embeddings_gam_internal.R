@@ -108,9 +108,16 @@ train_data <- foreach(i=1:length(FILES_CUR),
                                 }
                                 
                                 #### light smoothing and differencing and get last k 
-                                data_till_now_smoothed      <- gam(value~ s(t,k=pmax(round(nrow(data_till_now)/2))),data=data_till_now)$fitted.values
-                                data_in_future      <- tail(gam(value~ s(t,k=pmax(round(nrow(data_till_now)/2))),data=rbind(data_till_now, data.frame(value = ts_test$ts[(l+1):(l+h)], t=l+1:h)))$fitted.values,h)
-                                
+                                # fit_test = gam(value~ s(t,k=pmax(round(nrow(data_till_now)/2))),data=data_till_now)
+                                # if(summary(fit_test)$r.sq < 0.1 | is.nan(summary(fit_test)$r.sq)){
+                                #   data_till_now_smoothed = ts_test$ts[1:l]
+                                #   data_in_future = ts_test$ts[(l+1):(l+h)]
+                                # }else{
+                                #   data_till_now_smoothed      <- fit_test$fitted.values
+                                #   data_in_future      <- tail(gam(value~ s(t,k=pmax(round(nrow(data_till_now)/2))),data=rbind(data_till_now, data.frame(value = ts_test$ts[(l+1):(l+h)], t=l+1:h)))$fitted.values,h)
+                                # }
+                                data_till_now_smoothed = ts_test$ts[1:l]
+                                data_in_future = ts_test$ts[(l+1):(l+h)]
 
                                 #### could use gam smoother 
                                 to_match_in_moa             <- tail((data_till_now_smoothed),k+1)
