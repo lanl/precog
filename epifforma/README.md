@@ -10,8 +10,6 @@ This strategy builds upon the FFORMA model from the M4 forecasting competition t
 
 ## Updates
 
-## Updates
-
 The final published version of the associated manuscript did not include a visualization of the weighted interval score (WIS). To provide additional context for model performance evaluation, we include an updated version of Figure 3 here containing a visualization of WIS results.
 
 [View full-resolution PDF](create_visualizations/figure3_wWIS.pdf)
