@@ -130,16 +130,16 @@ RESULTS2$disease_chosen2 = RESULTS2$disease_chosen
 RESULTS2$disease_chosen2 = gsub('[0-9]','',RESULTS2$disease_chosen)
 RESULTS2$disease_chosen2 = gsub('_nndss','',RESULTS2$disease_chosen2)
 RESULTS2$disease_chosen2 = gsub('_jhuowid','-19',RESULTS2$disease_chosen2)
-RESULTS2$disease_chosen2[RESULTS2$disease_chosen2 == 'HN_whoflunet_'] = 'H1N1'
-RESULTS2$disease_chosen2 = gsub('_tycho_', '', RESULTS2$disease_chosen2)
-RESULTS2$disease_chosen2 = gsub('_whoflunet_', '', RESULTS2$disease_chosen2)
-RESULTS2$disease_chosen2 = gsub('_usflunet_', '', RESULTS2$disease_chosen2)
-RESULTS2$disease_chosen2 = gsub('_who_', '', RESULTS2$disease_chosen2)
-RESULTS2$disease_chosen2 = gsub('_deSouza_', '', RESULTS2$disease_chosen2)
-RESULTS2$disease_chosen2 = gsub('_ushhs_', '', RESULTS2$disease_chosen2)
-RESULTS2$disease_chosen2 = gsub('_aido_', '', RESULTS2$disease_chosen2)
-RESULTS2$disease_chosen2 = gsub('_jhuowid_', '', RESULTS2$disease_chosen2)
-RESULTS2$disease_chosen2 = gsub('_opendengue_', '', RESULTS2$disease_chosen2)
+RESULTS2$disease_chosen2[RESULTS2$disease_chosen2 == 'HN_whoflunet'] = 'H1N1'
+RESULTS2$disease_chosen2 = gsub('_tycho', '', RESULTS2$disease_chosen2)
+RESULTS2$disease_chosen2 = gsub('_whoflunet', '', RESULTS2$disease_chosen2)
+RESULTS2$disease_chosen2 = gsub('_usflunet', '', RESULTS2$disease_chosen2)
+RESULTS2$disease_chosen2 = gsub('_who', '', RESULTS2$disease_chosen2)
+RESULTS2$disease_chosen2 = gsub('_deSouza', '', RESULTS2$disease_chosen2)
+RESULTS2$disease_chosen2 = gsub('_ushhs', '', RESULTS2$disease_chosen2)
+RESULTS2$disease_chosen2 = gsub('_aido', '', RESULTS2$disease_chosen2)
+RESULTS2$disease_chosen2 = gsub('_jhuowid', '', RESULTS2$disease_chosen2)
+RESULTS2$disease_chosen2 = gsub('_opendengue', '', RESULTS2$disease_chosen2)
 RESULTS2$disease_chosen2 = gsub('InfluenzaA','Influenza',RESULTS2$disease_chosen2)
 RESULTS2$disease_chosen2 = gsub('InfluenzaB','Influenza',RESULTS2$disease_chosen2)
 RESULTS2$disease_chosen2 = gsub('_',' ',RESULTS2$disease_chosen2)
@@ -150,16 +150,16 @@ RESULTS_OVERALL2$disease_chosen2 = RESULTS_OVERALL2$disease_chosen
 RESULTS_OVERALL2$disease_chosen2 = gsub('[0-9]','',RESULTS_OVERALL2$disease_chosen)
 RESULTS_OVERALL2$disease_chosen2 = gsub('_nndss','',RESULTS_OVERALL2$disease_chosen2)
 RESULTS_OVERALL2$disease_chosen2 = gsub('_jhuowid','-19',RESULTS_OVERALL2$disease_chosen2)
-RESULTS_OVERALL2$disease_chosen2[RESULTS_OVERALL2$disease_chosen2 == 'HN_whoflunet_'] = 'H1N1'
-RESULTS_OVERALL2$disease_chosen2 = gsub('_tycho_', '', RESULTS_OVERALL2$disease_chosen2)
-RESULTS_OVERALL2$disease_chosen2 = gsub('_whoflunet_', '', RESULTS_OVERALL2$disease_chosen2)
-RESULTS_OVERALL2$disease_chosen2 = gsub('_usflunet_', '', RESULTS_OVERALL2$disease_chosen2)
-RESULTS_OVERALL2$disease_chosen2 = gsub('_who_', '', RESULTS_OVERALL2$disease_chosen2)
-RESULTS_OVERALL2$disease_chosen2 = gsub('_deSouza_', '', RESULTS_OVERALL2$disease_chosen2)
-RESULTS_OVERALL2$disease_chosen2 = gsub('_ushhs_', '', RESULTS_OVERALL2$disease_chosen2)
-RESULTS_OVERALL2$disease_chosen2 = gsub('_aido_', '', RESULTS_OVERALL2$disease_chosen2)
-RESULTS_OVERALL2$disease_chosen2 = gsub('_jhuowid_', '', RESULTS_OVERALL2$disease_chosen2)
-RESULTS_OVERALL2$disease_chosen2 = gsub('_opendengue_', '', RESULTS_OVERALL2$disease_chosen2)
+RESULTS_OVERALL2$disease_chosen2[RESULTS_OVERALL2$disease_chosen2 == 'HN_whoflunet'] = 'H1N1'
+RESULTS_OVERALL2$disease_chosen2 = gsub('_tycho', '', RESULTS_OVERALL2$disease_chosen2)
+RESULTS_OVERALL2$disease_chosen2 = gsub('_whoflunet', '', RESULTS_OVERALL2$disease_chosen2)
+RESULTS_OVERALL2$disease_chosen2 = gsub('_usflunet', '', RESULTS_OVERALL2$disease_chosen2)
+RESULTS_OVERALL2$disease_chosen2 = gsub('_who', '', RESULTS_OVERALL2$disease_chosen2)
+RESULTS_OVERALL2$disease_chosen2 = gsub('_deSouza', '', RESULTS_OVERALL2$disease_chosen2)
+RESULTS_OVERALL2$disease_chosen2 = gsub('_ushhs', '', RESULTS_OVERALL2$disease_chosen2)
+RESULTS_OVERALL2$disease_chosen2 = gsub('_aido', '', RESULTS_OVERALL2$disease_chosen2)
+RESULTS_OVERALL2$disease_chosen2 = gsub('_jhuowid', '', RESULTS_OVERALL2$disease_chosen2)
+RESULTS_OVERALL2$disease_chosen2 = gsub('_opendengue', '', RESULTS_OVERALL2$disease_chosen2)
 RESULTS_OVERALL2$disease_chosen2 = gsub('InfluenzaA','Influenza',RESULTS_OVERALL2$disease_chosen2)
 RESULTS_OVERALL2$disease_chosen2 = gsub('InfluenzaB','Influenza',RESULTS_OVERALL2$disease_chosen2)
 RESULTS_OVERALL2$disease_chosen2 = gsub('_',' ',RESULTS_OVERALL2$disease_chosen2)
@@ -172,12 +172,12 @@ RESULTS_OVERALL2$disease_chosen2 = gsub('_',' ',RESULTS_OVERALL2$disease_chosen2
 AGG_ALL = aggregate(disease_freq~disease_chosen2+row_num+obs, FUN = sum, data = RESULTS2)
 AGG_ALL = AGG_ALL %>% dplyr::group_by(row_num) %>% dplyr::mutate(prop = disease_freq/sum(disease_freq))
 AGG_ALL_FLU = AGG_ALL[AGG_ALL$disease_chosen2 == 'Influenza',]
-AGG_ALL = AGG_ALL[AGG_ALL$disease_chosen2 == 'COVID-19 ',]
+AGG_ALL = AGG_ALL[AGG_ALL$disease_chosen2 == 'COVID-19',]
 
 AGG_ALL_OVERALL = aggregate(disease_freq~disease_chosen2+row_num+obs, FUN = sum, data = RESULTS_OVERALL2)
 AGG_ALL_OVERALL = AGG_ALL_OVERALL %>% dplyr::group_by(row_num) %>% dplyr::mutate(prop_overall = disease_freq/sum(disease_freq))
 AGG_ALL_OVERALL_FLU = AGG_ALL_OVERALL[AGG_ALL_OVERALL$disease_chosen2 == 'Influenza',]
-AGG_ALL_OVERALL = AGG_ALL_OVERALL[AGG_ALL_OVERALL$disease_chosen2 == 'COVID-19 ',]
+AGG_ALL_OVERALL = AGG_ALL_OVERALL[AGG_ALL_OVERALL$disease_chosen2 == 'COVID-19',]
 
 
 
