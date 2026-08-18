@@ -1,8 +1,25 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 Code for Experiment in Publication “A method to quantify infectious disease variant proportion bias arising from reporting delay”
 ========
 
 **reporting-delay** is a sub repository of the *Precog* project specific to quantifying reporting delay bias of SARS-CoV-2 variant proportions. Specifically, this repository contains all code used to perform the experiments in the cited publication.  For questions, issues, or clarifications please reach out to Marina Mancuso: <mmancuso@lanl.gov>.
 
+---
+## Cloning the repository
+
+The following commands will permit you to downlaod the Reporting Delay sub repository from the Precog project:
+
+```bash
+
+git clone --filter=blob:none --sparse https://github.com/lanl/precog.git
+cd precog
+git sparse-checkout set reporting-delay
+
+```
 ---
 
 ## 🔬 Data
