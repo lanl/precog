@@ -198,10 +198,10 @@ calc_bias <- function(loc, df, time_int, delay_bin, sliding_window){
 }
 
 ### save metrics ###
-save_metrics <- function(loc, delay_val = 30, sliding_window){
+save_metrics <- function(df, loc, delay_val = 30, sliding_window){
   
   # filter data by location
-  MERGED_DAT <- merged_df %>%
+  MERGED_DAT <- df %>%
     filter(Admin0 == loc) %>%
     ungroup() %>%
     dplyr::select(collection_date, delay_days, pango, counts) %>%
@@ -228,14 +228,14 @@ save_metrics <- function(loc, delay_val = 30, sliding_window){
 ### run and save results ###
 ############################
 
-run_and_save <- function(merged_df, sliding_window, csv_name, save_RData = F){
+run_and_save <- function(df, sliding_window, csv_name, save_RData = F){
 
-  loc_vec <- unique(merged_df$Admin0)
+  loc_vec <- unique(df$Admin0)
   full_results <- data.frame()
   
   for(i in c(7, 14, 21, 30)){
     for(j in loc_vec){
-      new_results <- save_metrics(j, delay_val = i, sliding_window = sliding_window)
+      new_results <- save_metrics(df, j, delay_val = i, sliding_window = sliding_window)
       full_results <- rbind(full_results, new_results)
     }
   }
