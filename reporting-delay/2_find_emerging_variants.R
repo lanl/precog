@@ -14,6 +14,7 @@ library(tidyr)
 library(dplyr) 
 
 dir = "./precog/reporting-delay/"
+results_dir = paste0(dir, "results/")
 
 ##############################
 ### Read in data and clean ###
@@ -73,12 +74,12 @@ get_props <- function(loc, df, time_int, delay_bin){
     pro_prop = round(TABLE[, 2]/sum(TABLE[, 2]), 3)
     prop_dif = ret_prop - pro_prop
     
-    new_table <- data.frame("Admin0" = loc,
-                            "collection_date" = time_int,
-                            "delay_bin" = delay_bin,
+    new_table <- data.frame("Location" = loc,
+                            "Date" = time_int,
+                            "delay_days" = delay_bin,
                             "pango" = TABLE[, 1],
-                            "ret_prop" = ret_prop,
-                            "pro_prop" = pro_prop,
+                            "p_val" = ret_prop,
+                            "p_nrt" = pro_prop,
                             "prop_dif" = prop_dif
     )
   } else {
@@ -87,30 +88,30 @@ get_props <- function(loc, df, time_int, delay_bin){
     # if everything is reported before delay interval
     if(paste0("[0,", delay_bin, "]") %in% names(TABLE)){
       
-      new_table <- data.frame("Admin0" = loc,
-                              "collection_date" = time_int,
-                              "delay_bin" = delay_bin,
+      new_table <- data.frame("Location" = loc,
+                              "Date" = time_int,
+                              "delay_days" = delay_bin,
                               "pango" = TABLE[, 1],
-                              "ret_prop" = prop,
-                              "pro_prop" = prop,
+                              "p_val" = prop,
+                              "p_nrt" = prop,
                               "prop_dif" = 0)
       
       # if nothing is reported before delay interval
     } else if(paste0("(", delay_bin, ",Inf]") %in% names(TABLE)){
-      new_table <- data.frame("Admin0" = loc,
-                              "collection_date" = time_int,
-                              "delay_bin" = delay_bin,
+      new_table <- data.frame("Location" = loc,
+                              "Date" = time_int,
+                              "delay_days" = delay_bin,
                               "pango" = TABLE[, 1],
-                              "ret_prop" = prop,
-                              "pro_prop" = 0,
+                              "p_val" = prop,
+                              "p_nrt" = 0,
                               "prop_dif" = prop)
     } else {
-      new_table <- data.frame("Admin0" = loc,
-                              "collection_date" = time_int,
-                              "delay_bin" = delay_bin,
+      new_table <- data.frame("Location" = loc,
+                              "Date" = time_int,
+                              "delay_days" = delay_bin,
                               "pango" = NA,
-                              "ret_prop" = NA,
-                              "pro_prop" = NA,
+                              "p_val" = NA,
+                              "p_nrt" = NA,
                               "prop_dif" = NA)
     }
   }
@@ -150,4 +151,4 @@ for(i in c(7, 14, 21, 30)){
   }
 }
 
-write.csv(full_results, file = paste0(dir, "emerging_variant_ts.csv"))
+write.csv(full_results, file = paste0(results_dir, "emerging_variant_ts.csv"))
