@@ -2,10 +2,10 @@ logfiles
 .Rhistory
 .DS_Store
 SLURMOUT
-# Ignore all data/ except essential input files for run_smoa.R
-data
-!data/scores_tot_w_wis_components.csv
-!data/tdat_list_tot_weekly.csv
+# Ignore all data/ except small essential input files
+# Note: scores_tot_w_wis_components.csv (100MB) and tdat_list_tot_weekly.csv (5.5GB)
+# are too large for git - generate them by running their respective R scripts
+data/*
 !data/hub_locations*.rda
 !data/state_truths/
 !data/state_truths/*.RData
