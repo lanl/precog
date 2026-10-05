@@ -14,6 +14,7 @@ This repository is organized according to several directories.  Each directory c
 * smoa: code to perform the studies and data application for publication 2 (see below);
 * epifforma: code to perform the studies and data application for publication 3 (see below);
 * aim: code to perform the studies and data application for publication 4 (see below);
+* nsbi: code related to the paper using NSBI for epidemiological parameter inference (see below)
 
 ## Citations (ongoing)
 1. A.C. Murph, G.C. Gibson, L.J. Beesley, N. Panda, L.A. Castro, S. Del Valle, D. Osthus. (202x). Incorporating Incidence Peak and Time Data for SIR Forecasting Applications.  _In Review._ 
