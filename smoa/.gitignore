@@ -2,11 +2,13 @@ logfiles
 .Rhistory
 .DS_Store
 SLURMOUT
+# Ignore all data/ except essential input files for run_smoa.R
 data
-!data/scores_tot.csv
-!data/state_census.csv
+!data/scores_tot_w_wis_components.csv
 !data/tdat_list_tot_weekly.csv
-!data/state_truths
+!data/hub_locations*.rda
+!data/state_truths/
+!data/state_truths/*.RData
 .RData
 initial_lhs.RData
 synthetic_X_diff.RData
