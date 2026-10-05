@@ -1,6 +1,7 @@
 # Visualizations for the sMOA Paper
 ## Author: DA Osthus and AC Murph
 ## Date: August 2024
+library(here)
 library(ggplot2)
 library(ggpubr)
 library(reshape2)
@@ -19,16 +20,15 @@ library(parallel)
 library(doParallel)
 library(data.table)
 theme_set(theme_bw())
-setwd(paste0(this.path::here(), '/../'))
-source('R/smoa_helpers.R')
+source(here::here("smoa", "R", "smoa_helpers.R"))
 savepath = 'data/'
 
-scores          <- read.csv("data/scores_tot.csv")
+scores          <- read.csv(here::here("smoa", "data", "scores_tot.csv"))
 
 names_of_models  <- unique(scores$model)
 models_to_label <- c("COVIDhub-baseline", "COVIDhub-4_week_ensemble","COVIDhub-trained_ensemble")
 
-file_with_results   <- "data/k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records"
+file_with_results   <- here::here("smoa", "data", "k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records")
 # file_with_results <- "data/k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_1250_state_records"
 sockettype <- "PSOCK"
 savepath = './'
@@ -127,14 +127,14 @@ names_other_than_smoa                                                           
 # full_graph_data$model_name                                                                         <- factor(full_graph_data$model_name, levels = c('sMOA', names_other_than_smoa))
 
 
-validdf <- read.csv('data/validationdata_2023-12-31.csv')
+validdf <- read.csv(here::here("smoa", "data", "validationdata_2023-12-31.csv"))
 validdf <- subset(validdf, target_variable == "inc case")
 validdf$location <- ifelse(validdf$location <= 9, paste0("0", as.character(validdf$location)), as.character(validdf$location))
 validdf$location_name <- validdf$location
 validdf$target_end_date <- as.Date(validdf$target_end_date)
 
 
-# tmp_valid = read.csv('data/validationdata_2023-12-31.csv')
+# tmp_valid = read.csv(here::here("smoa", "data", "validationdata_2023-12-31.csv"))
 
 models_to_label <- c("COVIDhub-baseline", "COVIDhub-4_week_ensemble","COVIDhub-trained_ensemble")
 

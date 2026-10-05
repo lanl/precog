@@ -1,9 +1,10 @@
 # Visualizations for the sMOA Paper
 ## Author: Alexander C. Murph
 ## Date: August 2024
+library(here)
 library(ggplot2)
-library(ggpubr)
-library(tidyverse)
+# library(ggpubr)  # Not used in this script
+library(tidyr)
 library(ggridges)
 library(ggrepel)
 library(patchwork)
@@ -11,18 +12,16 @@ library(gridExtra)
 library(grid)
 library(ggExtra)
 library(latex2exp)
-library(tidyverse)
 library(this.path)
 library(parallel)
 library(doParallel)
 theme_set(theme_bw())
-setwd(paste0(this.path::here(), '/../'))
 
-scores                          <- read.csv("data/scores_tot.csv")
+scores                          <- read.csv(here::here("smoa", "data", "scores_tot_w_wis_components.csv"))
 names_of_models  <- unique(scores$model)
 models_to_label <- c()# c("COVIDhub-baseline", "COVIDhub-4_week_ensemble","COVIDhub-trained_ensemble")
 
-file_with_results                                                                                  <- "data/k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records"
+file_with_results <- here::here("smoa", "data", "k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records")
 sockettype <- "PSOCK"
 
 mae_comparison_data                                                                                <- NULL
@@ -97,7 +96,7 @@ mae_comparison_data$forecast_date.y <- NULL
 mae_comparison_data$wis <- NULL
 # Triple check that we are making a fair comparison:
 anyNA(mae_comparison_data)
-save(mae_comparison_data, file = 'data/mae_comparison_data.RData')
+save(mae_comparison_data, file = here::here("smoa", "data", "mae_comparison_data.RData"))
 
 ggplot_data = mae_comparison_data %>% dplyr::group_by(model) %>% dplyr::summarize(abs_error_model= mean(abs_error_model), 
                                                                                   abs_error_smoa = mean(abs_error_smoa))

@@ -1,6 +1,7 @@
 # Visualizations for the sMOA Paper; example on early-epidemic California.
 ## Author: Alexander C. Murph
 ## Date: September 2024
+library(here)
 library(lhs)
 library(mgcv)
 library(ggplot2)
@@ -22,13 +23,12 @@ library(ggridges)
 library(utils)
 library(parallel)
 library(doParallel)
-library(covidHubUtils)
+# library(covidHubUtils)
 library(mgcv)
 library(collapse)
 library(dplyr)
 library(this.path)
-setwd(paste0(this.path::here(),"/../"))
-source("R/smoa_helpers.R")
+source(here::here("smoa", "R", "smoa_helpers.R"))
 ncores <- 51
 lopez_models <- c("BPagano-RtDriven", 'CEID-Walk', 'CovidAnalytics-DELPHI', 'COVIDhub-baseline', 'COVIDhub-4_week_ensemble',
                   'COVIDhub-trained_ensemble', 'Covid19Sim-Simulator', 'CU-select', 'FAIR-NRAR', 'FRBSF_Wilson-Econometric',
@@ -69,7 +69,7 @@ N <- num_curves*length(types_of_curves)
 
 sockettype <- "PSOCK"
 
-load(paste("data/synthetic_logs/synthetic_simidx_", sim_idx, "_num_curves_", num_curves, ".RData", sep = ""))
+load(here::here("smoa", "data", "synthetic_logs", paste0("synthetic_simidx_", sim_idx, "_num_curves_", num_curves, ".RData")))
 print("Creating the embedding matrix.")
 
 ### read in embedding mat design matrix and outcome matrix
@@ -85,7 +85,7 @@ quantiles <- c(0.025, 0.1, 0.25, 0.5, 0.75, 0.9, 0.975)
 ## read in stored truth data with as_of
 
 # We pre-built this data file to cut on api calls to github.
-truth_as_of_tot                 <- read.csv("data/tdat_list_tot_weekly.csv")
+truth_as_of_tot                 <- read.csv(here::here("smoa", "data", "tdat_list_tot_weekly.csv"))
 
 
 ### Iterate through the states and calculate the MAE and WIS for the sMOA forecast.
@@ -102,9 +102,9 @@ for (location in c(curr_state)){
   print(paste("working on location", location))  
   
   ##### true weekly data as of a final data of reporting
-  state_truth_data_file <- paste('data/state_truths/', gsub(" ", "", location), '.RData', sep = "")
+  state_truth_data_file <- paste(here::here('smoa','data','state_truths'), "/", gsub(" ", "", location), '.RData', sep = "")
   if(!file.exists(state_truth_data_file)){
-    truth_weekly                  <- load_truth(truth_source = "JHU",hub = "US", target_variable = "inc case", as_of= "2023-03-04",locations =location,data_location="covidData")
+    truth_weekly                  <- covidHubUtils::load_truth(truth_source = "JHU",hub = "US", target_variable = "inc case", as_of= "2023-03-04",locations =location,data_location="covidData")
     save(truth_weekly, file = state_truth_data_file)
   }else{
     load(state_truth_data_file)
@@ -460,7 +460,7 @@ graph_data_log = as_tibble(graph_data_log)
 true_data = as_tibble(true_data)  
 
 # Now get the ForecastHub forecasts and put these on the tibble in the same way.
-forecasts_case = readRDS(file = 'data/forecasts.rds')
+forecasts_case = readRDS(file = here::here("smoa", "data", "forecasts.rds"))
 # forecasts_case = subset(forecasts_case, subset = (temporal_resolution == 'wk')&(target_variable == 'inc case'))
 dates_to_forecast <- as.Date(c("2020-03-21", "2020-04-18",
                                "2020-05-23", "2020-06-20", 

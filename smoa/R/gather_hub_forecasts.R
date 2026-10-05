@@ -6,6 +6,7 @@
 
 ######
 # Get the Model Scores.
+library(here)
 truth_data                              <- load_truth(
   truth_source = "JHU",
   target_variable = "inc case")
@@ -57,7 +58,7 @@ for (model_idx in 1:length(model_list)){
 
 forecasts_case                          <- do.call(rbind,forecasts_case_model_res)
 
-saveRDS(forecasts_case, file = 'data/forecasts.rds')
+saveRDS(forecasts_case, file = here::here("smoa", "data", "forecasts.rds"))
 
 forecasts_case                          <- forecasts_case[nchar(forecasts_case$location) <= 2, ]
 

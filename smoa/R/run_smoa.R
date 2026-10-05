@@ -14,58 +14,49 @@ library(BASS)
 #library(covidcast)
 library(GPfit)
 library(nnet)
-library(dplyr)
 library(KernelKnn)
 library(ggridges)
 library(utils)
 library(parallel)
 library(doParallel)
-setwd("~/GitLab/smoa")
-source("R/smoa_helpers.R")
-source('R/vecchia_scaled.R')
+library(doSNOW)
+library(here)
+source(here::here("smoa", "R", "smoa_helpers.R"))
 
-ncores <- 51
-lopez_models <- c("BPagano-RtDriven", 'CEID-Walk', 'CovidAnalytics-DELPHI', 'COVIDhub-baseline', 'COVIDhub-4_week_ensemble',
-                  'COVIDhub-trained_ensemble', 'Covid19Sim-Simulator', 'CU-select', 'FAIR-NRAR', 'FRBSF_Wilson-Econometric',
-                  'IEM_MED-CovidProject', 'IowaStateLW-STEM', 'JHUAPL-Bucky', 'JHU_CSSE-DECOM', 'JHU_IDD-CovidSP',
-                  'Karlen-pypm', 'LNQ-ens1', 'LANL-GrowthRate', 'Microsoft-DeepSTIA', 'MOBS-GLEAM_COVID',
-                  'RobertWalraven-ESG', 'UCLA-SuEIR', 'USC-SI_kJalpha', 'UMass-MechBayes', 'UVA-Ensemble')
+# Check if scores and truth files exists, if not generate it.
+# The following files require API calls and can potentially take a long time to run.
+truth_file = here::here("smoa", "data", "tdat_list_tot_weekly.csv")
+if (!file.exists(truth_file)) {
+  source(here::here("smoa", "R", "get_data_as_of.R"))
+}
+scores_file <- here::here("smoa", "data", "scores_tot_w_wis_components.csv")
+if (!file.exists(scores_file)) {
+  source(here::here("smoa", "R", "get_model_scores.R"))
+}
 
-###########
-# The following is only for when we run the grid search to test several different
-# hyperparameters:
-sim_idx                         <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID"))
+# Reduce cores significantly to avoid memory exhaustion
+# Workers crash at ~32% with 26 cores due to peak memory usage during computation
+# Each worker needs: X_diff/y_diff (~250MB) + scores (~100MB) + peak working memory (~5-6GB)
+# With 150GB RAM: 12 cores allows ~12.5GB per worker, preventing crashes
+ncores <- 12
+
+# SLURM array task ID determines which state to process
+sim_idx <- as.integer(Sys.getenv("SLURM_ARRAY_TASK_ID"))
 print(paste("Running slurm job:", sim_idx))
 if(is.na(sim_idx)){
-  sim_idx                       <- 3
+  sim_idx <- 3
 }
-curr_state                      <- state.name[sim_idx]
+curr_state <- state.name[sim_idx]
 
-
-num_of_each_curve <- c(20000, 30000, 40000, 50000)
-ks <- c(4, 6,7,8)
-epsilons <- c(5e-4, 5e-3, 5e-5, 5e-2)
-closest_ids_vec <- c(1000, 2000, 3000, 5000)
-
-dispersion_forecast_scaling <- seq(from=1, to=40, length.out = 8)
-dispersion_forecast <- dispersion_forecast_scaling[sim_idx%%8+1]
-mle_lower_bound_scaling <- seq(from=1, to=0.001, length.out = 8)
-mle_lower_bound <- mle_lower_bound_scaling[floor((sim_idx-1)/8)+1]
-
-h                               <- 4
-optim_method <- 'Brent'
-
-# These are all from the bayesian optimization.
+# Final hyperparameters (from Bayesian optimization)
+h <- 4
 num_curves <- 18387
 k <- 5
 closest <- 4422
-lower_CI_scale <- 1
-upper_CI_scale <- 1
 dispersion_forecast <- 1
 mle_lower_bound <- 1
 
-###########
-# Make a directory to hold the results for each state, using this run's particular set of hyperparameters.
+# Directory name for storing results
 name_of_change <- paste("k", k, "num_curves", num_curves, "closest", closest, "dispersion", 
                         round(dispersion_forecast*10000), 'mlebound', round(mle_lower_bound*10000), sep = "_")
 state_log_directory <- paste(name_of_change, "_state_records", sep = "")
@@ -76,21 +67,19 @@ state_log_directory <- paste(name_of_change, "_state_records", sep = "")
 types_of_curves <- c("sir_rollercoaster", "sir_rollercoaster_wiggle", 'seasonal')
 N <- num_curves*length(types_of_curves)
 
-sockettype <- "PSOCK"
-
-if(!file.exists(paste("data/synthetic_logs/synthetic_simidx_", sim_idx, "_num_curves_", num_curves, ".RData", sep = ""))){
-  cl <- parallel::makeCluster(spec = ncores,type = sockettype)
-  setDefaultCluster(cl)
+if(!file.exists(here::here("smoa", "data", "synthetic_logs", paste0("synthetic_simidx_", sim_idx, "_num_curves_", num_curves, ".RData")))){
+  cl <- parallel::makeCluster(spec = ncores, type = "PSOCK")
   registerDoParallel(cl)
-  sim_ts <- foreach(i=1:N, #added extra 300 to compensate for extra seasonality sims
+  sim_ts <- foreach(i=1:N,
                     .errorhandling = "pass",
                     .verbose = F)%dopar%{
-                      #curve_type <- types_of_curves[rep(c(1:length(types_of_curves)), each = num_curves)][i]
+                      set.seed(i)
+                      library(here)
                       library(data.table)
                       library(LearnBayes)
                       library(LaplacesDemon)
-                      source("R/smoa_helpers.R")
-                      
+                      source(here::here("smoa", "R", "smoa_helpers.R"))
+
                       curve_type <- types_of_curves[rep(c(1:length(types_of_curves)), each = num_curves)][i]
                       templist <- gen_curve(curve_type)
                       templist
@@ -99,9 +88,9 @@ if(!file.exists(paste("data/synthetic_logs/synthetic_simidx_", sim_idx, "_num_cu
   A = lapply(sim_ts,function(x){ length(x)})
   unique(A)
   sim_ts = sim_ts[A > 2]
-  save(sim_ts, file = paste("data/synthetic_logs/synthetic_simidx_", sim_idx, "_num_curves_", num_curves, ".RData", sep = ""))
+  save(sim_ts, file = here::here("smoa", "data", "synthetic_logs", paste0("synthetic_simidx_", sim_idx, "_num_curves_", num_curves, ".RData")))
 } else {
-  load(paste("data/synthetic_logs/synthetic_simidx_", sim_idx, "_num_curves_", num_curves, ".RData", sep = ""))
+  load(here::here("smoa", "data", "synthetic_logs", paste0("synthetic_simidx_", sim_idx, "_num_curves_", num_curves, ".RData")))
 }
 print("Creating the embedding matrix.")
 
@@ -110,24 +99,24 @@ embed_mat                       <- create_embed_matrix(sim_ts,h=(h),k=(k+1))
 X                               <- embed_mat[[1]]
 y                               <- embed_mat[[2]]
 
-save(X, file = 'synthetic_X.RData')
-save(y, file = 'synthetic_y.RData')
-#load(file = 'synthetic_X.RData')
-#load(file = 'synthetic_y.RData')
-
 ### convert to differences
 X_diff                          <- t(apply(X,1,diff))
 temp_y = cbind(X[,ncol(X)], y)
 y_diff                          <- t(apply(temp_y,1,diff))
 rm(temp_y)
-#save(X_diff, file = 'synthetic_X_diff.RData')
-#save(y_diff, file = 'synthetic_y_diff.RData')
-#load(file = 'synthetic_X_diff.RData')
-#load(file = 'synthetic_y_diff.RData')
 
+# Load scores file once (100MB) before parallel processing
+# Each worker will receive a copy via clusterExport instead of loading separately
+scores_global <- read.csv(here::here("smoa", "data", "scores_tot_w_wis_components.csv"))
+scores_global$target_end_date <- as.Date(scores_global$target_end_date)
+scores_global$forecast_date <- as.Date(scores_global$forecast_date)
+
+# Main function to run sMOA for a single state (x = state index)
+# Runs in parallel via foreach loop at bottom of script
 parfctn = function(x){
   set.seed(13)
-  library(covidHubUtils)
+  library(here)
+  # library(covidHubUtils)
   library(mgcv)
   library(collapse)
   library(dplyr)
@@ -140,19 +129,17 @@ parfctn = function(x){
   dispersion_logs <- NULL
   
   # We pre-built this data file to cut on api calls to github.
-  truth_as_of_tot                 <- read.csv("data/tdat_list_tot_weekly.csv")
+  truth_as_of_tot                 <- read.csv(here::here("smoa", "data", "tdat_list_tot_weekly.csv"))
   
   ### Iterate through the states and calculate the MAE and WIS for the sMOA forecast.
   mse_df_list                     <- list()
   count_list                      <- 1
   curr_state <- state.name[x]
-  mle_start_value <- 0.5
+  mle_start_value <- 0.5  # Initial value for MLE optimization of dispersion parameters
   
   for (location in c(curr_state)){
-    #print(paste("working on location", location))  
-    
     ##### true weekly data as of a final data of reporting
-    state_truth_data_file <- paste('data/state_truths/', gsub(" ", "", location), '.RData', sep = "")
+    state_truth_data_file <- here::here("smoa", "data", "state_truths", paste0(gsub(" ", "", location), ".RData"))
     if(!file.exists(state_truth_data_file)){
       truth_weekly                  <- load_truth(truth_source = "JHU",hub = "US", target_variable = "inc case", as_of= "2023-03-04",locations =location,data_location="covidData")
       save(truth_weekly, file = state_truth_data_file)
@@ -185,25 +172,15 @@ parfctn = function(x){
     state_X = NULL
     state_y = NULL
 
-    # temp_df = data.frame(one_step = one_step_ahead_forecasts,
-    #                      two_step = two_step_ahead_forecasts,
-    #                      three_step = three_step_ahead_forecasts,
-    #                      four_step = four_step_ahead_forecasts,
-    #                      date = xx[6:length(xx)])
-    # curr_targetend_date                  <- as.Date("2020-08-15")
-    # truth_as_of                 <- truth_as_of_tot_loc[truth_as_of_tot_loc$as_of == curr_targetend_date ,]
-    # data_till_now               <- truth_as_of[truth_as_of$target_end_date <= curr_targetend_date,]
-    # true_values  <- data_till_now$value[6:nrow(data_till_now)]
-    # temp_df$true_values <- true_values
-    write.csv(forecasts_data, file = paste("data/early_pandemic_forecasts/",location, ".csv",sep = ""))
+    early_pandemic_dir <- here::here("smoa", "data", "early_pandemic_forecasts")
+    if (!dir.exists(early_pandemic_dir)) {
+      dir.create(early_pandemic_dir, recursive = TRUE)
+    }
+    write.csv(forecasts_data, file = file.path(early_pandemic_dir, paste0(location, ".csv")))
 
 
     ### iterate through forecast dates
-    for ( last_targetend_date_idx in 1:(length(targetend_dates_to_match)) ){ 
-      paste0("calculating forecast instance ", last_targetend_date_idx, " of ", length(targetend_dates_to_match))
-      #truth_weekly                  <- load_truth(truth_source = "JHU",hub = "US", target_variable = "inc case", 
-      #					  as_of= as.character(as.Date(targetend_dates_to_match[last_targetend_date_idx])), locations =location,data_location="covidData")
-
+    for ( last_targetend_date_idx in 1:(length(targetend_dates_to_match)) ){
       #### grab the date formatted
       curr_targetend_date                  <- targetend_dates_to_match[last_targetend_date_idx]
       
@@ -267,13 +244,16 @@ parfctn = function(x){
 		    sim_nb4 <- matrix(rnbinom(5000*length(point),mu = (point+1), size = 0.3*dispersion_forecast),ncol=length(point),byrow = T)
 
     	print(curr_targetend_date)
+    	# Note: sim_nb matrices are cleaned up at the end of the iteration
       # Otherwise, we learn the dispersion parameters for each forecast horizon using an MLE on the observations so far.
       # This is an online update for the MLE of the dispersion parameters.
       } else{
         mle_memory <- Inf
-        
+
+        past_forecasts_data <- forecasts_data %>% filter(target_end_date <= curr_targetend_date)
+
     	fit_nb_function <- function(k_){
-      	  subset_forecasts = forecasts_data %>% subset(horizon == 1)
+      	  subset_forecasts = past_forecasts_data %>% subset(horizon == 1)
       	  if(nrow(subset_forecasts)>mle_memory){
               subset_forecasts = subset_forecasts[(nrow(subset_forecasts)-mle_memory):nrow(subset_forecasts),]
           } 
@@ -286,7 +266,7 @@ parfctn = function(x){
         optimal_k_1 <- optim(mle_start_value,fit_nb_function,method="Brent",lower = 0, upper = 1)
 
         fit_nb_function <- function(k_){
-          subset_forecasts = forecasts_data %>% subset(horizon == 2)
+          subset_forecasts = past_forecasts_data %>% subset(horizon == 2)
           if(nrow(subset_forecasts)>mle_memory){
             subset_forecasts = subset_forecasts[(nrow(subset_forecasts)-mle_memory):nrow(subset_forecasts),]
           } 
@@ -299,7 +279,7 @@ parfctn = function(x){
         optimal_k_2 <- optim(mle_start_value,fit_nb_function,method="Brent",lower = 0, upper = 1)
 
         fit_nb_function <- function(k_){
-          subset_forecasts = forecasts_data %>% subset(horizon == 3)
+          subset_forecasts = past_forecasts_data %>% subset(horizon == 3)
           if(nrow(subset_forecasts)>mle_memory){
             subset_forecasts = subset_forecasts[(nrow(subset_forecasts)-mle_memory):nrow(subset_forecasts),]
           } 
@@ -312,7 +292,7 @@ parfctn = function(x){
         optimal_k_3 <- optim(mle_start_value,fit_nb_function,method="Brent",lower = 0, upper = 1)
 
         fit_nb_function <- function(k_){
-          subset_forecasts = forecasts_data %>% subset(horizon == 4)
+          subset_forecasts = past_forecasts_data %>% subset(horizon == 4)
           if(nrow(subset_forecasts)>mle_memory){
             subset_forecasts = subset_forecasts[(nrow(subset_forecasts)-mle_memory):nrow(subset_forecasts),]
           } 
@@ -340,11 +320,8 @@ parfctn = function(x){
       # In the following, we calculate the WIS for each forecast horizon. 
       lower_95s <- c()
       upper_95s <- c()
-      
-      lower_CI_scale <- 1
-      upper_CI_scale <- 1
 
-      ## Horizon == 1/
+      ## Horizon == 1
       curr_horizon <- 1
       est_intervals <- quantile(sim_nb1[,1],probs = quantiles)
       est_intervals <- point[curr_horizon] + (est_intervals-est_intervals[quantiles==0.5]) 
@@ -357,7 +334,7 @@ parfctn = function(x){
       
       # Gather coverage data for this horizon:
       for(quantile_idx in 0:10){
-	est_intervals <- quantile(sim_nb1[,1],probs = longer_quantiles)
+	      est_intervals <- quantile(sim_nb1[,1],probs = longer_quantiles)
         est_intervals <- point[curr_horizon] + (est_intervals-est_intervals[longer_quantiles==0.5])
         lower_quan <- est_intervals[1+quantile_idx]
         upper_quan <- est_intervals[length(longer_quantiles)-quantile_idx]
@@ -376,7 +353,6 @@ parfctn = function(x){
       
       ## Horizon == 2
       curr_horizon <- 2
-      temp_est_intervals <- est_intervals
       est_intervals <- quantile(sim_nb2[,2],probs = quantiles)
       est_intervals <- point[curr_horizon] + (est_intervals-est_intervals[quantiles==0.5])
       
@@ -408,7 +384,6 @@ parfctn = function(x){
       
       ## Horizon == 3
       curr_horizon <- 3
-      temp_est_intervals <- est_intervals
       est_intervals <- quantile(sim_nb3[,3],probs = quantiles)
       est_intervals <- point[curr_horizon] + (est_intervals-est_intervals[quantiles==0.5])
       wis_tmp_3 <- weighted_interval_score(quantiles,value = est_intervals, actual_value = data_future[3])
@@ -440,7 +415,6 @@ parfctn = function(x){
       
       ## Horizon == 4
       curr_horizon <- 4
-      temp_est_intervals <- est_intervals
       est_intervals <- quantile(sim_nb4[,4],probs = quantiles)
       est_intervals <- point[curr_horizon] + (est_intervals-est_intervals[quantiles==0.5])
       wis_tmp_4 <- weighted_interval_score(quantiles,value = est_intervals, actual_value = data_future[4])
@@ -509,10 +483,13 @@ parfctn = function(x){
                                                         target_end_date = c(curr_targetend_date + 7,
                                                                             curr_targetend_date + 14,
                                                                             curr_targetend_date + 21,
-                                                                            curr_targetend_date + 28), 
+                                                                            curr_targetend_date + 28),
                                                         true_values = data_future
                                                         )
       )
+
+      # Clean up large NB simulation matrices (4 matrices of 5000×4 = ~640KB total) immediately
+      rm(sim_nb1, sim_nb2, sim_nb3, sim_nb4)
     }
    
 
@@ -520,15 +497,20 @@ parfctn = function(x){
     mse_df_list[[count_list]]     <- mse_df
     count_list                    <- count_list + 1
   }
-  
-  # The following will write the scores_tot.csv file if it has not already been written.
-  # source("R/get_model_scores.R")
-  scores                          <- read.csv("data/scores_tot_w_wis_components.csv")
-  
-  write.csv(dispersion_logs, file = paste('data/dispersion_logs/', location, '.csv', sep = ""))
-  
-  save(state_X, file = paste0('data/embeddings_by_location/', location, '_X.RData'))
-  save(state_y, file = paste0('data/embeddings_by_location/', location, '_y.RData'))
+
+  # Use pre-loaded scores from global environment (exported to workers via clusterExport)
+  scores <- scores_global
+
+  # Ensure output directories exist
+  dispersion_dir <- here::here("smoa", "data", "dispersion_logs")
+  embeddings_dir <- here::here("smoa", "data", "embeddings_by_location")
+  if (!dir.exists(dispersion_dir)) dir.create(dispersion_dir, recursive = TRUE)
+  if (!dir.exists(embeddings_dir)) dir.create(embeddings_dir, recursive = TRUE)
+
+  write.csv(dispersion_logs, file = file.path(dispersion_dir, paste0(location, ".csv")))
+
+  save(state_X, file = file.path(embeddings_dir, paste0(location, "_X.RData")))
+  save(state_y, file = file.path(embeddings_dir, paste0(location, "_y.RData")))
   
   #### formatting output of moa
   mse_df_tot                      <- do.call(rbind,mse_df_list)
@@ -543,9 +525,7 @@ parfctn = function(x){
   mse_df_tot$forecast_date      <- as.Date(mse_df_tot$fcast_date) + 2
   
   ### begin scoring stuff
-  scores$target_end_date          <- as.Date(scores$target_end_date)
-  scores$forecast_date          <- as.Date(scores$forecast_date)
-
+  # (dates already converted at load time)
 
   #### keep track of model wins
   results_list                    <- list()
@@ -553,14 +533,12 @@ parfctn = function(x){
   wins_wis                        <- c()
   
   # Iterate through every model to compare its performance to sMOA.
-  days_data = c()
   for (model_ in unique(scores$model)){
-    #### take big precomputed scores data frame exclude the us and subset to current model 
+    #### take big precomputed scores data frame exclude the us and subset to current model
     scores_subset                 <- scores[scores$location !="US" & scores$model == model_,] %>% dplyr::select(horizon,location,abs_error,
-														forecast_date,model,wis, 
+														forecast_date,model,wis,
 														dispersion, overprediction,
 														underprediction, target_end_date)
-    days_data = c(days_data, weekdays(scores_subset$forecast_date))
     #### convert horizon to int
     scores_subset$horizon         <- as.integer(scores_subset$horizon)
     scores_subset$forecast_date         <- as.Date(scores_subset$forecast_date)
@@ -575,33 +553,78 @@ parfctn = function(x){
     }
   }
   print(paste("finished", location))
-  directory_name = paste("data/", state_log_directory, sep = "")
-  save(results_list, file = paste(directory_name, "/", gsub(" ", "", curr_state), ".RData", sep = ""))
-  state_coverage_location = paste("data/coverage_data/", location, '.csv', sep = '')
-  write.csv(coverage_data, file = state_coverage_location)
-  
+  print(paste("results_list length:", length(results_list)))
+  print(paste("state_log_directory:", state_log_directory))
+  directory_name = here::here("smoa", "data", state_log_directory)
+  print(paste("directory_name:", directory_name))
+  print(paste("directory exists:", dir.exists(directory_name)))
+  output_file <- file.path(directory_name, paste0(gsub(" ", "", curr_state), ".RData"))
+  print(paste("Saving to:", output_file))
+  tryCatch({
+    save(results_list, file = output_file)
+    print(paste("Save completed for", curr_state))
+  }, error = function(e) {
+    print(paste("ERROR saving", curr_state, ":", e$message))
+  })
+  write.csv(coverage_data, file = here::here("smoa", "data", "coverage_data", paste0(location, ".csv")))
+
+  # Clean up large objects before returning to save memory
+  rm(results_list, coverage_data, dispersion_logs, forecasts_data, mse_df_tot, mse_df, state_X, state_y)
+  gc()
+
+  return(NULL)  # Don't return large objects
 }
 
 
 # If the directory exists, change that here.
-directory_name = paste("data/", state_log_directory, sep = "")
+directory_name = here::here("smoa", "data", state_log_directory)
 if(file.exists(directory_name)) unlink(directory_name, recursive = TRUE)
 
 
 dir.create(directory_name)
-sockettype <- "PSOCK"
 
-## Uncomment this to work with a simple example (one run).
-#parfctn(3)
+# Check if required data file exists, if not create it
+tdat_file <- here::here("smoa", "data", "tdat_list_tot_weekly.csv")
+if (!file.exists(tdat_file)) {
+  print("tdat_list_tot_weekly.csv not found. Creating it now...")
+  source(here::here("smoa", "R", "get_data_as_of.R"))
+  if (!file.exists(tdat_file)) {
+    stop("ERROR: Failed to create tdat_list_tot_weekly.csv. Check get_data_as_of.R for errors.")
+  }
+  print(paste("Successfully created:", tdat_file))
+}
 
-cl <- parallel::makeCluster(spec = ncores,type = sockettype) #, outfile=""
-setDefaultCluster(cl)
-registerDoParallel(cl)
+# Single state test run before parallel processing
+# parfctn(3)
+
+# Use PSOCK parallelization with reduced cores (25 instead of 51)
+# to stay within 150GB memory limit
+# outfile="" sends worker output to main log for debugging
+cl <- parallel::makeCluster(spec = ncores, type = "PSOCK", outfile = "")
+registerDoSNOW(cl)
+
+# Export large objects once to all workers (more efficient than auto-export per iteration)
+# This includes: X_diff/y_diff matrices (~250MB), scores data (~100MB), and helper functions
+clusterExport(cl, c("X_diff", "y_diff", "scores_global", "parfctn", "k", "h", "closest", "dispersion_forecast",
+                    "state_log_directory", "name_to_fips", "weighted_interval_score",
+                    "overprediction", "underprediction", "sharpness", "find_quantile_match",
+                    "get_early_pandemic_errors", "is_symmetric", "score_func_param_checker"))
+
+# Set up progress bar
+pb <- txtProgressBar(max = 50, style = 3)
+progress <- function(n) setTxtProgressBar(pb, n)
+opts <- list(progress = progress)
+
 sim_ts <- foreach(i=1:50,
-                  .verbose = T)%dopar%{
-		    print(i)
-                    parfctn(i)
+                  .packages = c('here', 'mgcv', 'collapse', 'dplyr'),
+                  .inorder = FALSE,
+                  # .errorhandling = 'pass',
+                  .options.snow = opts)%dopar%{
+		    parfctn(i)
+                    return(NULL)
                   }
+
+close(pb)
 stopCluster(cl)    
 
 

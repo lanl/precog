@@ -1,5 +1,6 @@
 # Helper Functions for the run_smoa.R main file.
 ## Author: AC Murph and LJ Beesley
+library(here)
 
 get_early_pandemic_errors <- function(targetend_dates_to_match, location, k, 
                                       truth_as_of_tot, X_diff, y_diff,
@@ -188,7 +189,7 @@ earliest_issue                    <- function(df) {
 name_to_abbr                      <- function(name, ignore.case = FALSE, perl = FALSE, fixed = FALSE,
                         ties_method = c("first", "all")) {
   # First get rid of United States from state_census
-  state_census                    <- read.csv("data/state_census.csv")
+  state_census                    <- read.csv(here::here("smoa", "data", "state_census.csv"))
   state_census$X                  <- NULL
   df                              <- state_census %>% dplyr::filter(.data$STATE > 0)
 
@@ -224,7 +225,7 @@ name_to_abbr                      <- function(name, ignore.case = FALSE, perl = 
 abbr_to_name                      <- function(abbr, ignore.case = FALSE, perl = FALSE, fixed = FALSE,
                         ties_method = c("first", "all")) {
   # First get rid of United States from state_census
-  state_census                    <- read.csv("data/state_census.csv")
+  state_census                    <- read.csv(here::here("smoa", "data", "state_census.csv"))
   state_census$X                  <- NULL
   
   # First get rid of United States from state_census
@@ -257,10 +258,10 @@ abbr_to_name                      <- function(abbr, ignore.case = FALSE, perl = 
 #' @export
 fips_to_abbr                      <- function(code)
 {
-  state_census                    <- read.csv('data/state_census.csv')
+  state_census                    <- read.csv(here::here("smoa", "data", "state_census.csv"))
   fips                            <- sprintf("%02d", state_census$STATE)
   index                           <- match(substr(code, 1, 2), fips)
-  state_census                    <- read.csv('data/state_census.csv')
+  state_census                    <- read.csv(here::here("smoa", "data", "state_census.csv"))
   state_census$X                  <- NULL
   output                          <- state_census$ABBR[index]
   names(output)                   <- fips[index]
@@ -1295,7 +1296,7 @@ name_to_fips <- function(data, hub = c("US", "ECDC")){
   }
   
   if (hub[1] == "US") {
-    load(file="data/hub_locations.rda")
+    load(file=here::here("smoa", "data", "hub_locations.rda"))
     fips_tmp <- hub_locations %>%
       dplyr::mutate(full_location_name = fips)
     locations <- dplyr::bind_rows(hub_locations, fips_tmp)
@@ -1304,7 +1305,7 @@ name_to_fips <- function(data, hub = c("US", "ECDC")){
     }
     return (locations[locations$full_location_name %in% data, ]$fips)
   } else if (hub[1] == "ECDC") {
-    load(file="data/hub_locations_ecdc.rda")
+    load(file=here::here("smoa", "data", "hub_locations_ecdc.rda"))
     location_tmp <- hub_locations_ecdc %>%
       dplyr::mutate(location_name = location)
     locations <- dplyr::bind_rows(hub_locations_ecdc, location_tmp)
@@ -1313,7 +1314,7 @@ name_to_fips <- function(data, hub = c("US", "ECDC")){
     }
     return(locations[locations$location_name %in% data, ]$location)
   } else if (hub[1] == "FluSight") {
-    load(file="data/hub_locations_flusight.rda")
+    load(file=here::here("smoa", "data", "hub_locations_flusight.rda"))
     fips_tmp <- hub_locations_flusight %>%
       dplyr::mutate(location_name = fips)
     fips_tmp[fips_tmp$location_name == "US",]$location_name <- "United States"
