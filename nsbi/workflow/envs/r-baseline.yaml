@@ -1,0 +1,24 @@
+name: neural_sbi_r_baseline
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - r-base>=4.0
+  # ODE solver (already in r-treestats.yaml, but include for clarity)
+  - r-desolve
+  # MLE fitting
+  - r-bbmle
+  # Multivariate normal for confidence intervals
+  - r-mvtnorm
+  # Bayesian inference with Stan
+  - r-cmdstanr
+  - cmdstan
+  - r-posterior
+  # Data manipulation
+  - r-dplyr
+  - r-tidyr
+  # YAML output
+  - r-yaml
+  # Progress bars (optional but nice)
+  - r-progress

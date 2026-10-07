@@ -1,0 +1,149 @@
+"""
+Neural Simulation-Based Inference for Epidemic Forecasting
+
+A modular Snakemake workflow for training neural ratio estimation (NRE) models
+to perform Bayesian inference on epidemic parameters from phylogenetic trees
+and case count data.
+
+Pipeline Phases:
+1. Simulation: LHS parameter design, XML generation, BEAST2 simulation
+2. Processing: Extract summary statistics from trajectories
+3. Training: Prepare training data and train NRE model
+4. Evaluation: Point estimates, model comparison, and uncertainty quantification
+5. Baselines: Traditional methods (SIR MLE)
+"""
+
+# ============================================================================
+# Include Workflow Modules
+# ============================================================================
+
+include: "rules/common.smk"
+include: "rules/phase1_simulation.smk"
+include: "rules/phase2_processing.smk"
+include: "rules/phase3_training.smk"
+include: "rules/phase4_evaluation.smk"
+include: "rules/phase5_baseline.smk"
+
+
+# ============================================================================
+# Target Rules
+# ============================================================================
+
+def get_all_outputs():
+    """Generate list of all final outputs based on enabled models."""
+    outputs = []
+    
+    # Add data outputs for each enabled base model (once per feature set)
+    for base_model in ENABLED_BASE_MODELS:
+        outputs.extend([
+            f"results/phase3_training/training_data/{base_model}_train.npz",
+            f"results/phase3_training/training_data/{base_model}_test.npz",
+        ])
+    
+    # Add model outputs for each enabled model variant (includes size)
+    for model_id in ENABLED_MODELS:
+        outputs.extend([
+            f"results/phase3_training/trained_models/checkpoints/{model_id}_best.pt",
+            f"results/phase4_evaluation/parameter_scans/{model_id}_param_scan.csv",
+        ])
+    
+    # Model comparison (only if multiple models enabled)
+    if len(ENABLED_MODELS) > 1:
+        outputs.append("results/phase4_evaluation/model_comparison.yaml")
+    
+    # Baseline methods (Phase 5) - runs by default
+    # MLE: r0rt parameterization with prior mean starting values
+    # Bayesian: Stan/CmdStanR with MCMC (controlled by config)
+    outputs.extend([
+        "results/phase5_baseline/sir_mle/results.csv",
+        "results/phase5_baseline/sir_mle/summary.yaml",
+    ])
+    
+    if config.get("bayesian_baseline", {}).get("enabled", False):
+        outputs.extend([
+            "results/phase5_baseline/sir_bayes/results.csv",
+            "results/phase5_baseline/sir_bayes/summary.yaml",
+            "reports/mle_vs_bayes_comparison.pdf",  # Comparison visualization
+        ])
+    
+    # Uncertainty Quantification (Phase 4) - controlled by config
+    # Default: HPD only (faster, no calibration needed)
+    # To enable LF2I: set uncertainty_methods: ['hpd', 'lf2i'] in config/evaluation_params.yaml
+    enabled_methods = get_enabled_uncertainty_methods()
+    
+    for model_id in ENABLED_MODELS:
+        if 'lf2i' in enabled_methods:
+            outputs.extend([
+                f"results/phase4_evaluation/inference/{model_id}/lf2i_calibration.pkl",
+                f"results/phase4_evaluation/inference/{model_id}/lf2i_confidence_regions.csv",
+                f"results/phase4_evaluation/inference/{model_id}/lf2i_summary.txt",
+            ])
+        
+        if 'hpd' in enabled_methods:
+            outputs.extend([
+                f"results/phase4_evaluation/inference/{model_id}/hpd_confidence_regions.csv",
+                f"results/phase4_evaluation/inference/{model_id}/hpd_summary.txt",
+            ])
+    
+    # Cleanup temporary feature files after aggregation completes
+    outputs.append("results/batch_markers/cleanup_all_features.done")
+    
+    return outputs
+
+rule all:
+    """Run complete pipeline: simulations → training → evaluation"""
+    input:
+        get_all_outputs()
+    default_target: True
+
+rule all_simulations:
+    """Generate all simulation data (BEAST runs and extractions)"""
+    input:
+        expand(
+            "results/batch_markers/beast_batch_{batch_id}.done",
+            batch_id=range(N_BEAST_BATCHES)
+        )
+
+rule all_aggregation:
+    """Aggregate all simulation summaries"""
+    input:
+        "results/phase2_processing/features/treefeatures/train_treefeatures.csv",
+        "results/phase2_processing/features/treefeatures/test_treefeatures.csv",
+        "results/phase2_processing/features/tsfeatures/train_tsfeatures.csv",
+        "results/phase2_processing/features/tsfeatures/test_tsfeatures.csv",
+        "results/phase2_processing/features/tsfeatures_treefeatures/train_tsfeatures_treefeatures.csv",
+        "results/phase2_processing/features/tsfeatures_treefeatures/test_tsfeatures_treefeatures.csv"
+
+rule all_aggregation_with_cleanup:
+    """Aggregate all summaries and cleanup temporary feature files"""
+    input:
+        "results/phase2_processing/features/treefeatures/train_treefeatures.csv",
+        "results/phase2_processing/features/treefeatures/test_treefeatures.csv",
+        "results/phase2_processing/features/tsfeatures/train_tsfeatures.csv",
+        "results/phase2_processing/features/tsfeatures/test_tsfeatures.csv",
+        "results/phase2_processing/features/tsfeatures_treefeatures/train_tsfeatures_treefeatures.csv",
+        "results/phase2_processing/features/tsfeatures_treefeatures/test_tsfeatures_treefeatures.csv",
+        "results/batch_markers/cleanup_all_features.done"
+
+
+rule all_training:
+    """Train all enabled NRE models"""
+    input:
+        [f"results/phase3_training/trained_models/checkpoints/{m}_best.pt" for m in ENABLED_MODELS]
+
+rule all_evaluation:
+    """Run all model evaluations"""
+    input:
+        [f"results/phase4_evaluation/parameter_scans/{m}_param_scan.csv" for m in ENABLED_MODELS]
+
+rule all_baseline:
+    """Run baseline methods: SIR MLE and Bayesian MCMC"""
+    input:
+        "results/phase5_baseline/sir_mle/results.csv",
+        "results/phase5_baseline/sir_mle/summary.yaml",
+        "results/phase5_baseline/sir_bayes/results.csv" if config.get("bayesian_baseline", {}).get("enabled", False) else [],
+        "results/phase5_baseline/sir_bayes/summary.yaml" if config.get("bayesian_baseline", {}).get("enabled", False) else [],
+        "reports/mle_vs_bayes_comparison.pdf" if config.get("bayesian_baseline", {}).get("enabled", False) else []
+
+
+

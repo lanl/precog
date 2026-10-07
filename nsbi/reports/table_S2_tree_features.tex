@@ -1,0 +1,71 @@
+\begin{table}
+
+\caption{\label{tab:tab:treefeatures}Spearman correlation of tree features with parameters}
+\centering
+\begin{tabular}[t]{llrr}
+\toprule
+Feature & Function & $R_0$ & $D$\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{4}{l}{\textbf{Balance \& Topology}}\\
+\hspace{1em}Colless Index & colless() & -0.35 & -0.01\\
+\hspace{1em}Corrected Colless Index & colless\_corr() & -0.95 & -0.00\\
+\hspace{1em}Quadratic Colless Index & colless\_quad() & -0.02 & -0.01\\
+\hspace{1em}Equal-Weights Colless & ew\_colless() & -0.95 & -0.00\\
+\hspace{1em}Sackin Index & sackin() & -0.05 & -0.01\\
+\hspace{1em}B1 Balance Index & b1() & 0.99 & 0.00\\
+\hspace{1em}B2 Balance Index & b2() & 0.72 & 0.00\\
+\hspace{1em}Beta Statistic & beta\_statistic() & 0.95 & 0.00\\
+\hspace{1em}Blum Statistic & blum() & 0.46 & 0.00\\
+\hspace{1em}Rogers Index & rogers() & 0.72 & 0.01\\
+\hspace{1em}Root Imbalance & root\_imbalance() & -0.15 & -0.01\\
+\hspace{1em}Rquartet Index & rquartet() & 0.87 & 0.00\\
+\hspace{1em}Number of Cherries & cherries() & 0.99 & 0.00\\
+\hspace{1em}Double Cherries & double\_cherries() & 0.96 & 0.00\\
+\hspace{1em}Four-Prongs & four\_prong() & 0.80 & 0.01\\
+\hspace{1em}Pitchforks & pitchforks() & 0.97 & 0.00\\
+\hspace{1em}Stairs & stairs() & -0.88 & -0.00\\
+\hspace{1em}Stairs2 & stairs2() & 0.92 & 0.00\\
+\hspace{1em}Average Ladder Length & avg\_ladder() & -0.83 & -0.00\\
+\hspace{1em}Max Ladder Length & max\_ladder() & -0.43 & 0.00\\
+\hspace{1em}IL Number & ILnumber() & 0.40 & 0.00\\
+\hspace{1em}Symmetric Nodes & sym\_nodes() & 0.73 & 0.01\\
+\hspace{1em}Total Path Length & tot\_path\_length() & -0.09 & -0.01\\
+\addlinespace[0.3em]
+\multicolumn{4}{l}{\textbf{Branch Length \& Distance}}\\
+\hspace{1em}Mean Branch Length & mean\_branch\_length() & 0.02 & 0.99\\
+\hspace{1em}Mean Internal Branch Length & mean\_branch\_length\_int() & -0.56 & 0.77\\
+\hspace{1em}Mean External Branch Length & mean\_branch\_length\_ext() & 0.34 & 0.92\\
+\hspace{1em}Variance of Branch Length & var\_branch\_length() & 0.29 & 0.94\\
+\hspace{1em}Internal Branch Length Var. & var\_branch\_length\_int() & -0.46 & 0.81\\
+\hspace{1em}External Branch Length Var. & var\_branch\_length\_ext() & 0.39 & 0.89\\
+\hspace{1em}Total Cophenetic Index & tot\_coph() & 0.14 & -0.00\\
+\hspace{1em}Area per Pair & area\_per\_pair() & -0.57 & -0.01\\
+\hspace{1em}Mean Pairwise Distance & mean\_pair\_dist() & -0.50 & 0.67\\
+\hspace{1em}Total Internal Path Length & tot\_internal\_path() & -0.12 & -0.01\\
+\hspace{1em}Wiener Index & wiener() & -0.03 & 0.68\\
+\addlinespace[0.3em]
+\multicolumn{4}{l}{\textbf{Tree Shape, Size \& Centrality}}\\
+\hspace{1em}Tree Diameter & diameter() & -0.57 & -0.01\\
+\hspace{1em}Max Depth & max\_depth() & -0.58 & -0.01\\
+\hspace{1em}Max Width & max\_width() & 0.93 & -0.00\\
+\hspace{1em}Average Leaf Depth & average\_leaf\_depth() & -0.58 & -0.01\\
+\hspace{1em}Max Delta Width & max\_del\_width() & 0.92 & -0.00\\
+\hspace{1em}Variance of Depth & var\_leaf\_depth() & -0.66 & -0.00\\
+\hspace{1em}Average Vertex Depth & avg\_vert\_depth() & -0.58 & -0.01\\
+\hspace{1em}Number of Lineages & number\_of\_lineages() & 0.99 & 0.00\\
+\hspace{1em}Treeness & treeness() & -0.97 & -0.00\\
+\hspace{1em}Max Width / Max Depth & mw\_over\_md() & 0.94 & 0.00\\
+\hspace{1em}Max Betweenness & max\_betweenness() & 0.93 & 0.01\\
+\hspace{1em}Max Closeness & max\_closeness(weight=F) & -0.04 & 0.01\\
+\hspace{1em}Max Weighted Closeness & max\_closeness(weight=T) & 0.25 & -0.63\\
+\addlinespace[0.3em]
+\multicolumn{4}{l}{\textbf{Diversification \& Information Content}}\\
+\hspace{1em}Fusco-Cronk I Statistic & mean\_i() & -0.94 & -0.00\\
+\hspace{1em}Shao \& Sokal J1 Index & j\_one() & 0.76 & 0.01\\
+\hspace{1em}Entropy-Based J Statistic & entropy\_j() & -0.81 & 0.50\\
+\hspace{1em}Phylo. Species Variability & psv() & -0.50 & 0.67\\
+\bottomrule
+\multicolumn{4}{l}{\rule{0pt}{1em}Total number of features: 51}\\
+\end{tabular}
+\end{table}

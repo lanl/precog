@@ -1,0 +1,15 @@
+# System Parameters
+# Controls: Paths, computational resources
+# Changing these rarely requires re-running jobs
+
+# BEAST2 settings
+# Local installation path (macOS)
+beast_path: "/Applications/BEAST 2.7.7/bin/beast"
+
+# Computational settings (for cluster)
+threads: 8  # For neural network training rules
+
+# Cluster-specific notes:
+# - BEAST simulations run single-threaded but massively parallel (100+ at once)
+# - Neural network training uses multiple threads
+# - Expected total runtime with 100 parallel jobs: 6-12 hours

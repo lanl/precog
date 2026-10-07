@@ -1,0 +1,7 @@
+name: neural_sbi_workflow
+channels:
+  - conda-forge
+dependencies:
+  - snakemake>=7.0.0
+  - pandas  # For reading config tables
+  - pyyaml  # For config parsing

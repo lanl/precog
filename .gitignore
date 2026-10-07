@@ -11,3 +11,7 @@ epifforma/create_visualizations/*.pdf
 # Optional: Ignore all RDS files project-wide
 *.RDS
 
+# Large tiff files
+nsbi/**/*tiff
+# Unnecessary quarto rendering stuff
+nsbi/reports/*/libs/

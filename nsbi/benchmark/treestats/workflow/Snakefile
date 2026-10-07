@@ -1,0 +1,80 @@
+"""
+TreeStats Benchmarking Sub-workflow
+
+Benchmarks performance of phylogenetic tree statistics computation
+to identify fast, reliable statistics for large-scale analysis.
+
+This workflow:
+1. Generates test trees of various sizes
+2. Benchmarks all available treestats functions
+3. Identifies fast statistics (< 0.1s per tree)
+4. Generates optimized calc_fast_stats function
+"""
+
+configfile: "../config/config.yaml"
+
+# Default tree sizes for benchmarking
+TREE_SIZES = [1000, 5000, 10000]
+
+rule all:
+    """Generate all benchmark outputs"""
+    input:
+        "results/benchmark_results.csv",
+        "results/fast_statistics_list.txt",
+        "results/benchmark_summary.md"
+
+rule benchmark_statistics:
+    """
+    Run comprehensive benchmarking on progressively larger trees.
+    Tests all available statistics with timeout protection.
+    """
+    output:
+        csv="results/benchmark_results.csv",
+        log="results/benchmark.log"
+    conda:
+        "../../../workflow/envs/r-treestats.yaml"
+    threads: 1
+    log:
+        "logs/benchmark_treestats.log"
+    script:
+        "scripts/benchmark_treestats.R"
+
+rule extract_fast_stats:
+    """
+    Extract list of fast statistics from benchmark results.
+    Fast statistics are defined as completing in < 0.1 seconds for 10k tip trees.
+    """
+    input:
+        "results/benchmark_results.csv"
+    output:
+        "results/fast_statistics_list.txt"
+    shell:
+        """
+        # Extract statistic names where category is 'fast' for 10k trees
+        awk -F',' 'NR>1 && $2==10000 && $5=="fast" {{print $1}}' {input} | sort -u > {output}
+        """
+
+rule generate_summary:
+    """Generate markdown summary of benchmark results"""
+    input:
+        csv="results/benchmark_results.csv",
+        fast_list="results/fast_statistics_list.txt"
+    output:
+        "results/benchmark_summary.md"
+    shell:
+        """
+        echo "# TreeStats Benchmark Summary" > {output}
+        echo "" >> {output}
+        echo "**Date**: $(date)" >> {output}
+        echo "" >> {output}
+        echo "## Fast Statistics (< 0.1s for 10k tips)" >> {output}
+        echo "" >> {output}
+        cat {input.fast_list} | wc -l | xargs echo "**Count**:" >> {output}
+        echo "" >> {output}
+        echo "**List**:" >> {output}
+        cat {input.fast_list} | sed 's/^/- /' >> {output}
+        echo "" >> {output}
+        echo "## Full Results" >> {output}
+        echo "" >> {output}
+        echo "See \`benchmark_results.csv\` for complete timing data." >> {output}
+        """

@@ -1,0 +1,82 @@
+=============================================================================
+FFORMA FEATURES IMPLEMENTATION SUMMARY
+=============================================================================
+
+OBJECTIVE: Add missing FFORMA features to the neural_sbi workflow
+
+=============================================================================
+DISCOVERY: ARCH/GARCH Features Already Present
+=============================================================================
+
+During implementation, we discovered that 4 of the 7 "missing" FFORMA features
+were already present in the workflow via the heterogeneity() function:
+
+  ✓ arch_acf  (FFORMA #39)
+  ✓ garch_acf (FFORMA #40) 
+  ✓ arch_r2   (FFORMA #41)
+  ✓ garch_r2  (FFORMA #42)
+
+The heterogeneity() function in tsfeatures computes these using:
+  - ar() for ARMA fitting
+  - tseries::garch() for GARCH fitting
+  - More accurate than our initial AR-proxy approach
+
+=============================================================================
+NEW FEATURES ADDED
+=============================================================================
+
+Only 3 NEW features needed to be added:
+
+  1. series_length (FFORMA #1) - 0.0000s per series
+  2. linearity (FFORMA #4)     - 0.0008s per feature
+  3. curvature (FFORMA #5)     - 0.0008s per feature
+
+Total time for 3 new features: ~0.002s per 1000-point series
+
+=============================================================================
+RESULTS
+=============================================================================
+
+Feature Count:
+  Before: 52 features (23 functions)
+  After:  55 features (25 functions)
+  Added:  +3 features (+5.8%)
+
+Performance:
+  Before: ~0.07s per series
+  After:  ~0.08s per series  
+  Increase: +0.01s (+14%)
+
+For 20,000 series:
+  Before: ~0.4 hours
+  After:  ~0.44 hours
+  Increase: +2.4 minutes
+
+=============================================================================
+FFORMA FEATURE COVERAGE
+=============================================================================
+
+All 7 target FFORMA features now present in workflow:
+
+  ✓ #1  series_length  - NEW (added)
+  ✓ #4  linearity      - NEW (added)
+  ✓ #5  curvature      - NEW (added)
+  ✓ #39 arch_acf       - EXISTING (from heterogeneity)
+  ✓ #40 garch_acf      - EXISTING (from heterogeneity)
+  ✓ #41 arch_r2        - EXISTING (from heterogeneity)
+  ✓ #42 garch_r2       - EXISTING (from heterogeneity)
+
+=============================================================================
+IMPLEMENTATION
+=============================================================================
+
+File: workflow/scripts/utils/calc_fforma_features.R
+
+Functions:
+  1. series_length() - returns length of series
+  2. linearity_curvature() - fits 2nd-order polynomial, returns coefficients
+
+Dependencies: None (base R only)
+
+=============================================================================
+

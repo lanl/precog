@@ -1,0 +1,127 @@
+# ============================================================================
+# Bayesian Baseline Configuration
+# ============================================================================
+# Parameters for Bayesian inference baseline using Stan/CmdStanR with MCMC
+# This file consolidates all Bayesian-specific settings for Phase 5 baseline
+
+# ============================================================================
+# Execution Control
+# ============================================================================
+bayesian_baseline:
+  # Enable/disable Bayesian baseline entirely
+  enabled: true
+  
+  # Number of test parameter combinations to run through Bayesian baseline
+  # Uses stratified sampling across (R0, recovery_time) space for representative coverage
+  # Total MCMC runs = n_param_combos × n_replicates (from simulation_params.yaml)
+  # Examples (with n_replicates=2):
+  #   4 → 2×2 grid → 8 MCMC runs (~16 min)
+  #   6 → 2×3 grid → 12 MCMC runs (~24 min)
+  #   9 → 3×3 grid → 18 MCMC runs (~36 min)
+  #   null or -1 → all test params (5 × 2 = 10 MCMC runs)
+  n_param_combos: NULL  # Default: 4 parameter combinations
+  
+  # Whether to run all replicates for selected parameters
+  # true: Run all replicates (recommended for robust evaluation)
+  # false: Run only first replicate (faster, less robust)
+  include_all_replicates: false
+  
+  # ============================================================================
+  # Batch Processing
+  # ============================================================================
+  # Batch size for Bayesian inference (smaller than MLE due to longer runtime)
+  # Each simulation takes ~2 minutes with default MCMC settings
+  batch_size: 50
+  
+  # ============================================================================
+  # Prior Configuration
+  # ============================================================================
+  # Prior buffer: widen priors by this fraction to avoid edge effects
+  # Same as MLE bounds buffer for fair comparison (0.1 = 10% buffer)
+  # Applied to parameter bounds from simulation_params.yaml:
+  #   - R0: [R0_min, R0_max]
+  #   - recovery_time: [recovery_time_min, recovery_time_max]
+  prior_buffer_fraction: 0.1
+  
+  # ============================================================================
+  # MLE vs Bayes Comparison Visualization
+  # ============================================================================
+  comparison:
+    # Number of random simulations to visualize in comparison plot
+    # Only simulations that converged in BOTH methods are candidates
+    # Set to -1 or null to use all converged simulations
+    # Recommendation: 3-6 for clear visualization without overcrowding
+    n_examples: null
+    
+    # Random seed for example selection
+    # - null (default): Random selection (different each run, uses timestamp)
+    # - number (e.g., 42): Reproducible selection (same result every run)
+    seed: null
+  
+  # Prior distributions (Stan model implementation):
+  #   - R0 ~ LogNormal(log(prior_mean_R0), prior_sd_R0)
+  #   - recovery_time ~ LogNormal(log(prior_mean_rt), prior_sd_rt)
+  # where prior means are computed as geometric means of buffered bounds
+  
+  # ============================================================================
+  # MCMC Sampling Settings
+  # ============================================================================
+  mcmc:
+    # Number of parallel MCMC chains
+    # Recommendation: 3-4 chains for robust convergence diagnostics
+    n_chains: 3
+    
+    # Warmup/adaptation iterations per chain
+    # Phase where sampler tunes step size and mass matrix
+    # Recommendation: 500-1000 for well-behaved posteriors
+    n_warmup: 500
+    
+    # Total iterations per chain (including warmup)
+    # Actual posterior samples = n_iter - n_warmup
+    # Recommendation: 1000-2000 total iterations (500-1500 sampling)
+    n_iter: 1500
+    
+    # Target acceptance rate for NUTS sampler
+    # Higher values → smaller steps → more robust but slower
+    # Default: 0.8, increase to 0.95-0.99 for difficult posteriors
+    # Recommendation: 0.95 for stability
+    adapt_delta: 0.95
+    
+    # Maximum tree depth for NUTS sampler
+    # Controls computational cost and exploration
+    # Default: 10, increase to 12-15 for complex posteriors
+    # Recommendation: 12 for balance of speed and thorough exploration
+    max_treedepth: 12
+  
+  # ============================================================================
+  # Convergence Diagnostics (Hardcoded in R script)
+  # ============================================================================
+  # The R script uses these criteria to flag convergence:
+  #   - Rhat < 1.1 for all parameters (scale reduction factor)
+  #   - ESS_bulk > 400 for main parameters (effective sample size)
+  # 
+  # These thresholds follow Stan best practices:
+  #   - Rhat < 1.01 = excellent, < 1.05 = good, < 1.1 = acceptable
+  #   - ESS > 400 ensures stable posterior estimates
+  # 
+  # Note: To make these configurable, modify:
+  #   workflow/scripts/phase5_baseline/03_sir_bayes_batch_shell.R (lines 160-162)
+  
+  # ============================================================================
+  # Output Schema
+  # ============================================================================
+  # Bayesian baseline outputs 39 columns:
+  #   - First 27 columns: Match MLE baseline schema exactly
+  #     (sim_id, param_id, replicate, converged, error_msg, method,
+  #      est_R0, ci_lower_R0, ci_upper_R0, est_recovery_time, 
+  #      ci_lower_recovery_time, ci_upper_recovery_time, nll,
+  #      true_R0, true_recovery_time, ...)
+  #   
+  #   - Last 12 columns: Bayesian-specific diagnostics
+  #     (rhat_R0, rhat_recovery_time, rhat_beta, rhat_gamma,
+  #      ess_bulk_R0, ess_bulk_recovery_time, ess_bulk_beta, ess_bulk_gamma,
+  #      ess_tail_R0, ess_tail_recovery_time, n_divergences, n_max_treedepth)
+  # 
+  # This design ensures:
+  #   - Drop-in compatibility with MLE evaluation pipeline
+  #   - Preservation of MCMC diagnostics for quality assessment

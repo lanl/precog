@@ -1,0 +1,125 @@
+# Cluster Resource Configuration for SLURM
+# Specifies time and CPU requirements for each Snakemake rule
+# NOTE: Memory specifications commented out - not supported on this cluster
+
+__default__:
+  time: "04:00:00"
+  threads: 1
+  # mem_mb: 4000  # Not supported on this cluster
+  partition: "normal"
+
+# Phase 1: Parameter Design
+generate_lhs_design:
+  time: "00:10:00"
+  threads: 1
+  # mem_mb: 2000
+
+# Phase 2: XML Generation (BATCHED)
+generate_xml_batch:
+  time: "00:15:00"  # 500 XMLs × 2s / 8 cores = ~2 min per batch
+  threads: 8
+  # mem_mb: 4000
+
+# Phase 2b: BEAST Simulations (BATCHED)
+run_beast_batch:
+  time: "01:00:00"  # 100 sims × 2-20s = 3-30 min per batch (allow 1 hour for safety)
+  threads: 1
+  # mem_mb: 2000
+
+# Phase 3: Extract Summary Statistics (BATCHED)
+# extract_case_counts_batch:  # REMOVED - no longer needed
+#   time: "00:15:00"
+#   threads: 8
+#   # mem_mb: 4000
+
+extract_treefeatures_batch:
+  time: "00:30:00"  # 200 trees × 15s / 4 cores = ~12 min per batch
+  threads: 4
+  # mem_mb: 8000  # Trees can be memory intensive
+
+# Parallel aggregation - train and test run simultaneously
+aggregate_train:
+  time: "01:00:00"  # Process train data only
+  threads: 1
+  # mem_mb: 16000
+
+aggregate_test:
+  time: "01:00:00"  # Process test data only (runs in parallel with train)
+  threads: 1
+  # mem_mb: 16000
+
+check_dimensions:
+  time: "00:05:00"  # Quick check, may re-aggregate if needed
+  threads: 1
+  # mem_mb: 4000
+
+select_features:
+  time: "00:15:00"
+  threads: 1
+  # mem_mb: 8000
+
+# Phase 4: Prepare Training Data
+prepare_training_data:
+  time: "00:30:00"
+  threads: 1
+  # mem_mb: 8000
+
+# Phase 5: Train Neural SBI Models
+train_nre_y_only:
+  time: "12:00:00"  # Increased from 4 hours for larger training sets
+  threads: 8  # Can use multiple CPUs for PyTorch
+  # mem_mb: 32000
+
+train_nre_y_z:
+  time: "12:00:00"  # Increased from 4 hours for larger training sets
+  threads: 8
+  # mem_mb: 32000
+
+# Phase 6: Evaluation (separate rules for each model)
+evaluate_model_y_only:
+  time: "12:00:00"  # 12 hours for 5,000 test cases with importance sampling
+  threads: 4
+  # mem_mb: 16000
+
+evaluate_model_y_z:
+  time: "12:00:00"  # 12 hours for 5,000 test cases with importance sampling
+  threads: 4
+  # mem_mb: 16000
+
+# Phase 6: LF2I Calibration
+calibrate_lf2i:
+  time: "02:00:00"  # ~15 min with optimized groupby, 2 hours for safety margin
+  threads: 1
+  # mem_mb: 8000
+
+compute_lf2i_regions_batch:
+  time: "04:00:00"  # Batched confidence region computation (500 test cases per batch)
+  threads: 1
+  # mem_mb: 4000
+
+aggregate_lf2i_regions:
+  time: "00:30:00"  # Quick aggregation of batch results
+  threads: 1
+  # mem_mb: 4000
+
+# Phase 5: Baseline Methods (MLE and Bayesian)
+sir_mle_batch:
+  time: "02:00:00"  # MLE is fast: 50 sims × ~10s = ~8 min per batch
+  threads: 1
+  # mem_mb: 4000
+
+sir_bayes_batch:
+  time: "04:00:00"  # MCMC is slower: 50 sims × ~2 min = ~100 min per batch (allow 4 hours)
+  threads: 3  # Match parallel chains in MCMC config
+  # mem_mb: 8000  # Stan can be memory-intensive
+
+aggregate_sir_mle:
+  time: "00:15:00"
+  threads: 1
+  # mem_mb: 4000
+
+aggregate_sir_bayes:
+  time: "00:15:00"
+  threads: 1
+  # mem_mb: 4000
+

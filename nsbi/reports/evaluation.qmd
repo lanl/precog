@@ -1,0 +1,408 @@
+---
+title: "Evaluation"
+format: html
+execute:
+  echo: false
+  message: false
+  warning: false
+knitr:
+  opts_chunk:
+    dev: ["png", "tiff"]
+    dpi: 300
+---
+
+```{r}
+library(tidyverse)
+library(scales)
+library(cmocean)
+library(ggpubr)
+library(ggtext)
+
+theme_set(theme_bw() + theme(strip.background = element_blank()))
+
+# dput(palette.colors(palette = "Okabe-Ito"))
+colors <- c('Baseline'="#E69F00",'Case counts'="#D55E00",'Tree'="#0072B2",'Combined'="#009E73")
+
+params <- read_csv('../full_output/parameters/test_design.csv') %>% 
+  select(param_id, R0_true=R0, D_true=recovery_time) %>% 
+  mutate(R0_level = cut(
+      R0_true,
+      breaks = quantile(R0_true, probs = seq(0, 1, 1/3)),
+      labels = str_to_sentence(c("low", "middle", "high")),
+      include.lowest = TRUE
+    ),
+    D_level = cut(
+      D_true,
+      breaks = quantile(D_true, probs = seq(0, 1, 1/3)),
+      labels = str_to_sentence(c("short", "medium", "long")),
+      include.lowest = TRUE
+    ),
+         R0_level = factor(paste(R0_level, 'R0'), levels = paste(str_to_sentence(c("low", "middle", "high")), 'R0')),
+         D_level = factor(paste(D_level, 'D'), levels = paste(str_to_sentence(c("short", "medium", "long")),'D')))
+
+nsbi_evaluation <- lapply(list.files('../full_output/inference', recursive = TRUE, pattern = 'hpd_confidence_regions.csv', full.names = TRUE), function(x) 
+  read_csv(x) %>% mutate(type = gsub('../full_output/inference/|_model|_confidence_regions.csv', '', x))) %>% 
+  bind_rows() %>% 
+  mutate(type = gsub('/.*', '', type))
+
+
+baseline_evaluation <- read_csv('../full_output/sir_mle/results.csv') %>% 
+  mutate(type = 'baseline')
+
+evaluation <- nsbi_evaluation %>% 
+  mutate(param_id = as.numeric(gsub('p', '', param_id))) %>%
+  bind_rows(baseline_evaluation) %>% 
+  mutate(type = case_when(type == 'tsfeatures' ~ 'Case counts',
+                          type == 'tsfeatures_treefeatures' ~ 'Combined',
+                          type == 'baseline' ~ 'Baseline',
+                          type == 'treefeatures' ~ 'Tree',
+                          TRUE ~ str_to_sentence(type)),
+                          type = factor(type, levels = rev(c('Baseline', 'Case counts', 'Tree', 'Combined')))) %>% 
+  left_join(params)
+
+param_scan <- lapply(list.files('../full_output/param_scan_sub', full.names = TRUE), function(x){
+  read_csv(x) %>% mutate(type = gsub('../full_output/param_scan_sub/|_model.*', '', x))
+}) %>% bind_rows() %>% 
+  group_by(sim_id, type) %>% 
+  mutate(r = predicted_probability/(1-predicted_probability),
+         r = r/sum(r)) %>% 
+  inner_join(params) %>% 
+  mutate(type = case_when(type == 'tsfeatures' ~ 'Case counts',
+                          type == 'tsfeatures_treefeatures' ~ 'Combined',
+                          type == 'baseline' ~ 'Baseline',
+                          type == 'treefeatures' ~ 'Tree',
+                          TRUE ~ str_to_sentence(type)),
+                          type = factor(type, levels = (c('Baseline', 'Case counts', 'Tree', 'Combined'))))
+```
+
+```{r, eval=FALSE}
+bayes_evaluation <- read_csv('../full_output/sir_bayes/results.csv') %>% 
+  mutate(type = 'baseline')
+
+bayes_evaluation %>% 
+  group_by(converged) %>% 
+  tally()
+
+bind_rows(baseline_evaluation %>% mutate(method = 'mle'),
+          bayes_evaluation %>% mutate(method = 'bayes')) %>% 
+  filter(converged) %>%
+  group_by(sim_id) %>% filter(n() == 2) %>% 
+  group_by(method) %>% 
+  summarize(R0_mae = mean(R0_abs_error),
+            D_mae = mean(D_abs_error),
+            R0_coverage = mean(R0_coverage),
+            D_coverage = mean(D_coverage),
+            R0_interval_width_mean = mean(R0_interval_width),
+            D_interval_width_mean = mean(D_interval_width),
+            R0_interval_score_mean = mean(R0_interval_score),
+            D_interval_score_mean = mean(D_interval_score)) %>% 
+  pivot_longer(!method) %>% 
+  mutate(param = gsub('_.*', '', name),
+         metric = gsub('R0_|D_', '', name)) %>% 
+  select(-name) %>% 
+  arrange(param, method) %>% 
+  pivot_wider(names_from = c(param, method), values_from = value) 
+```
+
+
+```{r, fig.width=10, fig.height=4, eval=FALSE}
+loss <- lapply(list.files('../full_output/trained_models/training_logs', pattern = 'training', full.names = TRUE), function(x){
+  read_csv(x) %>% mutate(model = gsub('../full_output/trained_models/training_logs/|_training.csv', '', x))
+}) %>% bind_rows() %>% 
+  mutate(type = gsub('_stats', '', sub("_[^_]*$", "", model)),
+         size = gsub('.*_', '', model))
+
+loss %>% 
+  mutate(type = gsub('_stats', '', sub("_[^_]*$", "", model)),
+         size = gsub('.*_', '', model)) %>% 
+  pivot_longer(c(train_loss, val_loss)) %>% 
+  ggplot(aes(x = epoch, y = value, col = name)) + 
+  facet_grid(~type, scales = 'free', space = 'free') +
+  geom_point(alpha = 0.75) +
+  scale_y_log10() +
+  scale_shape_manual(values = c(1, 20)) +
+  scale_color_grey()
+```
+
+
+## Evaluation metrics
+
+```{r evaluation, fig.width=12, fig.height=5}
+# Build the combined dataset
+plot_data <- evaluation %>%
+  select(type, R0_error, D_error) %>% 
+  pivot_longer(c(R0_error, D_error)) %>% 
+  ungroup() %>% 
+  select(type, name, value)
+
+# Compute MAE per type/name group
+mae_labels <- plot_data %>%
+  group_by(type, name) %>%
+  summarise(mae = mean(abs(value), na.rm = TRUE), .groups = 'drop')
+
+# Join MAE back and create a combined label for the y-axis
+err_plot_data <- plot_data %>%
+  left_join(mae_labels, by = c("type", "name")) %>%
+  mutate(name = case_when(name == 'R0_error' ~ 'R0',
+                          name == 'D_error' ~ 'D')) %>% 
+  mutate(type_label = paste0(type, "\nMAE = ", round(mae, 2))) %>% 
+  arrange(type)
+
+
+ggarrange(
+  err_plot_data %>%
+  ggplot(aes(y = fct_inorder(type_label), x = abs(value), fill = type)) +
+  facet_grid(name ~ ., scales = "free_y") +
+    geom_boxplot(outliers = TRUE) +
+    scale_x_log10(labels = label_number()) +
+    scale_fill_manual(values = colors) +
+  labs(x = 'Absolute error', y = 'Model type') +
+    theme(strip.text.y = element_blank(),
+          plot.margin = margin(t = 20, r = 5, b = 5, l = 5),
+          legend.position = 'none'),
+  
+evaluation %>% 
+  select(type, R0_interval_width, D_interval_width) %>% 
+  pivot_longer(!type) %>% 
+  mutate(name = case_when(name == 'R0_interval_width' ~ 'R0',
+                          name == 'D_interval_width' ~ 'D')) %>% 
+  ggplot(aes(y = type, x = value, fill = type)) +
+  facet_grid(name~.) +
+  geom_boxplot(outliers = TRUE) +
+  scale_x_log10(labels = label_number()) +
+  scale_fill_manual(values = colors) +
+  labs(x = '95% interval width', y = '') +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        strip.text.y = element_blank(),
+        plot.margin = margin(t = 20, r = 5, b = 5, l = 5),
+          legend.position = 'none'),
+
+evaluation %>% 
+  select(type, R0_coverage, D_coverage) %>% 
+  pivot_longer(!type) %>% 
+  mutate(name = case_when(name == 'R0_coverage' ~ 'R0',
+                          name == 'D_coverage' ~ 'D')) %>% 
+  group_by(type, name, value) %>% 
+  tally() %>% 
+  group_by(type,  name) %>% 
+  mutate(prop = n/sum(n)) %>% 
+  filter(value) %>% 
+  ggplot(aes(x = prop, y = type, fill = type)) +
+  facet_grid(name~.) +
+  geom_col(width = 0.75, col = 'black') +
+  geom_vline(xintercept = 0.95, linetype = 'dotted') +
+  scale_fill_manual(values = colors) +
+  labs(x = '95% empirical coverage', y = '') +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        strip.text.y = element_blank(),
+        plot.margin = margin(t = 20, r = 5, b = 5, l = 5),
+          legend.position = 'none'),
+
+evaluation %>% 
+  select(type, R0_interval_score, D_interval_score) %>% 
+  pivot_longer(!type) %>% 
+  mutate(name = case_when(name == 'R0_interval_score' ~ 'R<sub>0</sub>',
+                          name == 'D_interval_score' ~ 'D')) %>% 
+  ggplot(aes(y = type, x = value, fill = type)) +
+  facet_grid(name~.) +
+  geom_boxplot(outliers = TRUE) +
+  scale_x_log10(labels = label_number()) +
+  scale_fill_manual(values = colors) +
+  labs(x = 'Interval score', y = '') +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.title.y = element_blank(),
+        strip.text.y = element_markdown(),
+        plot.margin = margin(t = 20, r = 5, b = 5, l = 5),
+          legend.position = 'none'),
+
+nrow = 1, widths = c(1.3, 1, 1.1, 1.3), labels = c('A', 'B', 'C', 'D'), label.x = c(0.29, 0.0, 0.0, 0.0), label.y = 1)
+```
+
+
+
+
+```{r}
+evaluation %>% 
+  group_by(type) %>% 
+  summarize(coverage_r0 = mean(R0_coverage),
+            coverage_d = mean(D_coverage))
+```
+
+
+
+
+
+```{r pairwise_evaluation}
+eval_wide <- evaluation %>%
+  select(sim_id, type, R0_error, D_error) %>% 
+  pivot_longer(c(R0_error, D_error)) %>% 
+  pivot_wider(names_from = type, values_from = c(value)) 
+
+# Define the metric columns we want to compare
+metric_cols <- c("Tree", "Case counts", "Combined", "Baseline")
+
+# Generate all unique pairs of these columns
+pairs <- combn(metric_cols, 2, simplify = FALSE)
+
+# Compute the difference for each pair, and stack into one long data frame
+diff_df <- map_dfr(pairs, function(p) {
+  eval_wide %>%
+    transmute(
+      sim_id,
+      name,
+      comparison = paste0(p[1], " - ", p[2]),
+      diff = abs(.data[[p[1]]]) - abs(.data[[p[2]]])
+    )
+})
+
+# Compute medians per name x comparison group
+median_df <- diff_df %>%
+  group_by(name, comparison) %>%
+  summarise(median_diff = median(diff, na.rm = TRUE), .groups = "drop")
+
+# Quantile of 0 within each group's distribution (i.e., % of values <= 0)
+quantile_df <- diff_df %>%
+  group_by(name, comparison) %>%
+  summarise(
+    pct_below_zero = mean(diff <= 0, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    label = paste0(percent(pct_below_zero, accuracy = 1))
+  ) %>%
+  ungroup()
+
+
+ggplot(diff_df, aes(x = diff)) +
+  facet_grid(comparison ~ name, scales = "free") +
+  geom_histogram(position = "identity", binwidth = 0.1) +
+  geom_text(
+    data = quantile_df,
+    aes(
+      x = 0,
+      y = Inf,
+      label = label,
+      vjust = 1.5 
+    ),
+    hjust = -0.05,
+    size = 3.2,
+    show.legend = FALSE,
+    inherit.aes = FALSE
+  ) +
+  geom_vline(xintercept = 0, linetype = 'dashed', col = 'red') +
+  labs(
+    x = "Difference",
+    y = "Count",
+  ) +
+  theme(strip.text.y = element_text(angle = 0))
+```
+
+
+
+
+
+## Replicate analysis
+
+
+```{r estimate_variance, fig.width=10, fig.height=5}
+evaluation %>% 
+  select(param_id, replicate, R0_true, D_true, type, R0_point_estimate, D_point_estimate) %>% 
+  pivot_longer(ends_with('estimate')) %>% 
+  group_by(type, name, param_id, R0_true, D_true) %>%
+  summarize(var = var(value, na.rm = TRUE)) %>% 
+  mutate(var = ifelse(var == 0, 0.01, var),
+         name = paste(gsub('_point_estimate', '', name), 'estimate'),
+         name = gsub('R0', 'R<sub>0</sub>', name),
+         type = factor(type, levels = rev(levels(type)))
+         ) %>% 
+  ggplot(aes(x = R0_true, y = D_true, col = var)) +
+  facet_grid(name~type) +
+  geom_point(alpha = 0.5) + 
+  scale_x_log10() +
+  scale_color_viridis_c(trans = 'log10') +
+  labs(col = 'Within-replicate\npoint estimate\nvariance', x = 'True R<sub>0</sub>', y = 'True D') +
+  theme(strip.text.y = element_markdown(),
+        axis.title.x = element_markdown())
+```
+
+
+## Evaluation by R0 and D
+
+```{r evaluation_parameters, fig.width=10, fig.height=5}
+ggarrange(evaluation %>% 
+  mutate(param = 'D') %>% 
+    select(type, param, sim_id, true_value=D_level, diff=D_abs_error, width=D_interval_width, interval_score=D_interval_score) %>% 
+  pivot_longer(c(diff, width, interval_score)) %>% 
+  mutate(type = factor(type, levels = (c('Baseline', 'Case counts', 'Tree', 'Combined'))),
+         name = case_when(name == 'diff' ~ 'Absolute error',
+                          name == 'width' ~ '95% interval width',
+                          name == 'interval_score' ~ 'Interval score',
+                          name == 'crps' ~ 'CRPS'),
+         name = factor(name, levels = c('Absolute error', '95% interval width', 'Interval score', 'CRPS'))) %>% 
+  ggplot(aes(y = true_value, x = value, col = type, fill = type)) +
+  facet_grid(~name, scales = 'free') +
+  ggridges::geom_density_ridges(scale = 0.5, alpha = 0.5) +
+    scale_x_log10() +
+  scale_color_manual(values = colors) +
+    scale_fill_manual(values = colors) +
+    labs(x = 'Evaluation metric', y = 'True D tercile', col = 'Model type', fill = 'Model type') +
+    theme(axis.title.x = element_blank(),
+          strip.text.x = element_blank(),
+          plot.margin = margin(t = 20, r = 5, b = 5, l = 5)),
+
+evaluation %>% 
+  mutate(param = 'R0') %>% 
+  select(type, param, sim_id, true_value=R0_level, diff=R0_abs_error, width=R0_interval_width, interval_score=R0_interval_score) %>% 
+  pivot_longer(c(diff, width, interval_score)) %>% 
+  mutate(type = factor(type, levels = (c('Baseline', 'Case counts', 'Tree', 'Combined'))),
+         name = case_when(name == 'diff' ~ 'Absolute error',
+                          name == 'width' ~ '95% interval width',
+                          name == 'interval_score' ~ 'Interval score',
+                          name == 'crps' ~ 'CRPS'),
+         name = factor(name, levels = c('Absolute error', '95% interval width', 'Interval score', 'CRPS'))) %>% 
+  ggplot(aes(y = true_value, x = value, col = type, fill = type)) +
+  facet_grid(~name, scales = 'free', switch = 'x') +
+  ggridges::geom_density_ridges(scale = 0.5, alpha = 0.5) +
+  scale_x_log10() +
+  scale_color_manual(values = colors) +
+  scale_fill_manual(values = colors) +
+    labs(x = 'Evaluation metric', y = 'True R<sub>0</sub> tercile', col = 'Model type', fill = 'Model type') +
+  theme(strip.placement = 'outside', 
+        axis.title.x = element_blank(),
+        axis.title.y = element_markdown()), 
+ncol = 1, heights = c(1, 1), common.legend = TRUE, labels = c(paste0('A', paste0(rep(' ', 53), collapse = ''), 'B', paste0(rep(' ', 54), collapse = ''), 'C'), ''), label.x = -0.215, legend = 'bottom')
+```
+
+
+## Posterior visualization
+
+
+```{r posterior, fig.width=10, fig.height=3.5}
+min_val  <- log10(min(param_scan$r))
+midpoint_val <- log10(1/(100*100)) # this depends on the grid size
+max_val <- log10(max(param_scan$r))
+
+param_scan %>% 
+  filter(param_id %in% c(334, 461, 540, 822, 1335, 1948, 2072, 3384, 4224)) %>% 
+  mutate(id = paste0('R<sub>0</sub> = ', round(R0_true, 2), '<br>D = ', round(D_true, 1))) %>% 
+  arrange(R0_level, D_level) %>% 
+  ggplot(aes(x = R0, y = recovery_time, fill = r)) +
+    facet_grid(type~fct_inorder(id)) +
+    geom_tile() +
+    geom_point(aes(x = R0_true, y = D_true), shape = 1) +
+  scale_x_log10() + 
+  scale_fill_gradientn(
+    colors = cmocean("balance", start = 0.1, end = 0.9)(100),
+    limits = c(min_val, max_val),
+    values = rescale((c(min_val, midpoint_val, max_val))),
+    trans = 'log10', 
+  ) +
+  labs(fill = 'Posterior\nprobability', y = 'D', x = 'R<sub>0</sub>') +
+  theme(axis.title.x = element_markdown(),
+        strip.text.x = element_markdown())
+```

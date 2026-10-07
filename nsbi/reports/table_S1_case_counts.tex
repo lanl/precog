@@ -1,0 +1,71 @@
+\begin{table}
+
+\caption{\label{tab:tab:tsfeatures}Spearman correlation of case count features with parameters}
+\centering
+\begin{tabular}[t]{llrr}
+\toprule
+Feature & Function & $R_0$ & $D$\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{4}{l}{\textbf{Autocorrelation \& Stationarity}}\\
+\hspace{1em}ACF (Lag 1) & acf\_features() & 0.42 & 0.42\\
+\hspace{1em}ACF (Lags 1-10) & acf\_features() & -0.17 & 0.59\\
+\hspace{1em}ACF (1st Diff, Lag 1) & acf\_features() & 0.71 & -0.50\\
+\hspace{1em}ACF (1st Diff, Lags 1-10) & acf\_features() & 0.40 & -0.35\\
+\hspace{1em}ACF (2nd Diff, Lag 1) & acf\_features() & 0.45 & -0.51\\
+\hspace{1em}ACF (2nd Diff, Lags 1-10) & acf\_features() & -0.25 & 0.30\\
+\hspace{1em}PACF (Lags 1-5) & pacf\_features() & 0.60 & -0.16\\
+\hspace{1em}PACF (1st Diff, Lags 1-5) & pacf\_features() & 0.18 & -0.37\\
+\hspace{1em}PACF (2nd Diff, Lags 1-5) & pacf\_features() & -0.66 & 0.48\\
+\hspace{1em}First Minimum of ACF & autocorr\_features() & 0.51 & 0.35\\
+\hspace{1em}First Zero of ACF & firstzero\_ac() & -0.24 & 0.69\\
+\hspace{1em}KPSS Unit Root Test & unitroot\_kpss() & 0.04 & 0.75\\
+\hspace{1em}Phillips-Perron Test & unitroot\_pp() & 0.05 & 0.11\\
+\hspace{1em}Autocorrelation (Lag 9) & autocorr\_features() & -0.31 & 0.68\\
+\addlinespace[0.3em]
+\multicolumn{4}{l}{\textbf{Trend \& Decomposition}}\\
+\hspace{1em}STL Trend Strength & stl\_features() & 0.28 & 0.20\\
+\hspace{1em}STL Residual ACF (Lag 1) & stl\_features() & 0.71 & -0.28\\
+\hspace{1em}STL Residual ACF (Lags 1-10) & stl\_features() & 0.67 & -0.35\\
+\hspace{1em}STL Spikiness & stl\_features() & 0.77 & -0.55\\
+\hspace{1em}STL Linearity & stl\_features() & -0.91 & 0.28\\
+\hspace{1em}STL Curvature & stl\_features() & 0.26 & 0.24\\
+\hspace{1em}Holt's Alpha & holt\_parameters() & 0.64 & -0.45\\
+\hspace{1em}Holt's Beta & holt\_parameters() & 0.65 & -0.29\\
+\addlinespace[0.3em]
+\multicolumn{4}{l}{\textbf{Volatility \& Nonlinear Dynamics}}\\
+\hspace{1em}ARCH ACF Heterogeneity & heterogeneity() & 0.15 & 0.37\\
+\hspace{1em}GARCH ACF Heterogeneity & heterogeneity() & 0.23 & 0.05\\
+\hspace{1em}ARCH R² Heterogeneity & heterogeneity() & 0.61 & -0.47\\
+\hspace{1em}GARCH R² Heterogeneity & heterogeneity() & 0.49 & -0.51\\
+\hspace{1em}ARCH LM Statistic & arch\_stat() & 0.73 & -0.40\\
+\hspace{1em}Nonlinearity & nonlinearity() & -0.29 & 0.02\\
+\hspace{1em}2D Embedding In-Circle (r=1) & autocorr\_features() & 0.02 & 0.47\\
+\hspace{1em}2D Embedding In-Circle (r=2) & autocorr\_features() & 0.03 & 0.47\\
+\hspace{1em}Motif Entropy (2-symbol) & autocorr\_features() & -0.54 & -0.37\\
+\hspace{1em}Time-Reversibility Statistic & autocorr\_features() & 0.63 & -0.46\\
+\hspace{1em}Symbolic RW Crossing Rate & autocorr\_features() & -0.67 & 0.43\\
+\hspace{1em}Outlier-Inclusion MDRMD & dist\_features() & -0.92 & -0.03\\
+\addlinespace[0.3em]
+\multicolumn{4}{l}{\textbf{Distributional Summary}}\\
+\hspace{1em}Crossing Points & crossing\_points() & -0.55 & 0.63\\
+\hspace{1em}Flat Spots & flat\_spots() & 0.19 & 0.77\\
+\hspace{1em}Lumpiness & lumpiness() & 0.31 & -0.30\\
+\hspace{1em}Stability & stability() & 0.07 & 0.27\\
+\hspace{1em}Proportion of Zeros & zero\_proportion() & -0.07 & 0.57\\
+\hspace{1em}Spectral Entropy & entropy() & 0.29 & -0.37\\
+\hspace{1em}Hurst Exponent & hurst() & 0.10 & 0.53\\
+\hspace{1em}Histogram Mode (10 bins) & dist\_features() & 0.79 & -0.48\\
+\addlinespace[0.3em]
+\multicolumn{4}{l}{\textbf{Regime Shifts \& Scale}}\\
+\hspace{1em}Max Level Shift & max\_level\_shift() & 0.72 & -0.37\\
+\hspace{1em}Time of Max Level Shift & max\_level\_shift() & -0.67 & 0.41\\
+\hspace{1em}Max Variance Shift & max\_var\_shift() & 0.74 & -0.36\\
+\hspace{1em}Time of Max Variance Shift & max\_var\_shift() & -0.68 & 0.43\\
+\hspace{1em}Max KL Divergence Shift & max\_kl\_shift() & 0.79 & 0.10\\
+\hspace{1em}Time of Max KL Shift & max\_kl\_shift() & -0.72 & 0.41\\
+\hspace{1em}Total Case Count & custom & 0.99 & 0.00\\
+\bottomrule
+\multicolumn{4}{l}{\rule{0pt}{1em}Total number of features: 49}\\
+\end{tabular}
+\end{table}

@@ -1,0 +1,42 @@
+# Simulation Parameters
+# Controls: Phase 1-2 (LHS sampling, XML generation, BEAST simulations)
+# Changing these triggers re-run of: Simulations and ALL downstream steps
+# Note: For post-processing settings (binning, tree stats, features), see processing_params.yaml
+
+# Simulation settings - SMALL TEST RUN (FINAL)
+n_train_params: 20     # Small test: 20 unique parameter combinations for training
+n_test_params: 5       # Small test: 5 unique parameter combinations for testing
+n_replicates: 2        # 2 replicates per parameter combination
+# Total: 40 training sims + 10 test sims = 50 BEAST runs
+# Note: 20 train params ensures 2 validation param sets for complex models (20 * 0.1 = 2)
+
+# Parameter bounds for LHS sampling
+# S: Susceptible population size
+S_min: 100
+S_max: 10000
+S_fixed: 5000  # NEW: Set to a number to fix S (estimate only R0 & recovery_time)
+                # Set to null or comment out to estimate all 3 parameters
+                # When fixed: S is used for simulations but NOT estimated by the model
+
+# R0: Basic reproductive number (sampled on log scale)
+# With frequency-dependent transmission, R0 is independent of population size
+R0_min: 1.0
+R0_max: 10.0
+
+# Recovery time: 1/gamma (days to recover)
+recovery_time_min: 1.0
+recovery_time_max: 14.0
+
+# Initial conditions
+initial_infected: 1
+min_recovered: 10  # Minimum R to consider outbreak successful
+
+# Random seeds for reproducibility
+# Set to null for random seeds (default), or set to specific numbers for reproducibility
+# When null, a random seed will be generated and logged for each run
+#
+# IMPORTANT: These LHS seeds are separate from the workflow_seed in nre_config.yaml
+# - LHS seeds: Control parameter sampling (frozen to avoid regenerating simulations)
+# - Workflow seed: Controls training/validation/evaluation (see nre_config.yaml)
+lhs_train_seed: 42        # For LHS parameter sampling (train set) - FIXED FOR TEST
+lhs_test_seed: 123        # For LHS parameter sampling (test set) - FIXED FOR TEST

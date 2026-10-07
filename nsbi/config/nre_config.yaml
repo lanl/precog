@@ -1,0 +1,99 @@
+# NRE Model Configuration
+# Neural Ratio Estimation for epidemic parameter inference
+
+# ============================================================================
+# Random Seed Configuration
+# ============================================================================
+# Set workflow_seed to control reproducibility of all training operations
+# - Set to null (or omit): Generates a random seed each run (printed for reference)
+# - Set to a number: Uses that seed for reproducible results
+# 
+# This master seed controls:
+#   - Training initialization and batch shuffling
+#   - Validation negative sample generation
+#   - All other random operations in training/evaluation
+# 
+# Note: LHS parameter sampling has separate frozen seeds (see simulation_params.yaml)
+#       to avoid regenerating the training/test datasets
+workflow_seed: 1930890722  # Set to number (e.g., 42) for reproducibility, null for random
+
+# NOTE: Data paths are now defined per-model in config/models_config.yaml
+# The legacy 'data:' section has been removed.
+
+# Model architecture - shared parameters
+model:
+  dropout_rate: 0.2
+  use_batch_norm: true
+  use_masking: true  # Enable masking by default (masks concatenated as features)
+
+# Model architecture definition
+# Single architecture used for all feature sets
+# To add more architectures in the future, add additional entries here
+model_sizes:
+  model:
+    hidden_dims: [64, 32, 16]
+    description: "Standard neural architecture - 3 hidden layers"
+
+# Training hyperparameters
+training:
+  batch_size: 64  # Increased from 32 for more stable gradients
+  max_epochs: 10000  # Large number - will stop early based on convergence
+  learning_rate: 0.0005  # Reduced from 0.001 for better stability
+  weight_decay: 0.0001
+  negative_ratio: 1.0  # Number of negative samples per positive sample (default=1 for permuted negatives)
+                       # With permuted negatives: 1 is recommended (hard task)
+                       # With prior_random negatives: 5-10 may be better (easier task)
+  validation_split: 0.1  # Use 10% of PARAMETERS (not simulations) for validation
+                         # IMPORTANT: Split happens at parameter level to prevent data leakage
+                         # All replicates of a given parameter stay together in train OR validation
+  log_interval: 10  # Print metrics every N epochs
+  save_interval: 50  # Save checkpoint every N epochs
+  
+  # Gradient clipping for stability
+  gradient_clipping:
+    enabled: true
+    max_norm: 1.0  # Clip gradients to prevent exploding gradients
+  
+  # Learning rate scheduler
+  lr_scheduler:
+    enabled: true
+    type: "ReduceLROnPlateau"
+    factor: 0.5  # Reduce LR by half when plateau detected
+    patience: 5  # Wait 5 epochs before reducing LR
+    min_lr: 1.0e-6  # Minimum learning rate
+  
+  # Early stopping based on loss convergence
+  early_stopping:
+    patience: 100  # Stop if no improvement for N epochs
+    min_delta: 0.0001  # Minimum change in loss to be considered improvement
+    monitor: "val_loss"  # Monitor validation loss for early stopping
+
+# Negative sampling strategy
+negative_sampling:
+  strategy: 'within_batch'  # Options: 'within_batch', 'cross_batch', 'prior_random'
+  
+  # Strategy details:
+  #
+  # 'within_batch': Permute θ within current batch (sbi approach) [RECOMMENDED]
+  #   - Shuffles/reorders the parameter values within each training batch
+  #   - Fast: O(B) per batch, no additional sampling needed
+  #   - Perfect marginal matching: negatives from same distribution as positives
+  #   - Works well for batch_size >= 32
+  #   - This is the standard approach used by the sbi package
+  #   - Use negative_ratio=1 (hard task, each θ seen once per epoch)
+  #
+  # 'cross_batch': Sample θ from full dataset (more diversity)
+  #   - Randomly samples parameters from entire dataset for each negative
+  #   - More diverse negatives, useful for small batches or imbalanced data
+  #   - Slower: O(B × N) operations per batch
+  #   - Can duplicate negatives within a batch (sampling with replacement)
+  #   - Use negative_ratio=1 (hard task, in-distribution negatives)
+  #
+  # 'prior_random': Sample θ from prior distribution (easy negatives)
+  #   - Samples completely new parameters from prior (not from dataset)
+  #   - Creates easy negatives (may be out-of-distribution)
+  #   - Model learns to recognize if (x,θ) looks like training distribution
+  #   - Use negative_ratio=5-10 (easier task, need more negatives)
+  #
+  # All strategies prevent self-matches: ensures param_id[i] != param_id[j]
+  # for negative pairs (x_i, θ_j), so replicates don't match with their own parameters.

@@ -1,0 +1,766 @@
+---
+title: "Simulations"
+format: html
+execute:
+  echo: false
+  message: false
+  warning: false
+knitr:
+  opts_chunk:
+    dev: ["png", "tiff"]
+    dpi: 300
+    # dev.args: { compression: "lzw" }
+---
+
+```{r}
+library(tidyverse)
+library(ggpubr)
+library(ape)
+library(ggtree)
+library(patchwork)
+library(scales)
+library(kableExtra)
+library(ggtext)
+
+theme_set(theme_bw() + theme(strip.background = element_blank()))
+
+params <- read_csv('../full_output/parameters/test_design.csv')
+
+case_counts <- lapply(list.files('../full_output/case_counts', full.names = TRUE), function(x){
+  read_csv(x) %>% mutate(sim_id = gsub('../full_output/case_counts/|_binned_case_counts.csv', '', x))
+}) %>% bind_rows()
+
+# example trees
+trees <- lapply(list.files('../full_output/trees/', full.names = TRUE, pattern = 'r0'), read.nexus)
+names(trees) <- gsub('.trees', '', list.files('../full_output/trees/', pattern = 'r0'))
+
+test_data <- read_csv('../full_output/tsfeatures_treefeatures/test_tsfeatures_treefeatures.csv')
+```
+
+```{r}
+params_sub <- params %>% 
+  filter(param_id %in% c(334, 461, 540, 822, 1335, 1948, 2072, 3384, 4224)) %>% 
+  mutate(
+    R0_level = cut(
+      R0,
+      breaks = quantile(R0, probs = seq(0, 1, 1/3)),
+      labels = str_to_sentence(c("low", "middle", "high")),
+      include.lowest = TRUE
+    ),
+    recovery_time_level = cut(
+      recovery_time,
+      breaks = quantile(recovery_time, probs = seq(0, 1, 1/3)),
+      labels = str_to_sentence(c("short", "medium", "long")),
+      include.lowest = TRUE
+    ),
+  id = paste0('R<sub>0</sub> = ', round(R0, 2), '<br>D = ', round(recovery_time, 1)),
+         R0_level = factor(paste(R0_level, 'R<sub>0</sub>'), levels = paste(str_to_sentence(c("low", "middle", "high")), 'R<sub>0</sub>')),
+         recovery_time_level = factor(paste(recovery_time_level, 'D'), levels = paste(str_to_sentence(c("short", "medium", "long")),'D')))
+```
+
+
+## Example case counts and trees
+
+```{r}
+ccdat <- case_counts %>% 
+  mutate(param_id = as.numeric(gsub('test_p|_r.*', '', sim_id)),
+         replicate = as.numeric(gsub('.*_r', '', sim_id))) %>% 
+  left_join(params_sub, by = "param_id")
+
+case_counts_plot <- ccdat %>%
+  ggplot(aes(x = day, y = case_count, color = factor(replicate), group = sim_id)) +
+  facet_grid(R0_level ~ recovery_time_level, scales = 'free') +
+  geom_line() +
+  # geom_text_npc(aes(label = id), npcx = 0.95, npcy = 0.9, check_overlap = TRUE, 
+  #                      size = 3, hjust = 1, color = "black") +
+  geom_richtext(data = ccdat %>% filter(replicate == 0) %>% group_by(sim_id, R0_level, recovery_time_level, id) %>% summarize(),
+                aes(label = id), x = Inf, y = Inf, #check_overlap = TRUE, 
+                       size = 3, color = "black",
+    fill = NA, label.color = NA) +
+  scale_color_grey() +
+  labs(x = 'Day', y = 'Case count', color = "Replicate") +
+  theme(strip.text.y = element_markdown())
+```
+
+
+```{r}
+max_depth <- max(sapply(trees, function(t) max(node.depth.edgelength(t))))
+
+tree_plots <- lapply(names(trees), function(x){
+  ggtree(trees[[x]], size = 0.1) + 
+    xlim(0, max_depth) 
+}) 
+names(tree_plots) <- gsub('test_p|_r0', '', names(trees))
+tree_plots[[9]] <- tree_plots[[9]] + geom_treescale(x = 300, y = 1000, width = 50, offset = 100, label = 'days', offset.label = -100)
+
+r0_levels <- levels(params_sub$R0_level)
+d_levels  <- levels(params_sub$recovery_time_level)
+
+grid_df <- params_sub %>%
+    mutate(id_padded = str_pad(param_id, width = 5, side = "left", pad = "0")) %>% 
+  rowwise() %>%
+  mutate(plot = list(tree_plots[[id_padded]] + labs(title = NULL))) %>%
+  ungroup() %>%
+  rowwise() %>%
+  mutate(depth = max(plot$data$x, na.rm = TRUE)) %>%
+  ungroup()
+
+# --- Compute per-column depth (max across rows within each column) ---
+col_depths <- grid_df %>%
+  group_by(recovery_time_level) %>%
+  summarise(col_depth = max(depth), .groups = "drop") %>%
+  arrange(recovery_time_level) %>%
+  pull(col_depth)
+
+# --- Apply consistent xlim per column so branch lengths stay comparable ---
+grid_df <- grid_df %>%
+  rowwise() %>%
+  mutate(
+    col_idx = as.integer(recovery_time_level),
+    plot = list(plot + xlim(0, col_depths[col_idx]))
+  ) %>%
+  ungroup()
+
+make_label <- function(label, angle = 0, size = 3.5) {
+  ggplot() +
+    annotate("richtext", x = 0, y = 0, label = label, angle = angle, size = size, fill = NA, label.color = NA) +
+    coord_cartesian(clip = "off") +   # <-- allow text to overflow panel bounds
+    theme_void() +
+    theme(plot.margin = margin(2, 2, 2, 2)) 
+}
+
+blank <- plot_spacer()
+
+# --- Column header row (widths match column depths) ---
+col_headers <- lapply(d_levels, make_label)
+top_row <- wrap_plots(c(list(blank), col_headers, list(blank)),
+                       nrow = 1,
+                       widths = c(0.05, col_depths, 0.15))
+
+row_headers <- lapply(r0_levels, make_label, angle = -90)
+
+body_rows <- lapply(seq_along(r0_levels), function(i) {
+  plots_this_row <- grid_df %>%
+    filter(R0_level == r0_levels[i]) %>%
+    arrange(recovery_time_level) %>%
+    pull(plot)
+
+  wrap_plots(c(list(blank), plots_this_row, list(row_headers[[i]])),
+             nrow = 1,
+             widths = c(0.05, col_depths, 0.15))
+})
+
+tree_plot <- wrap_plots(c(list(top_row), body_rows),
+                          ncol = 1, heights = c(0.08, rep(1, length(r0_levels))))
+```
+
+
+
+```{r simulation_examples, fig.width=12, fig.height=5}
+ggarrange(case_counts_plot, tree_plot, widths = c(1.2, 1), labels = 'AUTO')
+```
+
+## Features 
+
+```{r, fig.width=20, fig.height=10}
+ts_features <- names(test_data)[grepl('\\.', names(test_data)) | names(test_data) == 'total_case_count']
+tree_features <- names(test_data)[!grepl('\\.', names(test_data)) & !names(test_data) %in% c('sim_id', 'param_id', 'replicate', 'R0', 'recovery_time', 'total_case_count')]
+
+test_data_long <- test_data %>% 
+  pivot_longer(!c(sim_id, param_id, replicate, R0, recovery_time)) %>% 
+  group_by(name) %>% 
+  mutate(value = ifelse(is.infinite(value), NA, value),
+         # value_log = log10(value),
+         value_scaled = scale(value),
+         # value_log_scaled = scale(value_log)
+         ) %>%
+  ungroup() %>% 
+  mutate(feature_type = case_when(name %in% ts_features ~ 'case counts',
+                                  name %in% tree_features ~ 'tree'),
+         name = gsub('.*\\.', '', name))
+
+# test_data_long <- test_data_long %>%
+#   left_join(test_data_long %>%
+#   filter(value_scaled > -3 & value_scaled < 3)) %>%
+#   mutate(name = gsub('.*\\.', '', name))
+```
+
+```{r}
+# Create a named vector mapping ugly names -> pretty names
+name_lookup <- c(
+  "acf_features_diff1_acf1"    = "ACF (1st Diff, Lag 1)",
+  "acf_features_diff1_acf10"   = "ACF (1st Diff, Lags 1-10)",
+  "acf_features_diff2_acf1"    = "ACF (2nd Diff, Lag 1)",
+  "acf_features_diff2_acf10"   = "ACF (2nd Diff, Lags 1-10)",
+  "acf_features_x_acf1"        = "ACF (Lag 1)",
+  "acf_features_x_acf10"       = "ACF (Lags 1-10)",
+  "pacf_features_diff1x_pacf5" = "PACF (1st Diff, Lags 1-5)",
+  "pacf_features_diff2x_pacf5" = "PACF (2nd Diff, Lags 1-5)",
+  "pacf_features_x_pacf5"      = "PACF (Lags 1-5)",
+  "firstzero_ac"               = "First Zero of ACF",
+  "autocorr_features_ac_9"                  = "Autocorrelation (Lag 9)",
+  "autocorr_features_embed2_incircle_1"     = "2D Embedding In-Circle (r=1)",
+  "autocorr_features_embed2_incircle_2"     = "2D Embedding In-Circle (r=2)",
+  "autocorr_features_firstmin_ac"           = "First Minimum of ACF",
+  "autocorr_features_motiftwo_entro3"       = "Motif Entropy (2-symbol)",
+  "autocorr_features_trev_num"              = "Time-Reversibility Statistic",
+  "autocorr_features_walker_propcross"      = "Random Walker Crossing Prop.",
+  "nonlinearity_nonlinearity"                = "Nonlinearity",
+  "dist_features_histogram_mode_10"    = "Histogram Mode (10 bins)",
+  "dist_features_outlierinclude_mdrmd" = "Outlier-Inclusion MDRMD",
+  "entropy_entropy"                    = "Spectral Entropy",
+  "crossing_points_crossing_points"    = "Crossing Points",
+  "flat_spots_flat_spots"              = "Flat Spots",
+  "zero_proportion"                    = "Proportion of Zeros",
+  "heterogeneity_arch_acf"   = "ARCH ACF Heterogeneity",
+  "heterogeneity_arch_r2"    = "ARCH R² Heterogeneity",
+  "heterogeneity_garch_acf"  = "GARCH ACF Heterogeneity",
+  "heterogeneity_garch_r2"   = "GARCH R² Heterogeneity",
+  "holt_parameters_alpha" = "Holt's Alpha",
+  "holt_parameters_beta"  = "Holt's Beta",
+  "LM"                     = "ARCH LM",
+  "poly(time_idx, degree = 2, raw = FALSE)1" = "Time Trend (Linear)",
+  "poly(time_idx, degree = 2, raw = FALSE)2" = "Time Trend (Quadratic)",
+  "hurst_hurst"           = "Hurst Exponent",
+  "lumpiness_lumpiness"   = "Lumpiness",
+  "stability_stability"   = "Stability",
+  "max_kl_shift_max_kl_shift"       = "Max KL Divergence Shift",
+  "max_kl_shift_time_kl_shift"      = "Time of Max KL Shift",
+  "max_level_shift_max_level_shift" = "Max Level Shift",
+  "max_level_shift_time_level_shift"= "Time of Max Level Shift",
+  "max_var_shift_max_var_shift"     = "Max Variance Shift",
+  "max_var_shift_time_var_shift"    = "Time of Max Variance Shift",
+  "stl_features_curvature" = "STL Curvature",
+  "stl_features_e_acf1"    = "STL Residual ACF (Lag 1)",
+  "stl_features_e_acf10"   = "STL Residual ACF (Lags 1-10)",
+  "stl_features_linearity" = "STL Linearity",
+  "stl_features_spike"     = "STL Spikiness",
+  "stl_features_trend"     = "STL Trend Strength",
+  "series_length_series_length" = "Series Length",
+  "total_case_count"             = "Total Case Count",
+  "unitroot_kpss"                = "KPSS Unit Root Test",
+  "unitroot_pp"                   = "Phillips-Perron Unit Root Test",
+  "area_per_pair"             = "Area per Pair",
+  "average_leaf_depth"        = "Average Leaf Depth",
+  "avg_ladder"                = "Average Ladder Length",
+  "avg_vert_depth"            = "Average Vertex Depth",
+  "b1"                        = "B1 Balance Index",
+  "b2"                        = "B2 Balance Index",
+  "beta"                      = "Beta Statistic",
+  "blum"                      = "Blum Statistic",
+  "cherries"                  = "Number of Cherries",
+  "colless"                   = "Colless Index",
+  "colless_corr"              = "Corrected Colless Index",
+  "colless_quad"              = "Quadratic Colless Index",
+  "diameter"                  = "Tree Diameter",
+  "double_cherries"           = "Double Cherries",
+  "ew_colless"                = "Equal-Weights Colless Index",
+  "four_prong"                = "Four-Prongs",
+  "i_stat"                    = "Fusco-Cronk I Statistic",
+  "il_number"                 = "IL Number",
+  "j_one"                     = "Shao & Sokal J1 Index",
+  "j_stat"                    = "Entropy-Based J Statistic",
+  "max_betweenness"           = "Max Betweenness",
+  "max_closeness"             = "Max Closeness",
+  "max_closenessW"            = "Max Weighted Closeness",
+  "max_del_width"             = "Max Delta Width",
+  "max_depth"                 = "Max Depth",
+  "max_ladder"                = "Max Ladder Length",
+  "max_width"                 = "Max Width",
+  "mean_branch_length"        = "Mean Branch Length",
+  "mean_branch_length_ext"    = "Mean External Branch Length",
+  "mean_branch_length_int"    = "Mean Internal Branch Length",
+  "mpd"                       = "Mean Pairwise Distance",
+  "mw_over_md"                = "Max Width / Max Depth",
+  "number_of_lineages"        = "Number of Lineages",
+  "pitchforks"                = "Pitchforks",
+  "psv"                       = "Phylo. Species Variability",
+  "rogers"                    = "Rogers Index",
+  "root_imbalance"            = "Root Imbalance",
+  "rquartet"                  = "Rquartet Index",
+  "sackin"                    = "Sackin Index",
+  "stairs"                    = "Stairs",
+  "stairs2"                   = "Stairs2",
+  "symmetry_nodes"            = "Symmetric Nodes",
+  "tot_coph"                  = "Total Cophenetic Index",
+  "tot_internal_path"         = "Total Internal Path Length",
+  "tot_path"                  = "Total Path Length",
+  "treeness"                  = "Treeness",
+  "var_branch_length"         = "Variance of Branch Length",
+  "var_branch_length_ext"     = "External Branch Length Var.",
+  "var_branch_length_int"     = "Internal Branch Length Var.",
+  "var_depth"                 = "Variance of Depth",
+  "wiener"                    = "Wiener Index"
+)
+
+# Function to apply the lookup, falling back to original name if not found
+prettify_name <- function(x) {
+  ifelse(x %in% names(name_lookup), name_lookup[x], x)
+}
+```
+
+
+```{r}
+length(ts_features)
+length(tree_features)
+```
+
+
+### Variance 
+
+```{r}
+vars <- test_data_long %>% 
+  group_by(feature_type, name, param_id, R0, recovery_time) %>% 
+  summarize(var = var(value_scaled, na.rm = TRUE))
+
+summary(vars$var)
+```
+
+
+```{r feature_variance, fig.width=7, fig.height=3.5}
+vars %>% 
+  mutate(R0 = round(R0),
+         recovery_time = round(recovery_time)) %>% 
+  group_by(feature_type, R0, D=recovery_time) %>% 
+  summarize(var = mean(var, na.rm = TRUE)) %>% 
+  ggplot(aes(x = R0, y = D, fill = var)) +
+  facet_wrap(~str_to_sentence(feature_type)) +
+  geom_tile() +
+  scale_fill_viridis_c(trans = 'log10') +
+  labs(fill = 'Mean\nwithin-replicate\nfeature variance\n', x = 'R<sub>0</sub>') +
+  theme(axis.title.x = element_markdown())
+```
+
+
+### Correlations
+
+```{r}
+cors <- test_data_long %>% 
+  filter(!is.na(value)) %>% 
+  group_by(feature_type, name) %>% 
+  pivot_longer(c(R0, recovery_time), names_to = 'parameter_name', values_to = 'parameter_value') %>%
+  group_by(parameter_name, feature_type, name) %>% 
+  summarize(cor_spearman = cor(parameter_value, value, method = 'spearman'),
+            cor_pearson = cor(parameter_value, value, method = 'pearson'))
+
+cors %>% 
+  group_by(parameter_name, feature_type) %>% 
+  summarize(n_gt8 = sum(abs(cor_spearman) > 0.8, na.rm = TRUE),
+            tot = n(),
+            prop_gt8 = mean(abs(cor_spearman) > 0.8, na.rm = TRUE))
+```
+
+```{r}
+# ---------------------------------------------------------
+# Reusable function: filter to target-relevant features, 
+# then deduplicate correlated features within that set
+# ---------------------------------------------------------
+select_representative_features <- function(data,
+                                             feature_type_filter,
+                                             target_vars = c("R0", "recovery_time"),
+                                             target_cor_threshold = 0.8,
+                                             redundancy_h = 0.2) {
+
+  # --- Step 1: Compute correlation of each feature with each target variable ---
+  target_cors <- data %>%
+    filter(feature_type == feature_type_filter) %>%
+    select(sim_id, name, value_scaled) %>%
+    left_join(
+      data %>% distinct(sim_id, across(all_of(target_vars))),
+      by = "sim_id"
+    ) %>%
+    group_by(name) %>%
+    summarise(
+      across(all_of(target_vars),
+             ~ abs(cor(value_scaled, .x, method = "spearman", use = "complete.obs")),
+             .names = "cor_{.col}"),
+      .groups = "drop"
+    ) %>%
+    rowwise() %>%
+    mutate(
+      max_target_cor = max(c_across(starts_with("cor_")), na.rm = TRUE),
+      avg_target_cor = mean(c_across(starts_with("cor_")), na.rm = TRUE)
+    ) %>%
+    ungroup()
+
+  # --- Step 2: Keep only features strongly correlated with at least one target ---
+  relevant_features <- target_cors %>%
+    filter(max_target_cor > target_cor_threshold) %>%
+    pull(name)
+
+  message(sprintf("[%s] %d / %d features passed target-correlation filter (>%.2f)",
+                   feature_type_filter, length(relevant_features), nrow(target_cors),
+                   target_cor_threshold))
+
+  if (length(relevant_features) == 0) {
+    warning("No features passed the target correlation threshold.")
+    return(list(keep = character(0), relevant = character(0)))
+  }
+
+  # --- Step 3: Build feature matrix restricted to relevant features ---
+  feature_matrix <- data %>%
+    filter(feature_type == feature_type_filter, name %in% relevant_features) %>%
+    select(sim_id, name, value_scaled) %>%
+    pivot_wider(names_from = name, values_from = value_scaled) %>%
+    select(-sim_id)
+
+  # Remove zero-variance columns (safety check)
+  feature_matrix <- feature_matrix %>%
+    select(where(~ sd(., na.rm = TRUE) > 0))
+
+  # If only one feature survives, no clustering needed
+  if (ncol(feature_matrix) <= 1) {
+    return(list(keep = colnames(feature_matrix), relevant = relevant_features))
+  }
+
+  # --- Step 4: Correlation-based clustering among relevant features only ---
+  cor_matrix <- cor(feature_matrix, use = "pairwise.complete.obs", method = "spearman")
+  dist_matrix <- as.dist(1 - abs(cor_matrix))
+  hc <- hclust(dist_matrix, method = "average")
+  clusters <- cutree(hc, h = redundancy_h)
+
+  cluster_df <- data.frame(
+    name = names(clusters),
+    cluster = clusters
+  )
+
+  # --- Step 5: Pick one representative per cluster (highest target correlation) ---
+  representative_features <- cluster_df %>%
+    left_join(target_cors, by = "name") %>%
+    group_by(cluster) %>%
+    slice_max(max_target_cor, n = 1, with_ties = FALSE) %>%
+    ungroup()
+
+  list(keep = representative_features$name, relevant = relevant_features)
+}
+
+# ---------------------------------------------------------
+# Apply to 'case counts' and 'tree' feature types
+# ---------------------------------------------------------
+result_cases <- select_representative_features(
+  test_data_long,
+  feature_type_filter = "case counts",
+  target_vars = c("R0", "recovery_time")
+)
+keep_features_cases <- result_cases$keep
+relevant_features_cases <- result_cases$relevant
+
+result_tree <- select_representative_features(
+  test_data_long,
+  feature_type_filter = "tree",
+  target_vars = c("R0", "recovery_time")
+)
+keep_features_tree <- result_tree$keep
+relevant_features_tree <- result_tree$relevant
+```
+
+
+
+
+```{r correlations, fig.width=15, fig.height=5}
+# --- Full (unfiltered) data: used ONLY to calculate correlation ---
+full_df <- test_data_long %>% 
+  filter(!is.na(value)) %>% 
+  filter(name %in% c(relevant_features_cases, keep_features_tree) & name != 'number_of_lineages') %>% 
+  mutate(name_pretty = prettify_name(name))
+
+# --- Truncated data: used ONLY for plotting hexbins (identical to your original) ---
+plot_df <- full_df %>% 
+  filter(value_scaled > -3 & value_scaled < 3)
+
+# --- Compute correlation stats manually on FULL data ---
+compute_cor_labels <- function(df, x_var, feature_type_val, label_y = 2.6) {
+  df %>% 
+    filter(feature_type == feature_type_val) %>% 
+    group_by(name_pretty) %>% 
+    summarise(
+      rho = cor(.data[[x_var]], value_scaled, method = "spearman", use = "complete.obs"),
+      x_pos = min(.data[[x_var]], na.rm = TRUE),   # anchor near left edge of data
+      .groups = "drop"
+    ) %>% 
+    mutate(
+      label = paste0("rho == ", formatC(signif(rho, 2), digits = 2, format = "fg", flag = "#")),
+      y_pos = label_y  
+    )
+}
+
+# --- Panel builder ---
+make_panel <- function(display_df, corr_df, x_var, x_label, feature_type_val) {
+  
+  panel_data <- display_df %>% filter(feature_type == feature_type_val)
+  cor_labels <- compute_cor_labels(corr_df, x_var, feature_type_val)
+  
+  ggplot(panel_data, aes(x = .data[[x_var]], y = value_scaled)) +
+    geom_hex(bins = 30) +   # explicit bins, keeps binning consistent
+    geom_text(
+      data = cor_labels,
+      aes(x = x_pos, y = y_pos, label = label),
+      parse = TRUE,
+      hjust = 0, vjust = 1,
+      inherit.aes = FALSE,
+      size = 3.2,
+      color = "black"
+    ) +
+    coord_cartesian(ylim = c(-3, 3)) +
+    facet_grid(~ name_pretty, scales = "free_x") +
+    scale_x_continuous(breaks = breaks_pretty()) +
+    scale_fill_viridis_c(option = 'A', direction = -1,
+                          breaks = breaks_pretty(n = 3), limits = c(0, 2500)) +
+    labs(x = x_label, y = 'Scaled feature value', fill = 'Number of simulations')
+}
+
+# Build panels
+p_D_case  <- make_panel(plot_df, full_df, "recovery_time", "D",   "case counts")
+p_D_tree  <- make_panel(plot_df, full_df, "recovery_time", "D",   "tree")
+p_R0_case <- make_panel(plot_df, full_df, "R0",             "R0", "case counts")
+p_R0_tree <- make_panel(plot_df, full_df, "R0",             "R0", "tree")
+
+ggarrange(
+  p_D_case +
+    theme(plot.margin = unit(c(20,5.5,5.5,5.5), units = 'pt')),
+  p_D_tree + theme(axis.title.y = element_blank(),
+                   axis.text.y = element_blank(),
+                   axis.ticks.y = element_blank(),
+                   plot.margin = unit(c(20,5.5,5.5,5.5), units = 'pt')),
+  p_R0_case + 
+    scale_x_log10() +
+    labs(x = 'R<sub>0</sub>') +
+    theme(strip.text.x = element_blank(),
+          axis.title.x = element_markdown()), 
+  p_R0_tree + scale_x_log10() + 
+    labs(x = 'R<sub>0</sub>') +
+    theme(axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+                   axis.ticks.y = element_blank(),
+          strip.text.x = element_blank(),
+          axis.title.x = element_markdown()),
+  common.legend = TRUE,
+  labels = c('A Case counts', 'B Tree', '', ''), 
+  label.x = c(-0.02, -0.02),
+  legend = 'bottom',
+  heights = c(1.25, 1),
+  widths = c(3, 4)
+)
+```
+
+
+### Tables
+
+```{r}
+# Regenerates Table 1 (case-count features) and Table 2 (tree features)
+# directly from the `dput()` correlation tibble -- no manual transcription.
+
+# ---------------------------------------------------------------------------
+# 1. Metadata: map internal feature name -> category, display label, fn call
+# ---------------------------------------------------------------------------
+
+case_meta <- tribble(
+  ~name, ~category, ~display, ~fn, ~order,
+
+  # --- Autocorrelation & Stationarity ---
+  "acf_features_x_acf1",                 "Autocorrelation & Stationarity", "ACF (Lag 1)",                   "acf\\_features()",      1,
+  "acf_features_x_acf10",                "Autocorrelation & Stationarity", "ACF (Lags 1-10)",               "acf\\_features()",      2,
+  "acf_features_diff1_acf1",             "Autocorrelation & Stationarity", "ACF (1st Diff, Lag 1)",         "acf\\_features()",      3,
+  "acf_features_diff1_acf10",            "Autocorrelation & Stationarity", "ACF (1st Diff, Lags 1-10)",     "acf\\_features()",      4,
+  "acf_features_diff2_acf1",             "Autocorrelation & Stationarity", "ACF (2nd Diff, Lag 1)",         "acf\\_features()",      5,
+  "acf_features_diff2_acf10",            "Autocorrelation & Stationarity", "ACF (2nd Diff, Lags 1-10)",     "acf\\_features()",      6,
+  "pacf_features_x_pacf5",                "Autocorrelation & Stationarity", "PACF (Lags 1-5)",               "pacf\\_features()",     7,
+  "pacf_features_diff1x_pacf5",           "Autocorrelation & Stationarity", "PACF (1st Diff, Lags 1-5)",     "pacf\\_features()",     8,
+  "pacf_features_diff2x_pacf5",           "Autocorrelation & Stationarity", "PACF (2nd Diff, Lags 1-5)",     "pacf\\_features()",     9,
+  "autocorr_features_firstmin_ac",        "Autocorrelation & Stationarity", "First Minimum of ACF",          "autocorr\\_features()", 10,
+  "firstzero_ac",                         "Autocorrelation & Stationarity", "First Zero of ACF",             "firstzero\\_ac()",      11,
+  "unitroot_kpss",                        "Autocorrelation & Stationarity", "KPSS Unit Root Test",           "unitroot\\_kpss()",     12,
+  "unitroot_pp",                          "Autocorrelation & Stationarity", "Phillips-Perron Test",          "unitroot\\_pp()",       13,
+  "autocorr_features_ac_9",               "Autocorrelation & Stationarity", "Autocorrelation (Lag 9)",       "autocorr\\_features()", 14,
+
+  # --- Trend & Decomposition ---
+  "stl_features_trend",                   "Trend & Decomposition", "STL Trend Strength",           "stl\\_features()",    15,
+  "stl_features_e_acf1",                  "Trend & Decomposition", "STL Residual ACF (Lag 1)",     "stl\\_features()",    16,
+  "stl_features_e_acf10",                 "Trend & Decomposition", "STL Residual ACF (Lags 1-10)", "stl\\_features()",    17,
+  "stl_features_spike",                   "Trend & Decomposition", "STL Spikiness",                "stl\\_features()",    18,
+  "stl_features_linearity",               "Trend & Decomposition", "STL Linearity",                "stl\\_features()",    19,
+  "stl_features_curvature",               "Trend & Decomposition", "STL Curvature",                "stl\\_features()",    20,
+  "holt_parameters_alpha",                "Trend & Decomposition", "Holt's Alpha",                 "holt\\_parameters()", 21,
+  "holt_parameters_beta",                 "Trend & Decomposition", "Holt's Beta",                  "holt\\_parameters()", 22,
+
+  # --- Volatility & Nonlinear Dynamics ---
+  "heterogeneity_arch_acf",               "Volatility & Nonlinear Dynamics", "ARCH ACF Heterogeneity",       "heterogeneity()",       23,
+  "heterogeneity_garch_acf",              "Volatility & Nonlinear Dynamics", "GARCH ACF Heterogeneity",      "heterogeneity()",       24,
+  "heterogeneity_arch_r2",                 "Volatility & Nonlinear Dynamics", "ARCH R\u00b2 Heterogeneity",   "heterogeneity()",       25,
+  "heterogeneity_garch_r2",                "Volatility & Nonlinear Dynamics", "GARCH R\u00b2 Heterogeneity",  "heterogeneity()",       26,
+  "LM",                                    "Volatility & Nonlinear Dynamics", "ARCH LM Statistic",            "arch\\_stat()",         27,
+  "nonlinearity_nonlinearity",             "Volatility & Nonlinear Dynamics", "Nonlinearity",                 "nonlinearity()",        28,
+  "autocorr_features_embed2_incircle_1",   "Volatility & Nonlinear Dynamics", "2D Embedding In-Circle (r=1)", "autocorr\\_features()", 29,
+  "autocorr_features_embed2_incircle_2",   "Volatility & Nonlinear Dynamics", "2D Embedding In-Circle (r=2)", "autocorr\\_features()", 30,
+  "autocorr_features_motiftwo_entro3",     "Volatility & Nonlinear Dynamics", "Motif Entropy (2-symbol)",     "autocorr\\_features()", 31,
+  "autocorr_features_trev_num",            "Volatility & Nonlinear Dynamics", "Time-Reversibility Statistic", "autocorr\\_features()", 32,
+  "autocorr_features_walker_propcross",    "Volatility & Nonlinear Dynamics", "Symbolic RW Crossing Rate",    "autocorr\\_features()", 33,
+  "dist_features_outlierinclude_mdrmd",    "Volatility & Nonlinear Dynamics", "Outlier-Inclusion MDRMD",      "dist\\_features()",     34,
+
+  # --- Distributional Summary ---
+  "crossing_points_crossing_points",       "Distributional Summary", "Crossing Points",         "crossing\\_points()", 35,
+  "flat_spots_flat_spots",                 "Distributional Summary", "Flat Spots",              "flat\\_spots()",      36,
+  "lumpiness_lumpiness",                   "Distributional Summary", "Lumpiness",               "lumpiness()",         37,
+  "stability_stability",                   "Distributional Summary", "Stability",               "stability()",         38,
+  "zero_proportion",                       "Distributional Summary", "Proportion of Zeros",     "zero\\_proportion()", 39,
+  "entropy_entropy",                       "Distributional Summary", "Spectral Entropy",        "entropy()",           40,
+  "hurst_hurst",                           "Distributional Summary", "Hurst Exponent",          "hurst()",             41,
+  "dist_features_histogram_mode_10",       "Distributional Summary", "Histogram Mode (10 bins)","dist\\_features()",   42,
+
+  # --- Regime Shifts & Scale ---
+  "max_level_shift_max_level_shift",       "Regime Shifts & Scale", "Max Level Shift",            "max\\_level\\_shift()", 43,
+  "max_level_shift_time_level_shift",      "Regime Shifts & Scale", "Time of Max Level Shift",     "max\\_level\\_shift()", 44,
+  "max_var_shift_max_var_shift",           "Regime Shifts & Scale", "Max Variance Shift",          "max\\_var\\_shift()",   45,
+  "max_var_shift_time_var_shift",          "Regime Shifts & Scale", "Time of Max Variance Shift",  "max\\_var\\_shift()",   46,
+  "max_kl_shift_max_kl_shift",             "Regime Shifts & Scale", "Max KL Divergence Shift",     "max\\_kl\\_shift()",    47,
+  "max_kl_shift_time_kl_shift",            "Regime Shifts & Scale", "Time of Max KL Shift",        "max\\_kl\\_shift()",    48,
+  "total_case_count",                      "Regime Shifts & Scale", "Total Case Count",       "custom",                49
+)
+
+tree_meta <- tribble(
+  ~name, ~category, ~display, ~fn, ~order,
+
+  # --- Balance & Topology ---
+  "colless",           "Balance & Topology", "Colless Index",           "colless()",              1,
+  "colless_corr",      "Balance & Topology", "Corrected Colless Index", "colless\\_corr()",       2,
+  "colless_quad",      "Balance & Topology", "Quadratic Colless Index", "colless\\_quad()",       3,
+  "ew_colless",        "Balance & Topology", "Equal-Weights Colless",   "ew\\_colless()",         4,
+  "sackin",            "Balance & Topology", "Sackin Index",            "sackin()",               5,
+  "b1",                "Balance & Topology", "B1 Balance Index",        "b1()",                   6,
+  "b2",                "Balance & Topology", "B2 Balance Index",        "b2()",                   7,
+  "beta",              "Balance & Topology", "Beta Statistic",          "beta\\_statistic()",     8,
+  "blum",              "Balance & Topology", "Blum Statistic",          "blum()",                 9,
+  "rogers",            "Balance & Topology", "Rogers Index",            "rogers()",               10,
+  "root_imbalance",    "Balance & Topology", "Root Imbalance",          "root\\_imbalance()",     11,
+  "rquartet",          "Balance & Topology", "Rquartet Index",          "rquartet()",             12,
+  "cherries",          "Balance & Topology", "Number of Cherries",      "cherries()",             13,
+  "double_cherries",   "Balance & Topology", "Double Cherries",         "double\\_cherries()",    14,
+  "four_prong",        "Balance & Topology", "Four-Prongs",             "four\\_prong()",         15,
+  "pitchforks",        "Balance & Topology", "Pitchforks",              "pitchforks()",           16,
+  "stairs",            "Balance & Topology", "Stairs",                  "stairs()",               17,
+  "stairs2",           "Balance & Topology", "Stairs2",                 "stairs2()",              18,
+  "avg_ladder",        "Balance & Topology", "Average Ladder Length",   "avg\\_ladder()",         19,
+  "max_ladder",        "Balance & Topology", "Max Ladder Length",       "max\\_ladder()",         20,
+  "il_number",         "Balance & Topology", "IL Number",               "ILnumber()",             21,
+  "symmetry_nodes",    "Balance & Topology", "Symmetric Nodes",         "sym\\_nodes()",          22,
+  "tot_path",          "Balance & Topology", "Total Path Length",      "tot\\_path\\_length()",  23,
+
+  # --- Branch Length & Distance ---
+  "mean_branch_length",     "Branch Length & Distance", "Mean Branch Length",           "mean\\_branch\\_length()",      1,
+  "mean_branch_length_int", "Branch Length & Distance", "Mean Internal Branch Length",  "mean\\_branch\\_length\\_int()",2,
+  "mean_branch_length_ext", "Branch Length & Distance", "Mean External Branch Length",  "mean\\_branch\\_length\\_ext()",3,
+  "var_branch_length",      "Branch Length & Distance", "Variance of Branch Length",    "var\\_branch\\_length()",       4,
+  "var_branch_length_int",  "Branch Length & Distance", "Internal Branch Length Var.",  "var\\_branch\\_length\\_int()", 5,
+  "var_branch_length_ext",  "Branch Length & Distance", "External Branch Length Var.",  "var\\_branch\\_length\\_ext()", 6,
+  "tot_coph",               "Branch Length & Distance", "Total Cophenetic Index",       "tot\\_coph()",                  7,
+  "area_per_pair",          "Branch Length & Distance", "Area per Pair",                "area\\_per\\_pair()",           8,
+  "mpd",                    "Branch Length & Distance", "Mean Pairwise Distance",       "mean\\_pair\\_dist()",          9,
+  "tot_internal_path",      "Branch Length & Distance", "Total Internal Path Length",   "tot\\_internal\\_path()",       10,
+  "wiener",                 "Branch Length & Distance", "Wiener Index",                 "wiener()",                      11,
+
+  # --- Tree Shape, Size & Centrality ---
+  "diameter",            "Tree Shape, Size & Centrality", "Tree Diameter",          "diameter()",                1,
+  "max_depth",           "Tree Shape, Size & Centrality", "Max Depth",              "max\\_depth()",             2,
+  "max_width",           "Tree Shape, Size & Centrality", "Max Width",              "max\\_width()",             3,
+  "average_leaf_depth",  "Tree Shape, Size & Centrality", "Average Leaf Depth",     "average\\_leaf\\_depth()", 4,
+  "max_del_width",       "Tree Shape, Size & Centrality", "Max Delta Width",        "max\\_del\\_width()",      5,
+  "var_depth",           "Tree Shape, Size & Centrality", "Variance of Depth",      "var\\_leaf\\_depth()",     6,
+  "avg_vert_depth",      "Tree Shape, Size & Centrality", "Average Vertex Depth",   "avg\\_vert\\_depth()",     7,
+  "number_of_lineages",  "Tree Shape, Size & Centrality", "Number of Lineages",     "number\\_of\\_lineages()", 8,
+  "treeness",            "Tree Shape, Size & Centrality", "Treeness",               "treeness()",                9,
+  "mw_over_md",          "Tree Shape, Size & Centrality", "Max Width / Max Depth",  "mw\\_over\\_md()",         10,
+  "max_betweenness",     "Tree Shape, Size & Centrality", "Max Betweenness",        "max\\_betweenness()",      11,
+  "max_closeness",       "Tree Shape, Size & Centrality", "Max Closeness",          "max\\_closeness(weight=F)",12,
+  "max_closenessW",      "Tree Shape, Size & Centrality", "Max Weighted Closeness", "max\\_closeness(weight=T)",13,
+
+  # --- Diversification & Information Content ---
+  "i_stat", "Diversification & Information Content", "Fusco-Cronk I Statistic",    "mean\\_i()",     1,
+  "j_one",  "Diversification & Information Content", "Shao \\& Sokal J1 Index",    "j\\_one()",      2,
+  "j_stat", "Diversification & Information Content", "Entropy-Based J Statistic",  "entropy\\_j()",  3,
+  "psv",    "Diversification & Information Content", "Phylo. Species Variability", "psv()",          4
+)
+
+cat_order_case <- c(
+  "Autocorrelation & Stationarity", "Trend & Decomposition",
+  "Volatility & Nonlinear Dynamics", "Distributional Summary",
+  "Regime Shifts & Scale"
+)
+
+cat_order_tree <- c(
+  "Balance & Topology", "Branch Length & Distance",
+  "Tree Shape, Size & Centrality",
+  "Diversification & Information Content"
+)
+
+# ---------------------------------------------------------------------------
+# 2. Build a wide table: one row per feature, R0 and D spearman correlations
+# ---------------------------------------------------------------------------
+
+build_table <- function(df, meta, feature_type_filter, cat_order) {
+  wide <- df %>%
+    filter(feature_type == feature_type_filter) %>%
+    select(parameter_name, name, cor_spearman) %>%
+    pivot_wider(names_from = parameter_name, values_from = cor_spearman)
+
+  out <- meta %>%
+    left_join(wide, by = "name") %>%
+    mutate(
+      category = factor(category, levels = cat_order),
+      R0 = sprintf("%.2f", R0),
+      D  = sprintf("%.2f", recovery_time)
+    ) %>%
+    arrange(category, order) %>%
+    select(name, category, display, fn, R0, D)
+
+  # sanity check: flag any metadata row that failed to join (no match in df)
+  missing <- out %>% filter(is.na(R0) | R0 == "NA")
+  if (nrow(missing) > 0) {
+    warning("Unmatched feature names (check spelling against df$name):\n",
+            paste(missing$name, collapse = ", "))
+  }
+
+  out
+}
+
+case_tbl <- build_table(cors, case_meta, "case counts", cat_order_case)
+tree_tbl <- build_table(cors, tree_meta, "tree",        cat_order_tree)
+
+# ---------------------------------------------------------------------------
+# 3. Emit LaTeX with kableExtra (pack_rows recreates the multirow category
+#    grouping seen in Table S1 / S2)
+# ---------------------------------------------------------------------------
+
+make_latex <- function(tbl, caption, label) {
+  n_features <- nrow(tbl)
+  k <- kbl(
+    tbl %>% select(display, fn, R0, D),
+    format = "latex", booktabs = TRUE, escape = FALSE,
+    caption = caption, label = label,
+    col.names = c("Feature", "Function", "$R_0$", "$D$"),
+    align = c("l", "l", "r", "r")
+  )
+  grp_sizes <- tbl %>% count(category, .drop = FALSE) %>% filter(n > 0)
+  for (i in seq_len(nrow(grp_sizes))) {
+    start <- sum(grp_sizes$n[seq_len(i - 1)]) + 1
+    end   <- sum(grp_sizes$n[seq_len(i)])
+    k <- pack_rows(k, as.character(grp_sizes$category[i]), start, end)
+  }
+  k <- footnote(k, general = paste0("Total number of features: ", n_features),
+                general_title = "", footnote_as_chunk = TRUE)
+  k
+}
+
+latex_case <- make_latex(case_tbl, "Spearman correlation of case count features with parameters", "tab:tsfeatures")
+latex_tree <- make_latex(tree_tbl, "Spearman correlation of tree features with parameters", "tab:treefeatures")
+
+writeLines(latex_case, "table_S1_case_counts.tex")
+writeLines(latex_tree, "table_S2_tree_features.tex")
+
+cat("Tables written:\n  table_S1_case_counts.tex\n  table_S2_tree_features.tex\n")
+```
+
+
+
+
+
+

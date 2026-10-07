@@ -1,0 +1,58 @@
+======================================================================
+HPD Credible Regions Summary
+======================================================================
+
+Method: Highest Posterior Density (HPD)
+  - Bayesian credible regions from neural ratio estimator
+  - Assumes flat prior
+  - No calibration step (unlike LF2I)
+
+Test Set: 20000 observations
+  R0 range: [1.00, 10.00]
+  Recovery time (D) range: [1.00, 14.00]
+
+Credible Level: 95% (alpha=0.05)
+
+Empirical Coverage (Test Set):
+  2D coverage: 98.4% (19674/20000)
+  R0 marginal: 96.5% (19290/20000)
+  D marginal: 96.6% (19317/20000)
+
+Credible Set Sizes:
+  Mean: 89.3 grid points
+  Median: 32 grid points
+  Range: [6, 7398]
+
+Credible Set Widths:
+  R0 mean width: 0.585
+  R0 median width: 0.418
+  D mean width: 0.852
+  D median width: 0.525
+
+Point Estimate Errors (MAE):
+  R0 MAE: 0.110
+  D MAE: 0.159
+
+Probabilistic Scores (Test Set):
+  CRPS (R0): 0.0798 ± 0.0888
+  CRPS (D): 0.1172 ± 0.2143
+  Energy Score: -0.0316 ± 0.1415
+  Interval Score (R0): 0.6774 ± 1.2650
+  Interval Score (D): 1.0031 ± 2.1636
+  Log Score: -3.34 ± 1.12
+
+  Notes:
+    - Lower CRPS, Energy Score, and Interval Scores are better
+    - Higher Log Score is better
+
+======================================================================
+Comparison with LF2I:
+  - HPD: Bayesian, interpretable, no calibration
+  - LF2I: Frequentist, calibrated for coverage guarantee
+  - Both use same neural ratio estimator
+  - HPD typically has narrower intervals (may be optimistic)
+======================================================================
+
+Outputs:
+  CSV: results/phase4_evaluation/inference/tsfeatures_treefeatures_model/hpd_confidence_regions.csv
+======================================================================

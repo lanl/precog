@@ -1,0 +1,107 @@
+# Model Configuration
+# Define which NRE models to train and evaluate
+# Each model uses different input features to predict epidemic parameters
+
+# To enable/disable a model: set enabled to true/false
+# To add a new model: copy an existing block and update paths/scripts
+
+models:
+  # Phylogenetic tree statistics
+  treefeatures:
+    enabled: true
+    description: "Phylogenetic tree summary statistics"
+    
+    input_data:
+      train: "results/phase2_processing/features/treefeatures/train_treefeatures.csv"
+      test: "results/phase2_processing/features/treefeatures/test_treefeatures.csv"
+    
+    prep_script: "phase3_training/prepare_treefeatures.py"
+    
+    train_data:
+      train: "results/training_data/treefeatures_train.npz"
+      test: "results/training_data/treefeatures_test.npz"
+    
+    model:
+      best: "results/models/treefeatures_best.pt"
+      final: "results/models/treefeatures_final.pt"
+      log: "results/models/treefeatures_training.csv"
+    
+    eval:
+      predictions: "results/evaluation/treefeatures_predictions.csv"
+      metrics: "results/evaluation/treefeatures_metrics.yaml"
+      param_scan: "results/evaluation/treefeatures_param_scan.csv"
+
+  # Time series features from case count trajectories
+  tsfeatures:
+    enabled: true
+    description: "Time series features from case count trajectories (49 features, 2 constant STL features removed)"
+    
+    input_data:
+      train: "results/phase2_processing/features/tsfeatures/train_tsfeatures.csv"
+      test: "results/phase2_processing/features/tsfeatures/test_tsfeatures.csv"
+    
+    prep_script: "phase3_training/prepare_tsfeatures.py"
+    
+    train_data:
+      train: "results/training_data/tsfeatures_train.npz"
+      test: "results/training_data/tsfeatures_test.npz"
+    
+    model:
+      best: "results/models/tsfeatures_best.pt"
+      final: "results/models/tsfeatures_final.pt"
+      log: "results/models/tsfeatures_training.csv"
+    
+    eval:
+      predictions: "results/evaluation/tsfeatures_predictions.csv"
+      metrics: "results/evaluation/tsfeatures_metrics.yaml"
+      param_scan: "results/evaluation/tsfeatures_param_scan.csv"
+
+  # Combined: TSFeatures + Tree statistics (NEW DEFAULT MODEL)
+  tsfeatures_treefeatures:
+    enabled: true
+    description: "Combined tsfeatures (49, 2 constant STL features removed) + tree statistics (51) = 100 features"
+    
+    input_data:
+      train: "results/phase2_processing/features/tsfeatures_treefeatures/train_tsfeatures_treefeatures.csv"
+      test: "results/phase2_processing/features/tsfeatures_treefeatures/test_tsfeatures_treefeatures.csv"
+    
+    prep_script: "phase3_training/prepare_tsfeatures_treefeatures.py"
+    
+    train_data:
+      train: "results/training_data/tsfeatures_treefeatures_train.npz"
+      test: "results/training_data/tsfeatures_treefeatures_test.npz"
+    
+    model:
+      best: "results/models/tsfeatures_treefeatures_best.pt"
+      final: "results/models/tsfeatures_treefeatures_final.pt"
+      log: "results/models/tsfeatures_treefeatures_training.csv"
+    
+    eval:
+      predictions: "results/evaluation/tsfeatures_treefeatures_predictions.csv"
+      metrics: "results/evaluation/tsfeatures_treefeatures_metrics.yaml"
+      param_scan: "results/evaluation/tsfeatures_treefeatures_param_scan.csv"
+
+# To add a new model, follow this template:
+#  my_model:
+#    enabled: true
+#    description: "Brief description of input features"
+#    
+#    input_data:
+#      train: "results/my_data/train.csv"
+#      test: "results/my_data/test.csv"
+#    
+#    prep_script: "phase3_training/prepare_my_model.py"
+#    
+#    train_data:
+#      train: "results/training_data/my_model_train.npz"
+#      test: "results/training_data/my_model_test.npz"
+#    
+#    model:
+#      best: "results/models/my_model_best.pt"
+#      final: "results/models/my_model_final.pt"
+#      log: "results/models/my_model_training.csv"
+#    
+#    eval:
+#      predictions: "results/evaluation/my_model_predictions.csv"
+#      metrics: "results/evaluation/my_model_metrics.yaml"
+#      param_scan: "results/evaluation/my_model_param_scan.csv"

@@ -1,0 +1,29 @@
+n_simulations: 100
+n_converged: 80
+convergence_rate: 0.8
+method: bayes
+alpha: 0.05
+nominal_coverage: 0.95
+R0:
+  mae: 0.5302394
+  rmse: 0.7893243
+  bias: -0.1083541
+  coverage_95: 0.3375
+  mean_interval_width: 0.4352389
+  mean_interval_score: 14.2923074
+  mean_rhat: 1.0134394
+  mean_ess_bulk: 482.9085247
+D:
+  mae: 0.8723491
+  rmse: 1.4742176
+  bias: -0.1948634
+  coverage_95: 0.4125
+  mean_interval_width: 1.2959015
+  mean_interval_score: 17.8547254
+  mean_rhat: 1.0136702
+  mean_ess_bulk: 482.7888825
+diagnostics:
+  mean_divergences: 0.01
+  mean_max_treedepth: 0.0
+  prop_rhat_ok: 0.99
+  prop_ess_ok: 0.8

@@ -1,0 +1,21 @@
+# tsfeatures Benchmark Configuration
+
+# Time series lengths to test (in time points)
+series_lengths:
+  - 100
+  - 500
+  - 1000
+
+# Timeout for each feature (seconds)
+timeout: 30
+
+# Number of replicates for timing
+n_replicates: 3
+
+# Classification thresholds (seconds)
+thresholds:
+  fast: 0.1      # Features faster than this are "fast"
+  slow: 1.0      # Features slower than this are "slow"
+
+# Time series properties
+frequency: 1     # Daily data (non-seasonal)

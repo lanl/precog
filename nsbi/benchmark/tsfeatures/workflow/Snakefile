@@ -1,0 +1,25 @@
+"""
+tsfeatures Benchmark Workflow
+
+Systematically benchmark time series features to identify fast, fixed-length features.
+"""
+
+rule all:
+    """Run complete benchmark"""
+    input:
+        "results/benchmark_results.csv",
+        "results/fast_features.txt"
+    default_target: True
+
+rule run_benchmark:
+    """Benchmark all tsfeatures functions"""
+    output:
+        results="results/benchmark_results.csv",
+        fast_list="results/fast_features.txt",
+        fast_rdata="results/fast_features.RData"
+    log:
+        "logs/benchmark_tsfeatures.log"
+    conda:
+        "../../workflow/envs/r-tsfeatures.yaml"
+    script:
+        "scripts/benchmark_tsfeatures.R"

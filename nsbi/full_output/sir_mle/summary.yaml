@@ -1,0 +1,20 @@
+n_simulations: 20000
+n_converged: 20000
+convergence_rate: 1.0
+method: mle
+alpha: 0.05
+nominal_coverage: 0.95
+R0:
+  mae: 0.4963042
+  rmse: 0.8265368
+  bias: -0.0326053
+  coverage_95: 0.32965
+  mean_interval_width: 0.411308
+  mean_interval_score: 13.6616193
+D:
+  mae: 1.0346023
+  rmse: 1.9728795
+  bias: -0.4194922
+  coverage_95: 0.47655
+  mean_interval_width: 1.3923521
+  mean_interval_score: 25.6523457

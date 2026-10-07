@@ -1,0 +1,11 @@
+# Benchmark configuration
+tree_sizes:
+  - 1000
+  - 5000
+  - 10000
+
+# Timeout for slow statistics (seconds)
+timeout: 30
+
+# Number of replicates for fast statistics
+n_replicates: 3

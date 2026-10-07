@@ -1,0 +1,141 @@
+Registered S3 method overwritten by 'quantmod':
+  method            from
+  as.zoo.data.frame zoo 
+=== tsfeatures Benchmarking Suite ===
+
+Configuration:
+  Series lengths: 100, 500, 1000
+  Timeout: 30 seconds
+  Fast threshold: 0.10 seconds
+  Slow threshold: 1.00 seconds
+  Replicates: 3
+  Frequency: 1 (daily)
+
+Total features to test: 18
+
+====================================================================== 
+Testing with series length: 100 time points
+====================================================================== 
+
+  Testing acf_features (n=100)... 0.0030 sec (±0.0040)
+  Testing arch_stat (n=100)... 0.0003 sec (±0.0000)
+  Testing crossing_points (n=100)... 0.0000 sec (±0.0000)
+  Testing entropy (n=100)... 0.0002 sec (±0.0000)
+  Testing flat_spots (n=100)... 0.0000 sec (±0.0000)
+  Testing heterogeneity (n=100)... 0.0013 sec (±0.0001)
+  Testing holt_parameters (n=100)... 0.0024 sec (±0.0008)
+  Testing hw_parameters (n=100)... 0.0000 sec (±0.0000)
+  Testing lumpiness (n=100)... 0.0002 sec (±0.0000)
+  Testing max_kl_shift (n=100)... 0.0024 sec (±0.0002)
+  Testing max_level_shift (n=100)... 0.0000 sec (±0.0000)
+  Testing max_var_shift (n=100)... 0.0001 sec (±0.0000)
+  Testing nonlinearity (n=100)... 0.0014 sec (±0.0001)
+  Testing pacf_features (n=100)... 0.0013 sec (±0.0001)
+  Testing stl_features (n=100)... 0.0022 sec (±0.0002)
+  Testing stability (n=100)... 0.0002 sec (±0.0000)
+  Testing unitroot_kpss (n=100)... 0.0002 sec (±0.0000)
+  Testing unitroot_pp (n=100)... 0.0005 sec (±0.0000)
+
+====================================================================== 
+Testing with series length: 500 time points
+====================================================================== 
+
+  Testing acf_features (n=500)... 0.0009 sec (±0.0001)
+  Testing arch_stat (n=500)... 0.0006 sec (±0.0000)
+  Testing crossing_points (n=500)... 0.0000 sec (±0.0000)
+  Testing entropy (n=500)... 0.0005 sec (±0.0000)
+  Testing flat_spots (n=500)... 0.0000 sec (±0.0000)
+  Testing heterogeneity (n=500)... 0.0023 sec (±0.0003)
+  Testing holt_parameters (n=500)... 0.0044 sec (±0.0005)
+  Testing hw_parameters (n=500)... 0.0000 sec (±0.0000)
+  Testing lumpiness (n=500)... 0.0004 sec (±0.0000)
+  Testing max_kl_shift (n=500)... 0.0055 sec (±0.0003)
+  Testing max_level_shift (n=500)... 0.0000 sec (±0.0000)
+  Testing max_var_shift (n=500)... 0.0001 sec (±0.0000)
+  Testing nonlinearity (n=500)... 0.0008 sec (±0.0000)
+  Testing pacf_features (n=500)... 0.0012 sec (±0.0001)
+  Testing stl_features (n=500)... 0.0026 sec (±0.0001)
+  Testing stability (n=500)... 0.0004 sec (±0.0000)
+  Testing unitroot_kpss (n=500)... 0.0002 sec (±0.0000)
+  Testing unitroot_pp (n=500)... 0.0006 sec (±0.0000)
+
+====================================================================== 
+Testing with series length: 1000 time points
+====================================================================== 
+
+  Testing acf_features (n=1000)... 0.0012 sec (±0.0000)
+  Testing arch_stat (n=1000)... 0.0011 sec (±0.0000)
+  Testing crossing_points (n=1000)... 0.0001 sec (±0.0000)
+  Testing entropy (n=1000)... 0.0013 sec (±0.0001)
+  Testing flat_spots (n=1000)... 0.0001 sec (±0.0000)
+  Testing heterogeneity (n=1000)... 0.0035 sec (±0.0005)
+  Testing holt_parameters (n=1000)... 0.0121 sec (±0.0043)
+  Testing hw_parameters (n=1000)... 0.0000 sec (±0.0000)
+  Testing lumpiness (n=1000)... 0.0007 sec (±0.0000)
+  Testing max_kl_shift (n=1000)... 0.0096 sec (±0.0001)
+  Testing max_level_shift (n=1000)... 0.0001 sec (±0.0000)
+  Testing max_var_shift (n=1000)... 0.0002 sec (±0.0000)
+  Testing nonlinearity (n=1000)... 0.0010 sec (±0.0000)
+  Testing pacf_features (n=1000)... 0.0012 sec (±0.0000)
+  Testing stl_features (n=1000)... 0.0030 sec (±0.0001)
+  Testing stability (n=1000)... 0.0007 sec (±0.0000)
+  Testing unitroot_kpss (n=1000)... 0.0003 sec (±0.0000)
+  Testing unitroot_pp (n=1000)... 0.0008 sec (±0.0000)
+
+====================================================================== 
+ANALYSIS: Fast, Fixed-Length Features
+====================================================================== 
+
+Results for series with 1000 time points:
+  Fast features (< 0.1s): 18
+  Moderate features (0.1-1.0s): 0
+  Slow features (> 1.0s): 0
+  Variable-length features (excluded): 0
+  Timed out features (>30s): 0
+  Skipped features (slow on shorter series): 0
+
+--- Time Estimates for 1000 time points ---
+Time to compute ALL successful features: 0.04 seconds
+Time to compute FAST features only: 0.04 seconds
+Speedup: 1.0x faster
+Time saved per series: 0.00 seconds
+
+--- Projections for Large Datasets ---
+For 10000 series:
+  All features: 0.1 hours
+  Fast only: 0.1 hours (1.0x faster)
+For 20000 series:
+  All features: 0.2 hours
+  Fast only: 0.2 hours (1.0x faster)
+For 50000 series:
+  All features: 0.5 hours
+  Fast only: 0.5 hours (1.0x faster)
+
+✓ Fast features list saved to: results/fast_features.txt
+
+--- Fast Features (fixed-length, < 0.1s) ---
+ 1. hw_parameters: 0.0000 sec (output length: NA)
+ 2. flat_spots: 0.0001 sec (output length: NA)
+ 3. crossing_points: 0.0001 sec (output length: NA)
+ 4. max_level_shift: 0.0001 sec (output length: NA)
+ 5. max_var_shift: 0.0002 sec (output length: NA)
+ 6. unitroot_kpss: 0.0003 sec (output length: NA)
+ 7. stability: 0.0007 sec (output length: NA)
+ 8. lumpiness: 0.0007 sec (output length: NA)
+ 9. unitroot_pp: 0.0008 sec (output length: NA)
+10. nonlinearity: 0.0010 sec (output length: NA)
+11. arch_stat: 0.0011 sec (output length: NA)
+12. acf_features: 0.0012 sec (output length: NA)
+13. pacf_features: 0.0012 sec (output length: NA)
+14. entropy: 0.0013 sec (output length: NA)
+15. stl_features: 0.0030 sec (output length: NA)
+16. heterogeneity: 0.0035 sec (output length: NA)
+17. max_kl_shift: 0.0096 sec (output length: NA)
+18. holt_parameters: 0.0121 sec (output length: NA)
+
+=== Benchmark complete! ===
+
+✓ Results saved to: results/benchmark_results.csv
+
+Error: object 'output_length' not found
+Execution halted

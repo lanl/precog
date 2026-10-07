@@ -1,0 +1,49 @@
+<!-- Stochastic SIR trajectory simulation. -->
+
+<beast version="2.0" namespace="beast.base.inference.parameter:beast.base.inference:remaster">
+
+    <param id="r0" spec="RealParameter" value="1.5"/>
+    <param id="recovery_time" spec="RealParameter" value="1.0"/>
+    
+    <param id="recovery_rate" spec="feast.expressions.ExpCalculator" value="1/recovery_time">
+      <arg idref="recovery_time"/>
+    </param>
+
+    <param id="infection_rate" spec="feast.expressions.ExpCalculator" value="r0*recovery_rate">
+      <arg idref="r0"/>
+      <arg idref="recovery_rate"/>
+    </param>
+
+    <run spec="Simulator" nSims="10">
+        <simulate spec="SimulatedTree" id="tree">
+            <trajectory spec="StochasticTrajectory" id="SIRTrajectory" mustHave="R&gt;10">
+                <population spec="RealParameter" id="S" value="1000"/>
+                <population spec="RealParameter" id="I" value="1"/>
+                <samplePopulation spec="RealParameter" id="R" value="0"/>
+
+                <reaction spec="Reaction" rate="0.01"> S + I -> 2I </reaction>
+                <reaction spec="Reaction" rate="2.0"> I -> R </reaction>
+            </trajectory>
+        </simulate>
+
+
+        <logger spec="Logger"  fileName="$(filebase).params">
+            <log idref="r0"/>
+            <log idref="recovery_time"/>
+            <log idref="recovery_rate"/>
+            <log idref="infection_rate"/>
+        </logger>
+
+
+        <logger spec="Logger" fileName="$(filebase).traj">
+            <log idref="SIRTrajectory"/>
+        </logger>
+
+        <logger spec="Logger" mode="tree" fileName="$(filebase).full.trees">
+          <log spec="TypedTreeLogger" tree="@tree" />
+        </logger>
+
+    </run>
+</beast>
+
+

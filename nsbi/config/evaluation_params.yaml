@@ -1,0 +1,20 @@
+# ============================================================================
+# Evaluation Parameters Configuration
+# ============================================================================
+
+# Parameter scan grid resolution
+param_scan_r0_points: 30
+param_scan_recovery_time_points: 30
+
+# Batch size for parameter scan evaluation (test cases per batch)
+param_scan_batch_size: 500
+
+# ============================================================================
+# Uncertainty Quantification Methods
+# ============================================================================
+# Specify which uncertainty methods to run:
+# - 'hpd': Highest Posterior Density (Bayesian credible regions, no calibration)
+# - 'lf2i': Learning-to-Infer (frequentist confidence sets, requires calibration)
+# Default: ['hpd'] for faster execution
+# To run both: ['hpd', 'lf2i']
+uncertainty_methods: ['hpd']

@@ -1,0 +1,22 @@
+name: neural_sbi_r_tsfeatures
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - r-base>=4.0
+  # tsfeatures package and its dependencies
+  - r-tsfeatures
+  - r-forecast
+  - r-fracdiff
+  - r-rcpp
+  - r-rcpparmadillo
+  - r-urca
+  - r-timedate
+  # r-timsac removed - not available for osx-arm64 and not required by r-tsfeatures
+  - r-tseries
+  - r-zoo
+  # General R utilities
+  - r-magrittr
+  - r-purrr
+  - r-tibble

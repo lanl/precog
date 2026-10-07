@@ -1,0 +1,43 @@
+name: neural_sbi_r_treestats
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - r-base>=4.0
+  - r-ape
+  # Install all major dependencies from conda to avoid compilation issues
+  - r-igraph
+  - r-phangorn
+  - r-mass
+  - r-matrix
+  - r-rcpp
+  - r-rcppeigen
+  - r-rcpparmadillo
+  - r-cli
+  - r-rlang
+  - r-lifecycle
+  - r-vctrs
+  - r-glue
+  - r-magrittr
+  - r-foreach
+  - r-doparallel
+  - r-expm
+  - r-coda
+  - r-deoptim
+  - r-nloptr
+  - r-numderiv
+  - r-fastmap
+  - r-bh
+  - r-cachem
+  - r-memoise
+  - r-sparsem
+  - r-phytools
+  - r-gmp
+  - r-desolve
+  - r-rspectra
+  # Note: parallel package is part of base R, no need to install separately
+  # Note: Only 5 packages remain to install via CRAN (not available in conda):
+  #   pso, subplex, treebalance, DDD, treestats
+  # These are installed once by setup_r_treestats rule to avoid race conditions
+  # With 31 major dependencies pre-installed from conda, only 5 small packages compile
