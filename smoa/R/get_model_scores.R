@@ -3,6 +3,7 @@
 # save the output to a csv.
 ## Author: GC Gibson and AC Murph
 
+library(here)
 library(covidHubUtils)
 library(dplyr)
 library(spatstat)
@@ -44,7 +45,7 @@ for (model_idx in 1:length(model_list)){
       types = c("point","quantile"),
       targets = inc_case_targets,
       source = "local_hub_repo",
-      hub_repo_path = '~/GitHub/covid19-forecast-hub',
+      hub_repo_path = here::here("..",'covid19-forecast-hub'),
       # verbose = FALSE,
       horizon=1:4,
       locations = state.name,
@@ -59,12 +60,12 @@ forecasts_case                          <- do.call(rbind,forecasts_case_model_re
 forecasts_case                          <- forecasts_case[nchar(forecasts_case$location) <= 2, ]
 scores                                  <- score_forecasts(
   forecasts = forecasts_case,
-  metrics = c("abs_error", "wis"),
+  metrics = c("abs_error", "wis", "wis_components"),
   return_format = "wide",
   truth = truth_data
 )
 
 
 mean(scores[scores$location == "06",]$abs_error)
-write.csv(x=scores,file = "data/scores_tot_w_deaths.csv")
+write.csv(x = scores, file = here::here("smoa", "data", "scores_tot_w_wis_components.csv"))
 

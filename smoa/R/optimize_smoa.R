@@ -21,10 +21,9 @@ library(parallel)
 library(doParallel)
 library(collapse)
 library(ParBayesianOptimization)
-setwd("~/GitLab/smoa")
-source("R/smoa_helpers.R")
-source('R/vecchia_scaled.R')
-source("R/parallel_bayesian_optimization.R")
+library(here)
+source(here::here("smoa", "R", "smoa_helpers.R"))
+source(here::here("smoa", "R", "parallel_bayesian_optimization.R"))
 set.seed(13)
 
 num_cores                            <- 99
@@ -65,8 +64,7 @@ fit_model_wrapper = function(input_vector){
   library(ggridges)
   library(utils)
   library(deSolve)
-  source("R/smoa_helpers.R")
-  source('R/vecchia_scaled.R')
+  source(here::here("smoa", "R", "smoa_helpers.R"))
   h                                  <- 4
   types_of_curves                    <- c("sir_rollercoaster", "sir_rollercoaster_wiggle", 'seasonal')
   N                                  <- num_curves*length(types_of_curves)
@@ -82,7 +80,7 @@ fit_model_wrapper = function(input_vector){
                        library(data.table)
                        library(LearnBayes)
                        library(LaplacesDemon)
-                       source("R/smoa_helpers.R")
+                       source(here::here("smoa", "R", "smoa_helpers.R"))
                        
                        curve_type     <- types_of_curves[rep(c(1:length(types_of_curves)), each = num_curves)][i]
                        templist       <- gen_curve(curve_type)
@@ -112,7 +110,7 @@ fit_model_wrapper = function(input_vector){
                        library(data.table)
                        library(LearnBayes)
                        library(LaplacesDemon)
-                       source("R/smoa_helpers.R")
+                       source(here::here("smoa", "R", "smoa_helpers.R"))
                        
                        curve_type     <- types_of_curves[rep(c(1:length(types_of_curves)), each = floor(num_curves/1000) )][i]
                        templist       <- gen_curve(curve_type)
@@ -130,26 +128,6 @@ fit_model_wrapper = function(input_vector){
    }
    sim_ts_test <- sim_ts_test_new
    sim_ts_test_new <- NULL
- 
-  #save(X, file = "X.RData")
-  #save(y, file = "y.RData")
-  #save(X_test, file = "X_test.RData")
-  #save(y_test, file = "y_test.RData")
-  #save(X_diff, file = "X_diff.RData")
-  #save(y_diff, file = "y_diff.RData")
-  #save(sim_ts_test, file = 'sim_ts_test.RData')
-  #save(X_diff_test, file = "X_diff_test.RData")
-  #save(y_diff_test, file = "y_diff_test.RData")
-
-  #load(file = "X.RData")
-  #load(file = "y.RData")
-  #load(file = "X_test.RData")
-  #load(file = "y_test.RData")
-  #load(file = "X_diff.RData")
-  #load(file = "y_diff.RData")
-  #load(file = 'sim_ts_test.RData')
-  #load(file = "X_diff_test.RData")
-  #load(file = "y_diff_test.RData")
 
   wis_dump                           <- c()
   mae_dump                           <- c()
@@ -310,7 +288,7 @@ fit_model_wrapper = function(input_vector){
   }
   }
   }
-  return(list(Score = mean(wis_dump, na.rm = T)))
+  return(list(Score = mean(mae_dump, na.rm = T)))
 }
 
 num_cores = 99
@@ -332,4 +310,4 @@ opt_model = parallel_bayesian_optimization(fit_model_wrapper,
 
 print(opt_model)
 
-write.csv(data.frame(best_params=opt_model) , file = paste('murph_best_params', '.csv', sep = ""))
+write.csv(data.frame(best_params=opt_model), file = here::here("smoa", "best_params.csv"))

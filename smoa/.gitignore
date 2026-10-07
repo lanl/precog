@@ -2,11 +2,13 @@ logfiles
 .Rhistory
 .DS_Store
 SLURMOUT
-data
-!data/scores_tot.csv
-!data/state_census.csv
-!data/tdat_list_tot_weekly.csv
-!data/state_truths
+# Ignore all data/ except small essential input files
+# Note: scores_tot_w_wis_components.csv (100MB) and tdat_list_tot_weekly.csv (5.5GB)
+# are too large for git - generate them by running their respective R scripts
+data/*
+!data/hub_locations*.rda
+!data/state_truths/
+!data/state_truths/*.RData
 .RData
 initial_lhs.RData
 synthetic_X_diff.RData

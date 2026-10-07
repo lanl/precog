@@ -12,15 +12,15 @@ library(tidyverse)
 library(parallel)
 library(doParallel)
 theme_set(theme_bw())
-setwd("~/GitLab/smoa")
+library(here)
 
-scores                          <- read.csv("data/scores_tot.csv")
+scores                          <- read.csv(here::here("smoa", "data", "scores_tot.csv"))
 names_of_models  <- unique(scores$model)
 models_to_label <- c("COVIDhub-baseline", "COVIDhub-4_week_ensemble","COVIDhub-trained_ensemble")
 
-file_with_results                                                                                  <- "data/k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records"
-file_with_results_wOnlineHistories                                                                 <- "data/wHistories_k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records"
-file_with_results_wOnlyHistory                                                                     <- "data/wOnlyHistories_k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records"
+file_with_results <- here::here("smoa", "data", "k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records")
+file_with_results_wOnlineHistories <- here::here("smoa", "data", "wHistories_k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records")
+file_with_results_wOnlyHistory <- here::here("smoa", "data", "wOnlyHistories_k_5_num_curves_18387_closest_4422_dispersion_10000_mlebound_10000_state_records")
 
 h <- 4
 max_y_lim <- 13000
@@ -422,14 +422,14 @@ row2 <- ggplot() + annotate(geom = 'text', x=1, y=1, label='bold("sMOA with Onli
 row3 <- ggplot() + annotate(geom = 'text', x=1, y=1, label='bold("Classic MOA")', angle = 90, size = 5.8, parse = TRUE) + theme_void() 
 
 
-layoutplot <- "
+layoutplot <- ")
 aeeeeeeeeeeeggggggggggg
 aeeeeeeeeeeeggggggggggg
 bdddddddddddfffffffffff
 bdddddddddddfffffffffff
 chhhhhhhhhhhiiiiiiiiiii
 chhhhhhhhhhhiiiiiiiiiii
-"
+")
 
 plotlist <- list(a = row1, b = row2, c = row3, 
                  e= point_plot_1, g=point_plot_2,

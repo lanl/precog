@@ -1,0 +1,8 @@
+PKG_CPPFLAGS = -I../inst/include
+CXX_STD = CXX17
+
+# OpenMP
+PKG_CXXFLAGS += -fopenmp
+
+# IMPORTANT: keep R's LAPACK/BLAS/Fortran libs in the link line
+PKG_LIBS += -fopenmp $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)

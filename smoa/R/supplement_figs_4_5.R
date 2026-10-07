@@ -10,6 +10,7 @@
 ### Results Visualization ###
 #############################
 #############################
+library(here)
 library(ggplot2)
 library(data.table)
 library(GGally)
@@ -20,7 +21,6 @@ library(this.path)
 library(patchwork)
 library(gridExtra)
 library(latex2exp)
-setwd(paste0(this.path::here(),"/../"))
 theme_set(theme_classic())
 
 output_path = 'data/evaluations/'
@@ -141,7 +141,7 @@ for(i in 1:length(FILES)){
 }
 
 ### Read in COVID Results from Murph
-load(paste0("data/mae_comparison_data.RData"))
+load(here::here("smoa", "data", "mae_comparison_data.RData"))
 mae_comparison_data = mae_comparison_data[mae_comparison_data$model == 'COVIDhub-baseline',]
 mae_comparison_data$obs = mae_comparison_data$abs_error_model + mae_comparison_data$true_values
 mae_comparison_data$fcst_smoa = mae_comparison_data$abs_error_smoa + mae_comparison_data$true_values

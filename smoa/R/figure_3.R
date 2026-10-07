@@ -1,6 +1,7 @@
 # Visualizations for the coverage analysis in the sMOA paper.
 ## Author: Alexander C. Murph
 ## Date: October 2024
+library(here)
 library(lhs)
 library(mgcv)
 library(ggplot2)
@@ -22,10 +23,9 @@ library(gridExtra)
 library(ggExtra)
 library(dplyr)
 library(this.path)
-setwd(paste0(this.path::here(),"/../"))
-source("R/smoa_helpers.R")
+source(here::here("smoa", "R", "smoa_helpers.R"))
 
-data_path = 'data/coverage_data'
+data_path <- here::here("smoa", "data", "coverage_data")
 
 coverage_values = c("1%",
                     "2.5%",
@@ -40,7 +40,7 @@ coverage_values = c("1%",
                     "45%")
 coverage_data <- NULL
 for(file_name in list.files(data_path)){
-  temp_coverage_data = read.csv(paste(data_path, '/', file_name, sep = ''))
+  temp_coverage_data <- read.csv(file.path(data_path, file_name))
   temp_coverage_data$X = rep(coverage_values, 4*length(unique(temp_coverage_data$Date)))
   temp_f = function(x){as.numeric(unlist(strsplit(x, split="%"))[1])}
   temp_coverage_data$Nominal_Coverage = (100 - 2*sapply(temp_coverage_data$X,temp_f))/100

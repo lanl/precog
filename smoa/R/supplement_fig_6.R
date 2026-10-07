@@ -1,6 +1,7 @@
 ## Dave Osthus and AC Murph
 ## 12-17-24
 ## view embeddings
+library(here)
 library(ggplot2)
 library(data.table)
 library(umap)
@@ -9,14 +10,13 @@ library(ggExtra)
 library(gridExtra)
 library(this.path)
 library(grid)
-setwd(paste0(this.path::here(),"/../"))
 theme_set(theme_bw())
 
-savepath <- "data/embed_synthetic_w_data"
-filepath_covid <- "data/forecasting_23-26/embed_synthetic_w_data/"
-filepath_other <- "data/forecasting_23-26/embed_synthetic_w_data/embeddings_for_murph/"
-realpath <- "data/forecasting_23-26/embed_synthetic_w_data/embeddings_for_murph/"
-load("data/forecasting_23-26/embed_synthetic_w_data/synthetic_X.RData")
+savepath <- here::here("smoa", "data", "embed_synthetic_w_data")
+filepath_covid <- here::here("smoa", "data", "forecasting_23-26", "embed_synthetic_w_data")
+filepath_other <- here::here("smoa", "data", "forecasting_23-26", "embed_synthetic_w_data", "embeddings_for_murph")
+realpath <- here::here("smoa", "data", "forecasting_23-26", "embed_synthetic_w_data", "embeddings_for_murph")
+load(here::here("smoa", "data", "forecasting_23-26", "embed_synthetic_w_data", "synthetic_X.RData"))
 
 ## pick 100k rows of synthetic data
 set.seed(75600)
